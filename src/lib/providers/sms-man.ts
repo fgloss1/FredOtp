@@ -181,7 +181,7 @@ async function resolveApplicationId(serviceSlug: string): Promise<number> {
   return Number(match.id);
 }
 
-function findCheapest(
+function findPrice(
   table: SmsManPriceTable,
   countryId: number,
   applicationId: number,
@@ -213,7 +213,7 @@ export const smsMan: OtpProvider = {
       `${BASE_URL}/get-prices?token=${encodeURIComponent(apiToken)}&country_id=${countryId}`,
     );
 
-    const row = findCheapest(prices, countryId, applicationId);
+    const row = findPrice(prices, countryId, applicationId);
 
     return {
       provider: "sms-man",
@@ -233,14 +233,14 @@ export const smsMan: OtpProvider = {
 
     const countryId = await resolveCountryId(countryCode);
     const applicationId = await resolveApplicationId(serviceSlug);
-    const maxPrice = maxCostCents == null ? null : (maxCostCents / 100).toFixed(2);
+    const maxPrice = maxCostCents == null ? null : Math.max(0, Math.floor(maxCostCents / 100));
     const params = new URLSearchParams({
       token: apiToken,
       country_id: String(countryId),
       application_id: String(applicationId),
       currency: CURRENCY,
     });
-    if (maxPrice) params.set("maxPrice", maxPrice);
+    if (maxPrice != null) params.set("maxPrice", String(maxPrice));
 
     const order = await jsonRequest<SmsManNumberResponse>(
       `${BASE_URL}/get-number?${params.toString()}`,
@@ -250,13 +250,11 @@ export const smsMan: OtpProvider = {
       throw new Error("SMS-Man returned an invalid order.");
     }
 
-    const quotedCost = maxCostCents ?? 0;
-
     return {
       provider: "sms-man",
       orderId: String(order.request_id),
       phoneNumber: order.number,
-      costCents: quotedCost,
+      costCents: maxCostCents ?? 0,
       currency: CURRENCY,
       status: "PENDING",
     };
