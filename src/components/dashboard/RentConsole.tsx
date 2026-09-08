@@ -113,43 +113,52 @@ export function RentConsole({
   async function rent() {
     setBusy(true);
     setError(null);
-    const response = await fetch("/api/rentals", {
-      method: "POST",
-      headers: { "Content-Type": "application/json" },
-      body: JSON.stringify({ serviceId, countryId }),
-    });
-    const data = (await response.json()) as {
-      rental?: RentalView;
-      balanceCents?: number;
-      error?: string;
-    };
-    if (!response.ok || !data.rental) {
-      setError(data.error ?? "Could not rent that number.");
+
+    try {
+      const response = await fetch("/api/rentals", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ serviceId, countryId }),
+      });
+      const data = (await response.json()) as {
+        rental?: RentalView;
+        balanceCents?: number;
+        error?: string;
+      };
+      if (!response.ok || !data.rental) {
+        setError(data.error ?? "Could not rent that number.");
+        return;
+      }
+      setRentals((current) => [data.rental as RentalView, ...current]);
+      if (typeof data.balanceCents === "number") setBalance(data.balanceCents);
+      router.refresh();
+    } catch {
+      setError("Could not reach the rental service. Please try again.");
+    } finally {
       setBusy(false);
-      return;
     }
-    setRentals((current) => [data.rental as RentalView, ...current]);
-    if (typeof data.balanceCents === "number") setBalance(data.balanceCents);
-    setBusy(false);
-    router.refresh();
   }
 
   async function cancel(id: number) {
-    const response = await fetch(`/api/rentals/${id}`, { method: "DELETE" });
-    const data = (await response.json()) as {
-      rental?: RentalView;
-      balanceCents?: number;
-      error?: string;
-    };
-    if (!response.ok) {
-      setError(data.error ?? "Could not cancel.");
-      return;
+    try {
+      const response = await fetch(`/api/rentals/${id}`, { method: "DELETE" });
+      const data = (await response.json()) as {
+        rental?: RentalView;
+        balanceCents?: number;
+        error?: string;
+      };
+      if (!response.ok) {
+        setError(data.error ?? "Could not cancel.");
+        return;
+      }
+      if (data.rental) {
+        setRentals((current) => current.map((item) => (item.id === id ? data.rental! : item)));
+      }
+      if (typeof data.balanceCents === "number") setBalance(data.balanceCents);
+      router.refresh();
+    } catch {
+      setError("Could not reach the rental service. Please try again.");
     }
-    if (data.rental) {
-      setRentals((current) => current.map((item) => (item.id === id ? data.rental! : item)));
-    }
-    if (typeof data.balanceCents === "number") setBalance(data.balanceCents);
-    router.refresh();
   }
 
   async function copy(value: string, key: string) {
@@ -290,7 +299,7 @@ export function RentConsole({
             <button
               type="button"
               onClick={rent}
-              disabled={busy || !offer || (offer?.stock ?? 0) <= 0}
+              disabled={busy || !offer}
               className="glow-btn mt-5 w-full rounded-xl bg-gradient-to-r from-mint-500 to-brand-500 py-3.5 text-sm font-extrabold text-ink-950 transition hover:brightness-110 disabled:cursor-not-allowed disabled:opacity-50"
             >
               {busy ? "Reserving number…" : `Rent number · ${usd(price)}`}
@@ -420,5 +429,4 @@ function Row({ label, value, muted = false }: { label: string; value: string; mu
     </div>
   );
 }
-
 
