@@ -1,4 +1,4 @@
-﻿import {
+import {
   boolean,
   index,
   integer,
@@ -116,6 +116,11 @@ export const rentals = pgTable(
     createdAt: timestamp("created_at", { withTimezone: true }).notNull().defaultNow(),
     expiresAt: timestamp("expires_at", { withTimezone: true }).notNull(),
     receivedAt: timestamp("received_at", { withTimezone: true }),
+    provider: varchar("provider", { length: 32 }),
+    providerOrderId: varchar("provider_order_id", { length: 80 }),
+    providerCostMinor: integer("provider_cost_minor"),
+    providerCostCurrency: varchar("provider_cost_currency", { length: 8 }),
+    providerStatus: varchar("provider_status", { length: 32 }),
   },
   (table) => [index("rentals_user_idx").on(table.userId, table.createdAt)],
 );
@@ -171,6 +176,4 @@ export type Service = typeof services.$inferSelect;
 export type Offer = typeof offers.$inferSelect;
 export type Rental = typeof rentals.$inferSelect;
 export type Transaction = typeof transactions.$inferSelect;
-
 export type Payment = typeof payments.$inferSelect;
-
