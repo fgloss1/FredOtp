@@ -193,12 +193,13 @@ export async function createRental(
 
       return { ok: true, rental: view, balanceCents: outcome.balanceCents };
     } catch (error) {
-      lastError = error;
+      const detail = error instanceof Error ? error.message.trim() : "Unknown supplier error.";
+      lastError = new Error(`${provider.name}: ${detail || "Unknown supplier error."}`);
     }
   }
 
   if (lastError instanceof Error) throw lastError;
-  throw new Error("All eligible OTP suppliers failed to provide a number.");
+  throw new Error("No supplier could complete the rental.");
 }
 
 function providerStatusToRentalStatus(status: string): "waiting" | "received" | "cancelled" | "expired" {
