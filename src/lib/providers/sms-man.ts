@@ -22,6 +22,25 @@ const COUNTRY_OVERRIDE_KEYS: Record<string, string> = {
   UA: "SMSMAN_COUNTRY_UA",
 };
 
+const COUNTRY_NAMES: Record<string, string[]> = {
+  NG: ["nigeria"],
+  US: ["usa", "united states", "united states of america"],
+  GB: ["england", "united kingdom", "great britain"],
+  CA: ["canada"],
+  GH: ["ghana"],
+  KE: ["kenya"],
+  ZA: ["south africa"],
+  EG: ["egypt"],
+  IN: ["india"],
+  PH: ["philippines"],
+  ID: ["indonesia"],
+  DE: ["germany"],
+  FR: ["france"],
+  NL: ["netherlands", "the netherlands"],
+  BR: ["brazil"],
+  UA: ["ukraine"],
+};
+
 function token(): string | null {
   return process.env.SMSMAN_API_TOKEN?.trim() || null;
 }
@@ -117,35 +136,18 @@ async function getApplications(): Promise<SmsManApplication[]> {
 }
 
 async function resolveCountryId(countryCode: string): Promise<number> {
-  const overrideKey = COUNTRY_OVERRIDE_KEYS[countryCode.toUpperCase()];
+  const normalized = countryCode.toUpperCase();
+  const overrideKey = COUNTRY_OVERRIDE_KEYS[normalized];
   const override = overrideKey ? process.env[overrideKey]?.trim() : null;
   if (override && /^\d+$/.test(override)) return Number(override);
 
-  const countries = await getCountries();
-  const upperCode = countryCode.toUpperCase();
-  const dialCodeMap: Record<string, string> = {
-    NG: "nigeria",
-    US: "usa",
-    GB: "england",
-    CA: "canada",
-    GH: "ghana",
-    KE: "kenya",
-    ZA: "south africa",
-    EG: "egypt",
-    IN: "india",
-    PH: "philippines",
-    ID: "indonesia",
-    DE: "germany",
-    FR: "france",
-    NL: "netherlands",
-    BR: "brazil",
-    UA: "ukraine",
-  };
-  const expected = dialCodeMap[upperCode];
+  const expectedNames = COUNTRY_NAMES[normalized];
+  if (!expectedNames) throw new Error(`SMS-Man country mapping is missing for ${countryCode}.`);
 
+  const countries = await getCountries();
   const match = countries.find((item) => {
     const title = String(item.title ?? item.name_en ?? "").trim().toLowerCase();
-    return expected != null && title === expected;
+    return expectedNames.includes(title);
   });
 
   if (!match) throw new Error(`SMS-Man country mapping is missing for ${countryCode}.`);
@@ -162,7 +164,7 @@ async function resolveApplicationId(serviceSlug: string): Promise<number> {
     gmail: ["google", "gmail"],
     google: ["google"],
     outlook: ["microsoft", "outlook"],
-    microsoft: ["microsoft"],
+    microsoft: ["microsoft", "outlook"],
     whatsapp: ["whatsapp"],
     telegram: ["telegram"],
   };
@@ -181,17 +183,20 @@ async function resolveApplicationId(serviceSlug: string): Promise<number> {
 
 function findCheapest(
   table: SmsManPriceTable,
+  countryId: number,
   applicationId: number,
 ): { cost: number; count: number } | null {
-  const countryRows = table[String(applicationId)];
+  const countryRows = table[String(countryId)];
   if (!countryRows) return null;
 
-  const candidates = Object.values(countryRows)
-    .map((row) => ({ cost: Number(row.cost), count: Number(row.count) }))
-    .filter((row) => row.count > 0 && Number.isFinite(row.cost));
+  const row = countryRows[String(applicationId)];
+  if (!row) return null;
 
-  if (candidates.length === 0) return null;
-  return candidates.reduce((best, row) => (row.cost < best.cost ? row : best));
+  const cost = Number(row.cost);
+  const count = Number(row.count);
+  if (count <= 0 || !Number.isFinite(cost)) return null;
+
+  return { cost, count };
 }
 
 export const smsMan: OtpProvider = {
@@ -208,7 +213,7 @@ export const smsMan: OtpProvider = {
       `${BASE_URL}/get-prices?token=${encodeURIComponent(apiToken)}&country_id=${countryId}`,
     );
 
-    const row = findCheapest(prices, applicationId);
+    const row = findCheapest(prices, countryId, applicationId);
 
     return {
       provider: "sms-man",
