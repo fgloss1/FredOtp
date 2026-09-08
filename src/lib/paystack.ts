@@ -1,6 +1,7 @@
 import { createHmac, timingSafeEqual } from "node:crypto";
 
 const PAYSTACK_API = "https://api.paystack.co";
+const PAYSTACK_REQUEST_TIMEOUT_MS = 15000;
 
 export type PaystackInitializeResponse = {
   status: boolean;
@@ -54,22 +55,50 @@ export function verifyWebhookSignature(rawBody: string, signature: string | null
   return timingSafeEqual(provided, actual);
 }
 
-async function paystackFetch<T>(path: string, init: RequestInit): Promise<T> {
-  const response = await fetch(`${PAYSTACK_API}${path}`, {
-    ...init,
-    headers: {
-      Authorization: `Bearer ${secretKey()}`,
-      "Content-Type": "application/json",
-      ...(init.headers ?? {}),
-    },
-    cache: "no-store",
-  });
+async function paystackFetch<T>(path: string, init: RequestInit = {}): Promise<T> {
+  const controller = new AbortController();
+  const timer = setTimeout(() => controller.abort(), PAYSTACK_REQUEST_TIMEOUT_MS);
 
-  const payload = (await response.json()) as T & { message?: string };
-  if (!response.ok) {
-    throw new Error(payload.message || `Paystack request failed with HTTP ${response.status}`);
+  try {
+    const response = await fetch(`${PAYSTACK_API}${path}`, {
+      ...init,
+      signal: controller.signal,
+      headers: {
+        Authorization: `Bearer ${secretKey()}`,
+        "Content-Type": "application/json",
+        ...(init.headers ?? {}),
+      },
+      cache: "no-store",
+    });
+
+    const text = await response.text();
+    let payload: (T & { message?: string }) | null = null;
+
+    if (text) {
+      try {
+        payload = JSON.parse(text) as T & { message?: string };
+      } catch {
+        payload = null;
+      }
+    }
+
+    if (!response.ok) {
+      throw new Error(payload?.message || `Paystack request failed with HTTP ${response.status}`);
+    }
+
+    if (!payload) {
+      throw new Error("Paystack returned an invalid response.");
+    }
+
+    return payload as T;
+  } catch (error) {
+    if (error instanceof Error && error.name === "AbortError") {
+      throw new Error("Paystack request timed out after 15 seconds.");
+    }
+    throw error;
+  } finally {
+    clearTimeout(timer);
   }
-  return payload;
 }
 
 export async function initializePaystackTransaction(input: {
