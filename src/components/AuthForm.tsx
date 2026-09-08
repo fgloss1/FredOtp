@@ -1,4 +1,4 @@
-﻿"use client";
+"use client";
 
 import Link from "next/link";
 import { useRouter } from "next/navigation";
@@ -105,7 +105,7 @@ export function AuthForm({ mode, next }: { mode: Mode; next?: string }) {
         disabled={busy}
         className="glow-btn w-full rounded-xl bg-gradient-to-r from-mint-500 to-brand-500 py-3.5 text-sm font-extrabold text-ink-950 transition hover:brightness-110 disabled:opacity-60"
       >
-        {busy ? "Please waitâ€¦" : mode === "login" ? "Sign in" : "Create account"}
+        {busy ? "Please wait..." : mode === "login" ? "Sign in" : "Create account"}
       </button>
 
       <p className="text-center text-sm text-slate-500">
