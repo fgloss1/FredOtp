@@ -1,0 +1,35 @@
+import { eq } from "drizzle-orm";
+import { db } from "@/db";
+import { payments } from "@/db/schema";
+import { getCurrentUser } from "@/lib/auth";
+import { fulfillPaystackPayment } from "@/lib/payments";
+
+export const dynamic = "force-dynamic";
+
+export async function GET(request: Request) {
+  const user = await getCurrentUser();
+  if (!user) return Response.json({ error: "Sign in required." }, { status: 401 });
+
+  const url = new URL(request.url);
+  const reference = url.searchParams.get("reference")?.trim();
+  if (!reference) return Response.json({ error: "Payment reference is required." }, { status: 400 });
+
+  const [payment] = await db
+    .select({ id: payments.id })
+    .from(payments)
+    .where(eq(payments.reference, reference))
+    .limit(1);
+
+  if (!payment) return Response.json({ error: "Payment not found." }, { status: 404 });
+
+  const result = await fulfillPaystackPayment(reference, user.id);
+  if (!result.ok) return Response.json({ error: result.error }, { status: 400 });
+
+  return Response.json({
+    ok: true,
+    alreadyFulfilled: result.alreadyFulfilled,
+    balanceCents: result.balanceCents,
+    bonusCents: result.bonusCents,
+    amountCents: result.amountCents,
+  });
+}
