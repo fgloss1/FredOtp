@@ -1,7 +1,8 @@
 import type { OtpProvider, ProviderOrder, ProviderQuote } from "@/lib/providers/types";
 import { fiveSim } from "@/lib/providers/five-sim";
+import { smsMan } from "@/lib/providers/sms-man";
 
-const providers: OtpProvider[] = [fiveSim];
+const providers: OtpProvider[] = [fiveSim, smsMan];
 
 export async function getProviderQuotes(input: {
   countryCode: string;
@@ -44,35 +45,25 @@ export async function buyCheapestProvider(input: {
     throw new Error("No supplier currently has an available number for this service and country.");
   }
 
-  const provider = providers.find((item) => item.name === eligible[0].provider);
-  if (!provider) throw new Error("Selected supplier is not configured.");
+  let lastError: unknown = null;
 
-  const cheapestCost = eligible[0].costCents ?? undefined;
+  for (const quote of eligible) {
+    const provider = providers.find((item) => item.name === quote.provider);
+    if (!provider) continue;
 
-  try {
-    return await provider.buy({
-      countryCode: input.countryCode,
-      serviceSlug: input.serviceSlug,
-      maxCostCents: cheapestCost,
-    });
-  } catch (firstError) {
-    for (const quote of eligible.slice(1)) {
-      const fallback = providers.find((item) => item.name === quote.provider);
-      if (!fallback) continue;
-
-      try {
-        return await fallback.buy({
-          countryCode: input.countryCode,
-          serviceSlug: input.serviceSlug,
-          maxCostCents: quote.costCents ?? undefined,
-        });
-      } catch {
-        // Try the next eligible supplier.
-      }
+    try {
+      return await provider.buy({
+        countryCode: input.countryCode,
+        serviceSlug: input.serviceSlug,
+        maxCostCents: quote.costCents ?? undefined,
+      });
+    } catch (error) {
+      lastError = error;
     }
-
-    throw firstError;
   }
+
+  if (lastError instanceof Error) throw lastError;
+  throw new Error("All eligible OTP suppliers failed to provide a number.");
 }
 
 export function getProvider(name: string): OtpProvider {
