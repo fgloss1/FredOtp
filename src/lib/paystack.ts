@@ -65,9 +65,9 @@ async function paystackFetch<T>(path: string, init: RequestInit): Promise<T> {
     cache: "no-store",
   });
 
-  const payload = (await response.json()) as T;
+  const payload = (await response.json()) as T & { message?: string };
   if (!response.ok) {
-    throw new Error(`Paystack request failed with HTTP ${response.status}`);
+    throw new Error(payload.message || `Paystack request failed with HTTP ${response.status}`);
   }
   return payload;
 }

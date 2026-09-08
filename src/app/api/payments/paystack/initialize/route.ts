@@ -95,6 +95,7 @@ export async function POST(request: Request) {
   } catch (error) {
     console.error(error);
     await db.update(payments).set({ status: "failed" }).where(eq(payments.reference, paymentReference));
-    return Response.json({ error: "Could not initialize payment." }, { status: 502 });
+    const message = error instanceof Error ? error.message : "Unknown Paystack error";
+    return Response.json({ error: message }, { status: 502 });
   }
 }
