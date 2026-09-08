@@ -130,7 +130,7 @@ export default async function HomePage() {
               <div className="absolute inset-0 -z-10 rounded-[2.5rem] bg-gradient-to-br from-emerald-500/20 via-cyan-500/10 to-indigo-500/20 blur-3xl" />
               <div className="card overflow-hidden p-3">
                 <Image
-                  src="/images/hero-otp.png"
+                  src="/images/hero-otp.svg"
                   alt="Virtual phone receiving a one-time passcode"
                   width={900}
                   height={900}
