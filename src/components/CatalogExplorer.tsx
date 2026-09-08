@@ -263,7 +263,7 @@ export function CatalogExplorer({
         <div className="flex flex-col gap-4 lg:flex-row lg:items-center">
           <div className="relative flex-1">
             <span className="pointer-events-none absolute left-3.5 top-1/2 -translate-y-1/2 text-slate-500">
-              ðŸ”
+              Ã°Å¸â€Â
             </span>
 
             <input
@@ -576,7 +576,7 @@ export function CatalogExplorer({
             0 && (
             <div className="col-span-full rounded-2xl border border-dashed border-white/10 p-10 text-center">
               <p className="font-bold text-white">
-                No services match "{query}".
+                No services match &quot;{query}&quot;.
               </p>
 
               <p className="mt-2 text-sm text-slate-500">
@@ -688,7 +688,7 @@ export function CatalogExplorer({
                               </Link>
                             ) : (
                               <span className="text-slate-700">
-                                â€”
+                                Ã¢â‚¬â€
                               </span>
                             )}
                           </td>
