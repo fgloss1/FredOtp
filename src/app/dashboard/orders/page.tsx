@@ -4,7 +4,8 @@ import { shortDate, usd } from "@/lib/format";
 import { statusLabel, statusTone } from "@/lib/otp";
 import { getUserRentals } from "@/lib/queries";
 import { syncActiveRentals } from "@/lib/rental-engine";
-import { countryFlag, serviceIcon } from "@/lib/visuals";
+import { countryFlag } from "@/lib/visuals";
+import { ServiceBrandIcon } from "@/components/ServiceBrandIcon";
 
 export const dynamic = "force-dynamic";
 
@@ -53,7 +54,7 @@ export default async function OrdersPage() {
               {rentals.map((rental) => (
                 <tr key={rental.id} className="border-b border-white/5 last:border-0 hover:bg-white/[0.03]">
                   <td className="whitespace-nowrap px-4 py-3.5">
-                    <span className="mr-2">{serviceIcon(rental.serviceSlug)}</span>
+                    <span className="mr-2"><ServiceBrandIcon slug={rental.serviceSlug} name={rental.serviceName} size="sm" /></span>
                     <span className="font-semibold text-white">{rental.serviceName}</span>
                     <span className="ml-2 text-xs text-slate-500">
                       {countryFlag(rental.countryCode)} {rental.countryName}

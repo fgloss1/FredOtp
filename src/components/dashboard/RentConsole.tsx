@@ -5,7 +5,7 @@ import { useRouter } from "next/navigation";
 import { useCallback, useEffect, useMemo, useRef, useState } from "react";
 import { countdown, ngn, usd } from "@/lib/format";
 import { ServiceBrandIcon } from "@/components/ServiceBrandIcon";
-import { countryFlag, serviceIcon } from "@/lib/visuals";
+import { countryFlag } from "@/lib/visuals";
 import { statusLabel, statusTone } from "@/lib/otp";
 import type { Catalog, RentalView } from "@/lib/queries";
 
@@ -225,7 +225,7 @@ export function RentConsole({
                   }`}
                 >
                   <span className="flex min-w-0 items-center gap-2.5">
-                    <span className="text-lg">{serviceIcon(item.slug)}</span>
+                    <ServiceBrandIcon slug={item.slug} name={item.name} size="sm" />
                     <span className="min-w-0">
                       <span className="block truncate text-sm font-semibold text-white">
                         {item.name}
@@ -253,13 +253,14 @@ export function RentConsole({
         <section className="card h-fit p-5 sm:p-6">
           <h3 className="text-sm font-bold uppercase tracking-wider text-slate-500">Order summary</h3>
           <div className="mt-4 flex items-center gap-3 rounded-xl bg-white/[0.03] p-3">
-            <span className="grid h-11 w-11 place-items-center rounded-xl bg-white/5 text-xl ring-1 ring-white/10">
-              {service?.icon ?? "📱"}
-            </span>
+            <ServiceBrandIcon
+              slug={service?.slug ?? "other"}
+              name={service?.name ?? "Service"}
+            />
             <div>
               <p className="text-sm font-bold text-white">{service?.name ?? "Select a service"}</p>
               <p className="text-xs text-slate-500">
-                {country?.flag} {country?.name} · {country?.dialCode}
+                {country ? countryFlag(country.code) : ""} {country?.name} · {country?.dialCode}
               </p>
             </div>
           </div>
@@ -331,9 +332,10 @@ export function RentConsole({
               <article key={rental.id} className="card p-4 sm:p-5">
                 <div className="flex flex-wrap items-start justify-between gap-3">
                   <div className="flex items-center gap-3">
-                    <span className="grid h-11 w-11 place-items-center rounded-xl bg-white/5 text-xl ring-1 ring-white/10">
-                      {serviceIcon(rental.serviceSlug)}
-                    </span>
+                    <ServiceBrandIcon
+                      slug={rental.serviceSlug}
+                      name={rental.serviceName}
+                    />
                     <div>
                       <p className="text-sm font-bold text-white">
                         {rental.serviceName}{" "}

@@ -5,6 +5,7 @@ import { useMemo, useState } from "react";
 import type { Catalog } from "@/lib/queries";
 import { usd } from "@/lib/format";
 import { ServiceBrandIcon } from "@/components/ServiceBrandIcon";
+import { countryFlag } from "@/lib/visuals";
 
 type Props = {
   catalog: Catalog;
@@ -299,7 +300,7 @@ export function CatalogExplorer({
                       key={country.id}
                       value={country.id}
                     >
-                      {country.flag}{" "}
+                      {countryFlag(country.code)}{" "}
                       {country.name}{" "}
                       ({country.dialCode})
                     </option>
@@ -563,10 +564,7 @@ export function CatalogExplorer({
                     className="mt-4 block rounded-xl border border-emerald-400/25 bg-emerald-400/10 py-2.5 text-center text-sm font-bold text-emerald-300 transition hover:bg-emerald-400 hover:text-ink-950"
                   >
                     Rent{" "}
-                    {
-                      activeCountry?.flag ??
-                      ""
-                    }{" "}
+                    {activeCountry ? countryFlag(activeCountry.code) : ""}{" "}
                     number
                   </Link>
                 </div>
@@ -621,9 +619,7 @@ export function CatalogExplorer({
                       }
                     >
                       <span className="mr-1">
-                        {
-                          country.flag
-                        }
+                        {countryFlag(country.code)}
                       </span>
                       {
                         country.code
