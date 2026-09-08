@@ -1,6 +1,7 @@
 import type { OtpProvider, ProviderOrder, ProviderQuote, ProviderSms } from "@/lib/providers/types";
 
 const BASE_URL = "https://5sim.net/v1";
+const PROVIDER_REQUEST_TIMEOUT_MS = 15000;
 
 const COUNTRY_MAP: Record<string, string> = {
   NG: "nigeria",
@@ -37,7 +38,7 @@ function productName(slug: string): string {
 
   const aliases: Record<string, string> = {
     gmail: "google",
-    "google": "google",
+    google: "google",
     outlook: "microsoft",
     microsoft: "microsoft",
   };
@@ -46,35 +47,48 @@ function productName(slug: string): string {
 }
 
 async function jsonRequest<T>(url: string, init?: RequestInit): Promise<T> {
-  const response = await fetch(url, {
-    ...init,
-    headers: {
-      Accept: "application/json",
-      ...(init?.headers ?? {}),
-    },
-    cache: "no-store",
-  });
+  const controller = new AbortController();
+  const timer = setTimeout(() => controller.abort(), PROVIDER_REQUEST_TIMEOUT_MS);
 
-  const text = await response.text();
-  let data: unknown = null;
+  try {
+    const response = await fetch(url, {
+      ...init,
+      signal: controller.signal,
+      headers: {
+        Accept: "application/json",
+        ...(init?.headers ?? {}),
+      },
+      cache: "no-store",
+    });
 
-  if (text) {
-    try {
-      data = JSON.parse(text);
-    } catch {
-      data = null;
+    const text = await response.text();
+    let data: unknown = null;
+
+    if (text) {
+      try {
+        data = JSON.parse(text);
+      } catch {
+        data = null;
+      }
     }
-  }
 
-  if (!response.ok) {
-    const message =
-      typeof data === "object" && data !== null && typeof (data as Record<string, unknown>).message === "string"
-        ? String((data as Record<string, unknown>).message)
-        : `5SIM request failed (${response.status})`;
-    throw new Error(message);
-  }
+    if (!response.ok) {
+      const message =
+        typeof data === "object" && data !== null && typeof (data as Record<string, unknown>).message === "string"
+          ? String((data as Record<string, unknown>).message)
+          : `5SIM request failed (${response.status})`;
+      throw new Error(message);
+    }
 
-  return data as T;
+    return data as T;
+  } catch (error) {
+    if (error instanceof Error && error.name === "AbortError") {
+      throw new Error("5SIM request timed out after 15 seconds.");
+    }
+    throw error;
+  } finally {
+    clearTimeout(timer);
+  }
 }
 
 type FiveSimPriceRow = {
