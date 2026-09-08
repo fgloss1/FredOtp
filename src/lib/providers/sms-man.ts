@@ -247,7 +247,7 @@ export const smsMan: OtpProvider = {
 
     const countryId = await resolveCountryId(countryCode);
     const applicationId = await resolveApplicationId(serviceSlug);
-    const maxPrice = maxCostCents == null ? null : Math.max(0, Math.floor(maxCostCents / 100));
+    const maxPrice = maxCostCents == null ? null : Math.max(0, Math.ceil(maxCostCents / 100));
     const params = new URLSearchParams({
       token: apiToken,
       country_id: String(countryId),
