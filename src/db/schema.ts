@@ -1,42 +1,30 @@
-﻿import {
-  boolean,
-  index,
-  integer,
-  pgTable,
-  serial,
-  text,
-  timestamp,
-  uniqueIndex,
-  varchar,
-} from "drizzle-orm/pg-core";
+import { pgTable, serial, integer, varchar, text, timestamp, boolean, uniqueIndex, index } from "drizzle-orm/pg-core";
 
 export const users = pgTable(
   "users",
   {
     id: serial("id").primaryKey(),
+    email: varchar("email", { length: 320 }).notNull(),
     username: varchar("username", { length: 32 }).notNull(),
-    email: varchar("email", { length: 255 }).notNull(),
     name: varchar("name", { length: 120 }).notNull(),
     passwordHash: text("password_hash").notNull(),
     balanceCents: integer("balance_cents").notNull().default(0),
-    isAdmin: boolean("is_admin").notNull().default(false),
     createdAt: timestamp("created_at", { withTimezone: true }).notNull().defaultNow(),
   },
   (table) => [
-    uniqueIndex("users_username_unique").on(table.username),
     uniqueIndex("users_email_unique").on(table.email),
+    uniqueIndex("users_username_unique").on(table.username),
   ],
 );
 
 export const sessions = pgTable(
   "sessions",
   {
-    id: varchar("id", { length: 64 }).primaryKey(),
+    id: varchar("id", { length: 128 }).primaryKey(),
     userId: integer("user_id")
       .notNull()
       .references(() => users.id, { onDelete: "cascade" }),
     expiresAt: timestamp("expires_at", { withTimezone: true }).notNull(),
-    createdAt: timestamp("created_at", { withTimezone: true }).notNull().defaultNow(),
   },
   (table) => [index("sessions_user_idx").on(table.userId)],
 );
@@ -45,13 +33,13 @@ export const countries = pgTable(
   "countries",
   {
     id: serial("id").primaryKey(),
-    code: varchar("code", { length: 8 }).notNull(),
-    name: varchar("name", { length: 120 }).notNull(),
+    code: varchar("code", { length: 4 }).notNull(),
+    name: varchar("name", { length: 80 }).notNull(),
     dialCode: varchar("dial_code", { length: 8 }).notNull(),
     flag: varchar("flag", { length: 16 }).notNull(),
-    numberPattern: varchar("number_pattern", { length: 40 }).notNull(),
+    numberPattern: varchar("number_pattern", { length: 64 }).notNull(),
     multiplierBp: integer("multiplier_bp").notNull().default(10000),
-    region: varchar("region", { length: 60 }).notNull().default("Global"),
+    region: varchar("region", { length: 64 }).notNull(),
     active: boolean("active").notNull().default(true),
   },
   (table) => [uniqueIndex("countries_code_unique").on(table.code)],
@@ -61,11 +49,11 @@ export const services = pgTable(
   "services",
   {
     id: serial("id").primaryKey(),
-    slug: varchar("slug", { length: 80 }).notNull(),
-    name: varchar("name", { length: 120 }).notNull(),
-    category: varchar("category", { length: 60 }).notNull(),
-    icon: varchar("icon", { length: 16 }).notNull().default("ðŸ“±"),
-    accent: varchar("accent", { length: 24 }).notNull().default("#38bdf8"),
+    slug: varchar("slug", { length: 64 }).notNull(),
+    name: varchar("name", { length: 100 }).notNull(),
+    category: varchar("category", { length: 64 }).notNull(),
+    icon: varchar("icon", { length: 32 }).notNull(),
+    accent: varchar("accent", { length: 16 }).notNull(),
     basePriceCents: integer("base_price_cents").notNull(),
     smsTemplate: text("sms_template").notNull(),
     popular: boolean("popular").notNull().default(false),
@@ -116,6 +104,11 @@ export const rentals = pgTable(
     createdAt: timestamp("created_at", { withTimezone: true }).notNull().defaultNow(),
     expiresAt: timestamp("expires_at", { withTimezone: true }).notNull(),
     receivedAt: timestamp("received_at", { withTimezone: true }),
+    provider: varchar("provider", { length: 32 }),
+    providerOrderId: varchar("provider_order_id", { length: 80 }),
+    providerCostMinor: integer("provider_cost_minor"),
+    providerCostCurrency: varchar("provider_cost_currency", { length: 8 }),
+    providerStatus: varchar("provider_status", { length: 32 }),
   },
   (table) => [index("rentals_user_idx").on(table.userId, table.createdAt)],
 );
@@ -171,6 +164,4 @@ export type Service = typeof services.$inferSelect;
 export type Offer = typeof offers.$inferSelect;
 export type Rental = typeof rentals.$inferSelect;
 export type Transaction = typeof transactions.$inferSelect;
-
 export type Payment = typeof payments.$inferSelect;
-
