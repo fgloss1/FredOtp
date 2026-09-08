@@ -3,7 +3,8 @@ import { and, eq, sql } from "drizzle-orm";
 import { db } from "@/db";
 import { countries, offers, rentals, services, transactions, users } from "@/db/schema";
 import { RENTAL_WINDOW_MINUTES, renderSms } from "@/lib/otp";
-import { getProvider, buyCheapestProvider } from "@/lib/providers/router";
+import { getProvider, getProviderQuotes } from "@/lib/providers/router";
+import { customerPriceForProviderCost } from "@/lib/providers/pricing";
 import type { RentalView } from "@/lib/queries";
 
 export function reference(prefix: string): string {
@@ -66,7 +67,6 @@ export async function createRental(
     .limit(1);
 
   if (!offer) return { ok: false, error: "That service is not available in this country." };
-  if (offer.stock <= 0) return { ok: false, error: "This service is currently unavailable." };
 
   const [user] = await db
     .select({ balanceCents: users.balanceCents })
@@ -75,106 +75,130 @@ export async function createRental(
     .limit(1);
 
   if (!user) return { ok: false, error: "Account not found." };
-  if (user.balanceCents < offer.priceCents) {
-    return { ok: false, error: "Insufficient wallet balance. Please top up." };
+
+  const quotes = await getProviderQuotes({
+    countryCode: offer.countryCode,
+    serviceSlug: offer.serviceSlug,
+  });
+
+  if (quotes.length === 0) {
+    return { ok: false, error: "No supplier currently has an available number for this service and country." };
   }
 
-  let providerOrder: Awaited<ReturnType<typeof buyCheapestProvider>>;
+  let lastError: unknown = null;
 
-  try {
-    providerOrder = await buyCheapestProvider({
-      countryCode: offer.countryCode,
-      serviceSlug: offer.serviceSlug,
-      maxCostCents: offer.priceCents,
-    });
-  } catch (error) {
-    return {
-      ok: false,
-      error: error instanceof Error ? error.message : "No supplier is available right now.",
-    };
-  }
+  for (const quote of quotes) {
+    if (quote.costCents == null) continue;
 
-  try {
-    const outcome = await db.transaction(async (tx) => {
-      const [updatedUser] = await tx
-        .update(users)
-        .set({ balanceCents: sql`${users.balanceCents} - ${offer.priceCents}` })
-        .where(and(eq(users.id, userId), sql`${users.balanceCents} >= ${offer.priceCents}`))
-        .returning({ balanceCents: users.balanceCents });
+    const customerPriceCents = customerPriceForProviderCost(quote.costCents, offer.priceCents);
+    if (user.balanceCents < customerPriceCents) {
+      return {
+        ok: false,
+        error: `Insufficient wallet balance. This live supplier price is ${customerPriceCents / 100 >= 1 ? `$${(customerPriceCents / 100).toFixed(2)}` : `${customerPriceCents}¢`}.`,
+      };
+    }
 
-      if (!updatedUser) {
-        return { ok: false as const, error: "Your wallet balance changed. Please try again." };
-      }
+    const provider = getProvider(quote.provider);
 
-      const now = new Date();
-      const expiresAt = new Date(now.getTime() + RENTAL_WINDOW_MINUTES * 60 * 1000);
-
-      const [created] = await tx
-        .insert(rentals)
-        .values({
-          userId,
-          serviceId,
-          countryId,
-          phoneNumber: providerOrder.phoneNumber,
-          priceCents: offer.priceCents,
-          status: "waiting",
-          deliverAfterSeconds: 0,
-          expiresAt,
-          provider: providerOrder.provider,
-          providerOrderId: providerOrder.orderId,
-          providerCostMinor: providerOrder.costCents,
-          providerCostCurrency: providerOrder.currency,
-          providerStatus: providerOrder.status,
-        })
-        .returning({ id: rentals.id });
-
-      await tx.insert(transactions).values({
-        userId,
-        type: "purchase",
-        amountCents: -offer.priceCents,
-        description: `Number rental · ${providerOrder.phoneNumber}`,
-        reference: reference("RNT"),
+    try {
+      const providerOrder = await provider.buy({
+        countryCode: offer.countryCode,
+        serviceSlug: offer.serviceSlug,
+        maxCostCents: quote.costCents,
       });
 
-      return {
-        ok: true as const,
-        rentalId: created.id,
-        balanceCents: updatedUser.balanceCents,
-      };
-    });
+      const finalCustomerPriceCents = customerPriceForProviderCost(
+        providerOrder.costCents,
+        offer.priceCents,
+      );
 
-    if (!outcome.ok) {
-      try {
-        await getProvider(providerOrder.provider).cancel(providerOrder.orderId);
-      } catch {
-        // Best-effort supplier cleanup.
+      if (user.balanceCents < finalCustomerPriceCents) {
+        try {
+          await provider.cancel(providerOrder.orderId);
+        } catch {
+          // Best-effort supplier cleanup.
+        }
+        return {
+          ok: false,
+          error: "Your wallet balance is too low for the supplier price returned at purchase time.",
+        };
       }
-      return outcome;
-    }
 
-    const view = await getRentalView(outcome.rentalId, userId);
-    if (!view) {
-      try {
-        await getProvider(providerOrder.provider).cancel(providerOrder.orderId);
-      } catch {
-        // Best-effort supplier cleanup.
+      const outcome = await db.transaction(async (tx) => {
+        const [updatedUser] = await tx
+          .update(users)
+          .set({ balanceCents: sql`${users.balanceCents} - ${finalCustomerPriceCents}` })
+          .where(and(eq(users.id, userId), sql`${users.balanceCents} >= ${finalCustomerPriceCents}`))
+          .returning({ balanceCents: users.balanceCents });
+
+        if (!updatedUser) {
+          return { ok: false as const, error: "Your wallet balance changed. Please try again." };
+        }
+
+        const now = new Date();
+        const expiresAt = new Date(now.getTime() + RENTAL_WINDOW_MINUTES * 60 * 1000);
+
+        const [created] = await tx
+          .insert(rentals)
+          .values({
+            userId,
+            serviceId,
+            countryId,
+            phoneNumber: providerOrder.phoneNumber,
+            priceCents: finalCustomerPriceCents,
+            status: "waiting",
+            deliverAfterSeconds: 0,
+            expiresAt,
+            provider: providerOrder.provider,
+            providerOrderId: providerOrder.orderId,
+            providerCostMinor: providerOrder.costCents,
+            providerCostCurrency: providerOrder.currency,
+            providerStatus: providerOrder.status,
+          })
+          .returning({ id: rentals.id });
+
+        await tx.insert(transactions).values({
+          userId,
+          type: "purchase",
+          amountCents: -finalCustomerPriceCents,
+          description: `Number rental · ${providerOrder.phoneNumber}`,
+          reference: reference("RNT"),
+        });
+
+        return {
+          ok: true as const,
+          rentalId: created.id,
+          balanceCents: updatedUser.balanceCents,
+        };
+      });
+
+      if (!outcome.ok) {
+        try {
+          await provider.cancel(providerOrder.orderId);
+        } catch {
+          // Best-effort supplier cleanup.
+        }
+        return outcome;
       }
-      return { ok: false, error: "Could not create rental." };
-    }
 
-    return { ok: true, rental: view, balanceCents: outcome.balanceCents };
-  } catch (error) {
-    try {
-      await getProvider(providerOrder.provider).cancel(providerOrder.orderId);
-    } catch {
-      // Best-effort supplier cleanup.
-    }
+      const view = await getRentalView(outcome.rentalId, userId);
+      if (!view) {
+        try {
+          await provider.cancel(providerOrder.orderId);
+        } catch {
+          // Best-effort supplier cleanup.
+        }
+        return { ok: false, error: "Could not create rental." };
+      }
 
-    return {
-      ok: false,
-      error: error instanceof Error ? error.message : "Could not create rental.",
-    };
+      return { ok: true, rental: view, balanceCents: outcome.balanceCents };
+    } catch (error) {
+      lastError = error;
+    }
   }
+
+  if (lastError instanceof Error) throw lastError;
+  throw new Error("All eligible OTP suppliers failed to provide a number.");
 }
 
 function providerStatusToRentalStatus(status: string): "waiting" | "received" | "cancelled" | "expired" {
