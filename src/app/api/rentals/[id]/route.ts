@@ -23,10 +23,15 @@ export async function GET(_request: Request, context: { params: Promise<{ id: st
   const rentalId = Number(id);
   if (!Number.isInteger(rentalId)) return Response.json({ error: "Bad id." }, { status: 400 });
 
-  const rental = await syncRental(rentalId, user.id);
-  if (!rental) return Response.json({ error: "Rental not found." }, { status: 404 });
+  try {
+    const rental = await syncRental(rentalId, user.id);
+    if (!rental) return Response.json({ error: "Rental not found." }, { status: 404 });
 
-  return Response.json({ rental, balanceCents: await balanceOf(user.id) });
+    return Response.json({ rental, balanceCents: await balanceOf(user.id) });
+  } catch (error) {
+    console.error("Rental detail sync error", error);
+    return Response.json({ error: "Could not load this rental right now. Please try again." }, { status: 503 });
+  }
 }
 
 export async function DELETE(_request: Request, context: { params: Promise<{ id: string }> }) {
@@ -37,9 +42,16 @@ export async function DELETE(_request: Request, context: { params: Promise<{ id:
   const rentalId = Number(id);
   if (!Number.isInteger(rentalId)) return Response.json({ error: "Bad id." }, { status: 400 });
 
-  const result = await cancelRental(rentalId, user.id);
-  if (!result.ok) return Response.json({ error: result.error }, { status: 400 });
+  try {
+    const result = await cancelRental(rentalId, user.id);
+    if (!result.ok) return Response.json({ error: result.error }, { status: 400 });
 
-  const rental = await getRentalView(rentalId, user.id);
-  return Response.json({ rental, balanceCents: await balanceOf(user.id) });
+    const rental = await getRentalView(rentalId, user.id);
+    if (!rental) return Response.json({ error: "Rental no longer exists." }, { status: 404 });
+
+    return Response.json({ rental, balanceCents: await balanceOf(user.id) });
+  } catch (error) {
+    console.error("Rental cancellation error", error);
+    return Response.json({ error: "Could not cancel this rental right now. Please try again." }, { status: 503 });
+  }
 }
