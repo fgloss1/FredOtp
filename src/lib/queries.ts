@@ -1,4 +1,4 @@
-import { desc, eq, sql } from "drizzle-orm";
+﻿import { desc, eq, sql } from "drizzle-orm";
 import { db } from "@/db";
 import { countries, offers, rentals, services, transactions } from "@/db/schema";
 
@@ -171,3 +171,4 @@ export async function getPlatformStats() {
     delivered: (row?.delivered ?? 0) + 184213,
   };
 }
+

@@ -1,9 +1,10 @@
-"use client";
+﻿"use client";
 
 import Link from "next/link";
 import { useMemo, useState } from "react";
 import type { Catalog } from "@/lib/queries";
 import { ngn, usd } from "@/lib/format";
+import { countryFlag, serviceIcon } from "@/lib/visuals";
 
 type Props = {
   catalog: Catalog;
@@ -71,12 +72,12 @@ export function CatalogExplorer({
         <div className="flex flex-col gap-4 lg:flex-row lg:items-center">
           <div className="relative flex-1">
             <span className="pointer-events-none absolute left-3.5 top-1/2 -translate-y-1/2 text-slate-500">
-              🔍
+              ðŸ”
             </span>
             <input
               value={query}
               onChange={(event) => setQuery(event.target.value)}
-              placeholder="Search Match, Zoosk, Gmail, PayPal, Venmo…"
+              placeholder="Search Match, Zoosk, Gmail, PayPal, Venmoâ€¦"
               className="w-full rounded-xl border border-white/10 bg-ink-900/80 py-3 pl-10 pr-4 text-sm text-white placeholder:text-slate-600 focus:border-emerald-400/50 focus:outline-none"
             />
           </div>
@@ -92,7 +93,7 @@ export function CatalogExplorer({
             >
               {countries.map((country) => (
                 <option key={country.id} value={country.id}>
-                  {country.flag} {country.name} ({country.dialCode})
+                  {countryFlag(country.code)} {country.name} ({country.dialCode})
                 </option>
               ))}
             </select>
@@ -150,7 +151,7 @@ export function CatalogExplorer({
                 />
                 <div className="flex items-start justify-between">
                   <span className="grid h-11 w-11 place-items-center rounded-xl bg-white/5 text-xl ring-1 ring-white/10">
-                    {service.icon}
+                    {serviceIcon(service.slug)}
                   </span>
                   {service.popular && (
                     <span className="rounded-full bg-emerald-400/10 px-2 py-1 text-[10px] font-bold uppercase tracking-wide text-emerald-300 ring-1 ring-emerald-400/25">
@@ -177,14 +178,14 @@ export function CatalogExplorer({
                   href={ctaHref(service.slug)}
                   className="mt-4 block rounded-xl border border-emerald-400/25 bg-emerald-400/10 py-2.5 text-center text-sm font-bold text-emerald-300 transition hover:bg-emerald-400 hover:text-ink-950"
                 >
-                  Rent {activeCountry?.flag} number
+                  Rent {activeCountry ? countryFlag(activeCountry.code) : "number"} number
                 </Link>
               </div>
             );
           })}
           {visibleServices.length === 0 && (
             <p className="col-span-full py-12 text-center text-sm text-slate-500">
-              No services match “{query}”. Try another keyword.
+              No services match â€œ{query}â€. Try another keyword.
             </p>
           )}
         </div>
@@ -202,7 +203,7 @@ export function CatalogExplorer({
                     className="whitespace-nowrap px-3 py-3 text-center text-xs font-bold text-slate-400"
                     title={country.name}
                   >
-                    <span className="mr-1">{country.flag}</span>
+                    <span className="mr-1">{countryFlag(country.code)}</span>
                     {country.code}
                   </th>
                 ))}
@@ -212,7 +213,7 @@ export function CatalogExplorer({
               {visibleServices.map((service) => (
                 <tr key={service.id} className="border-b border-white/5 hover:bg-white/[0.03]">
                   <td className="sticky left-0 z-10 whitespace-nowrap bg-ink-900/95 px-4 py-3 font-semibold text-white">
-                    <span className="mr-2">{service.icon}</span>
+                    <span className="mr-2">{serviceIcon(service.slug)}</span>
                     {service.name}
                   </td>
                   {countries.map((country) => {
@@ -231,7 +232,7 @@ export function CatalogExplorer({
                             {usd(offer.priceCents)}
                           </Link>
                         ) : (
-                          <span className="text-slate-700">—</span>
+                          <span className="text-slate-700">â€”</span>
                         )}
                       </td>
                     );
@@ -245,3 +246,4 @@ export function CatalogExplorer({
     </div>
   );
 }
+

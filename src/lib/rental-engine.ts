@@ -1,4 +1,4 @@
-import { randomBytes } from "node:crypto";
+﻿import { randomBytes } from "node:crypto";
 import { and, eq, sql } from "drizzle-orm";
 import { db } from "@/db";
 import { countries, offers, rentals, services, transactions, users } from "@/db/schema";
@@ -113,7 +113,7 @@ export async function createRental(
       userId,
       type: "purchase",
       amountCents: -offer.priceCents,
-      description: `Number rental · ${phoneNumber}`,
+      description: `Number rental Â· ${phoneNumber}`,
       reference: reference("RNT"),
     });
 
@@ -174,7 +174,7 @@ export async function syncRental(rentalId: number, userId: number): Promise<Rent
         userId,
         type: "refund",
         amountCents: rental.priceCents,
-        description: `Auto refund · no SMS on ${rental.phoneNumber}`,
+        description: `Auto refund Â· no SMS on ${rental.phoneNumber}`,
         reference: reference("REF"),
       });
     }
@@ -206,7 +206,7 @@ export async function cancelRental(
       userId,
       type: "refund",
       amountCents: rental.priceCents,
-      description: `Refund · cancelled ${rental.phoneNumber}`,
+      description: `Refund Â· cancelled ${rental.phoneNumber}`,
       reference: reference("REF"),
     });
     await tx
@@ -227,3 +227,4 @@ export async function syncActiveRentals(userId: number): Promise<void> {
     await syncRental(row.id, userId);
   }
 }
+

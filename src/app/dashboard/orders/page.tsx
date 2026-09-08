@@ -1,9 +1,10 @@
-import Link from "next/link";
+﻿import Link from "next/link";
 import { requireUser } from "@/lib/auth";
 import { shortDate, usd } from "@/lib/format";
 import { statusLabel, statusTone } from "@/lib/otp";
 import { getUserRentals } from "@/lib/queries";
 import { syncActiveRentals } from "@/lib/rental-engine";
+import { countryFlag, serviceIcon } from "@/lib/visuals";
 
 export const dynamic = "force-dynamic";
 
@@ -31,7 +32,7 @@ export default async function OrdersPage() {
 
       {rentals.length === 0 ? (
         <div className="card p-12 text-center">
-          <p className="text-4xl">🧾</p>
+          <p className="text-4xl">ðŸ§¾</p>
           <p className="mt-3 font-semibold text-white">No rentals yet</p>
           <p className="mt-1 text-sm text-slate-500">Your rental history will appear here.</p>
         </div>
@@ -52,10 +53,10 @@ export default async function OrdersPage() {
               {rentals.map((rental) => (
                 <tr key={rental.id} className="border-b border-white/5 last:border-0 hover:bg-white/[0.03]">
                   <td className="whitespace-nowrap px-4 py-3.5">
-                    <span className="mr-2">{rental.serviceIcon}</span>
+                    <span className="mr-2">{serviceIcon(rental.serviceSlug)}</span>
                     <span className="font-semibold text-white">{rental.serviceName}</span>
                     <span className="ml-2 text-xs text-slate-500">
-                      {rental.countryFlag} {rental.countryName}
+                      {countryFlag(rental.countryCode)} {rental.countryName}
                     </span>
                   </td>
                   <td className="whitespace-nowrap px-4 py-3.5 font-mono text-slate-300">
@@ -67,7 +68,7 @@ export default async function OrdersPage() {
                         {rental.otpCode}
                       </span>
                     ) : (
-                      <span className="text-slate-600">—</span>
+                      <span className="text-slate-600">â€”</span>
                     )}
                   </td>
                   <td className="whitespace-nowrap px-4 py-3.5">
@@ -90,3 +91,4 @@ export default async function OrdersPage() {
     </div>
   );
 }
+

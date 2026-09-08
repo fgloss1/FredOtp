@@ -1,4 +1,4 @@
-"use client";
+﻿"use client";
 
 import Link from "next/link";
 import { useRouter } from "next/navigation";
@@ -169,7 +169,7 @@ export function RentConsole({
             <div>
               <h2 className="text-lg font-black text-white">Rent a number</h2>
               <p className="text-sm text-slate-500">
-                {catalog.services.length} services · {catalog.countries.length} countries
+                {catalog.services.length} services Â· {catalog.countries.length} countries
               </p>
             </div>
             <span className="rounded-lg border border-white/10 px-3 py-1.5 text-xs font-bold text-slate-300">
@@ -189,7 +189,7 @@ export function RentConsole({
               >
                 {catalog.countries.map((item) => (
                   <option key={item.id} value={item.id}>
-                    {item.flag} {item.name} ({item.dialCode})
+                    {countryFlag(item.code)} {item.name} ({item.dialCode})
                   </option>
                 ))}
               </select>
@@ -201,7 +201,7 @@ export function RentConsole({
               <input
                 value={query}
                 onChange={(event) => setQuery(event.target.value)}
-                placeholder="match, zoosk, paypal…"
+                placeholder="match, zoosk, paypalâ€¦"
                 className="w-full rounded-xl border border-white/12 bg-ink-950/70 px-3 py-3 text-sm text-white placeholder:text-slate-600 outline-none focus:border-emerald-400/60"
               />
             </div>
@@ -223,7 +223,7 @@ export function RentConsole({
                   }`}
                 >
                   <span className="flex min-w-0 items-center gap-2.5">
-                    <span className="text-lg">{item.icon}</span>
+                    <span className="text-lg">{serviceIcon(item.slug)}</span>
                     <span className="min-w-0">
                       <span className="block truncate text-sm font-semibold text-white">
                         {item.name}
@@ -241,7 +241,7 @@ export function RentConsole({
             })}
             {filteredServices.length === 0 && (
               <p className="col-span-full py-6 text-center text-sm text-slate-500">
-                Nothing matches “{query}”.
+                Nothing matches â€œ{query}â€.
               </p>
             )}
           </div>
@@ -252,12 +252,12 @@ export function RentConsole({
           <h3 className="text-sm font-bold uppercase tracking-wider text-slate-500">Order summary</h3>
           <div className="mt-4 flex items-center gap-3 rounded-xl bg-white/[0.03] p-3">
             <span className="grid h-11 w-11 place-items-center rounded-xl bg-white/5 text-xl ring-1 ring-white/10">
-              {service?.icon ?? "📱"}
+              {service?.icon ?? "ðŸ“±"}
             </span>
             <div>
               <p className="text-sm font-bold text-white">{service?.name ?? "Select a service"}</p>
               <p className="text-xs text-slate-500">
-                {country?.flag} {country?.name} · {country?.dialCode}
+                {country?.flag} {country?.name} Â· {country?.dialCode}
               </p>
             </div>
           </div>
@@ -290,7 +290,7 @@ export function RentConsole({
               disabled={busy || !offer || (offer?.stock ?? 0) <= 0}
               className="glow-btn mt-5 w-full rounded-xl bg-gradient-to-r from-mint-500 to-brand-500 py-3.5 text-sm font-extrabold text-ink-950 transition hover:brightness-110 disabled:cursor-not-allowed disabled:opacity-50"
             >
-              {busy ? "Reserving number…" : `Rent number · ${usd(price)}`}
+              {busy ? "Reserving numberâ€¦" : `Rent number Â· ${usd(price)}`}
             </button>
           )}
           <p className="mt-3 text-center text-[11px] leading-relaxed text-slate-500">
@@ -311,13 +311,13 @@ export function RentConsole({
             )}
           </h2>
           <Link href="/dashboard/orders" className="text-xs font-semibold text-emerald-300 hover:underline">
-            View all rentals →
+            View all rentals â†’
           </Link>
         </div>
 
         {rentals.length === 0 ? (
           <div className="card p-10 text-center">
-            <p className="text-3xl">📭</p>
+            <p className="text-3xl">ðŸ“­</p>
             <p className="mt-3 text-sm font-semibold text-white">No rentals yet</p>
             <p className="mt-1 text-sm text-slate-500">
               Pick a service and country above to receive your first OTP.
@@ -330,12 +330,12 @@ export function RentConsole({
                 <div className="flex flex-wrap items-start justify-between gap-3">
                   <div className="flex items-center gap-3">
                     <span className="grid h-11 w-11 place-items-center rounded-xl bg-white/5 text-xl ring-1 ring-white/10">
-                      {rental.serviceIcon}
+                      {serviceIcon(rental.serviceSlug)}
                     </span>
                     <div>
                       <p className="text-sm font-bold text-white">
                         {rental.serviceName}{" "}
-                        <span className="text-slate-500">· {rental.countryFlag} {rental.countryName}</span>
+                        <span className="text-slate-500">Â· {rental.countryFlag} {rental.countryName}</span>
                       </p>
                       <button
                         type="button"
@@ -364,7 +364,7 @@ export function RentConsole({
                   <div className="mt-4 flex flex-wrap items-center justify-between gap-3 rounded-xl border border-amber-400/20 bg-amber-400/[0.06] px-4 py-3">
                     <div className="flex items-center gap-2.5 text-sm text-amber-200">
                       <span className="h-2 w-2 rounded-full bg-amber-400 pulse-ring" />
-                      Listening for SMS… expires in{" "}
+                      Listening for SMSâ€¦ expires in{" "}
                       <span className="font-mono font-bold">{countdown(rental.expiresAt)}</span>
                     </div>
                     <button
@@ -416,3 +416,4 @@ function Row({ label, value, muted = false }: { label: string; value: string; mu
     </div>
   );
 }
+

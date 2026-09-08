@@ -1,4 +1,4 @@
-import Image from "next/image";
+﻿import Image from "next/image";
 import Link from "next/link";
 import { CatalogExplorer } from "@/components/CatalogExplorer";
 import { SectionHeading } from "@/components/Section";
@@ -7,34 +7,35 @@ import { SiteHeader } from "@/components/SiteHeader";
 import { getCurrentUser } from "@/lib/auth";
 import { ngn, usd } from "@/lib/format";
 import { getCatalog, getPlatformStats } from "@/lib/queries";
+import { countryFlag, serviceIcon } from "@/lib/visuals";
 
 export const dynamic = "force-dynamic";
 
 const STEPS = [
   {
-    icon: "🌍",
+    icon: "ðŸŒ",
     title: "Pick service + country",
     body: "Choose Match, Zoosk, Gmail, PayPal, Venmo or 30+ other platforms, then select a Nigerian, US, UK, Ghanaian or Indian number pool.",
   },
   {
-    icon: "📲",
+    icon: "ðŸ“²",
     title: "Get a live number instantly",
     body: "A dedicated number is reserved for you in under a second, held for 15 minutes while you paste it into the signup form.",
   },
   {
-    icon: "🔐",
+    icon: "ðŸ”",
     title: "Read the OTP, done",
     body: "The inbound SMS lands in your dashboard automatically. No code inside the window? You get an automatic, full refund.",
   },
 ];
 
 const FEATURES = [
-  { icon: "⚡", title: "8–20 second delivery", body: "Direct carrier routes keep median OTP delivery under 20 seconds, even on Nigerian MTN and Airtel ranges." },
-  { icon: "💸", title: "Pay per code", body: "No subscription. Wallet balance is only charged when a number is issued and instantly refunded when a code never arrives." },
-  { icon: "🇳🇬", title: "Naira friendly", body: "Fund your wallet with local bank transfer, card or USDT. Every price is shown in USD and Naira side by side." },
-  { icon: "🔁", title: "Auto refunds", body: "Cancel a waiting rental in one tap or let it expire — either way the balance returns to your wallet automatically." },
-  { icon: "🛡️", title: "Numbers are never reused", body: "A number is retired from the pool after your verification, so nobody else can request codes on that identity." },
-  { icon: "🧑‍💻", title: "Developer API ready", body: "Everything in the dashboard is backed by clean REST endpoints so you can automate bulk verification flows." },
+  { icon: "âš¡", title: "8â€“20 second delivery", body: "Direct carrier routes keep median OTP delivery under 20 seconds, even on Nigerian MTN and Airtel ranges." },
+  { icon: "ðŸ’¸", title: "Pay per code", body: "No subscription. Wallet balance is only charged when a number is issued and instantly refunded when a code never arrives." },
+  { icon: "ðŸ‡³ðŸ‡¬", title: "Naira friendly", body: "Fund your wallet with local bank transfer, card or USDT. Every price is shown in USD and Naira side by side." },
+  { icon: "ðŸ”", title: "Auto refunds", body: "Cancel a waiting rental in one tap or let it expire â€” either way the balance returns to your wallet automatically." },
+  { icon: "ðŸ›¡ï¸", title: "Numbers are never reused", body: "A number is retired from the pool after your verification, so nobody else can request codes on that identity." },
+  { icon: "ðŸ§‘â€ðŸ’»", title: "Developer API ready", body: "Everything in the dashboard is backed by clean REST endpoints so you can automate bulk verification flows." },
 ];
 
 const FAQS: [string, string][] = [
@@ -47,9 +48,9 @@ const FAQS: [string, string][] = [
 ];
 
 const REVIEWS = [
-  { name: "Chidi O.", place: "Lagos, Nigeria 🇳🇬", text: "Rented a +234 number for Match and the code hit my dashboard in 11 seconds. Prices in Naira make budgeting easy." },
-  { name: "Marcus D.", place: "Atlanta, USA 🇺🇸", text: "I run signups for a small agency — bulk Venmo and PayPal verifications used to take hours. Now it's a few clicks per account." },
-  { name: "Priya S.", place: "Bengaluru, India 🇮🇳", text: "The auto refund is what sold me. Two codes failed last month and my wallet was topped back up before I even noticed." },
+  { name: "Chidi O.", place: "Lagos, Nigeria ðŸ‡³ðŸ‡¬", text: "Rented a +234 number for Match and the code hit my dashboard in 11 seconds. Prices in Naira make budgeting easy." },
+  { name: "Marcus D.", place: "Atlanta, USA ðŸ‡ºðŸ‡¸", text: "I run signups for a small agency â€” bulk Venmo and PayPal verifications used to take hours. Now it's a few clicks per account." },
+  { name: "Priya S.", place: "Bengaluru, India ðŸ‡®ðŸ‡³", text: "The auto refund is what sold me. Two codes failed last month and my wallet was topped back up before I even noticed." },
 ];
 
 export default async function HomePage() {
@@ -99,7 +100,7 @@ export default async function HomePage() {
               <p className="mt-5 max-w-xl text-lg leading-relaxed text-slate-400">
                 FredOTP gives you disposable virtual numbers from Nigeria, the USA, UK, Ghana,
                 Kenya, India and 10 more countries to verify Match, Zoosk, Gmail, PayPal, Venmo,
-                WhatsApp and {stats.services - 6}+ other platforms. Pay per code — refunded
+                WhatsApp and {stats.services - 6}+ other platforms. Pay per code â€” refunded
                 automatically if the SMS never lands.
               </p>
 
@@ -108,7 +109,7 @@ export default async function HomePage() {
                   href={user ? "/dashboard" : "/register"}
                   className="glow-btn rounded-xl bg-gradient-to-r from-mint-500 to-brand-500 px-6 py-3.5 text-sm font-extrabold text-ink-950 transition hover:brightness-110"
                 >
-                  {user ? "Open dashboard" : "Create free account →"}
+                  {user ? "Open dashboard" : "Create free account â†’"}
                 </Link>
                 <Link
                   href="/pricing"
@@ -141,7 +142,7 @@ export default async function HomePage() {
               <div className="card absolute -bottom-6 -left-4 w-64 p-4 shadow-2xl backdrop-blur sm:-left-8">
                 <div className="flex items-center gap-2 text-xs font-semibold text-slate-400">
                   <span className="h-2 w-2 rounded-full bg-emerald-400 pulse-ring" />
-                  Incoming SMS · 🇳🇬 +234 803 ••• 1290
+                  Incoming SMS Â· ðŸ‡³ðŸ‡¬ +234 803 â€¢â€¢â€¢ 1290
                 </div>
                 <p className="mt-2 text-sm text-slate-300">
                   Match: <span className="font-mono font-bold text-emerald-300">482917</span> is your
@@ -159,7 +160,7 @@ export default async function HomePage() {
                   key={`${service.id}-${index}`}
                   className="flex items-center gap-2 text-sm font-semibold text-slate-500"
                 >
-                  <span className="text-lg">{service.icon}</span>
+                  <span className="text-lg">{serviceIcon(service.slug)}</span>
                   {service.name}
                   <span className="text-emerald-400/70">{usd(service.minPriceCents)}</span>
                 </span>
@@ -173,7 +174,7 @@ export default async function HomePage() {
           <SectionHeading
             eyebrow="Live catalog"
             title="Every service, every country, one price list"
-            subtitle="Pick a country to see live inventory and per-code pricing. Prices update with pool demand — Nigerian and Asian pools are always the cheapest."
+            subtitle="Pick a country to see live inventory and per-code pricing. Prices update with pool demand â€” Nigerian and Asian pools are always the cheapest."
           />
           <div className="mt-10">
             <CatalogExplorer catalog={catalog} authed={Boolean(user)} />
@@ -186,7 +187,7 @@ export default async function HomePage() {
             <SectionHeading
               eyebrow="16 countries"
               title="Numbers from the pools that actually convert"
-              subtitle="Nigeria, Ghana, Kenya, South Africa, Egypt plus USA, UK, Canada and Europe — with live stock counts."
+              subtitle="Nigeria, Ghana, Kenya, South Africa, Egypt plus USA, UK, Canada and Europe â€” with live stock counts."
             />
             <div className="mt-10 grid gap-3 sm:grid-cols-2 lg:grid-cols-4">
               {countryFloor.map((country) => (
@@ -196,11 +197,11 @@ export default async function HomePage() {
                   className="card flex items-center justify-between p-4 transition hover:-translate-y-0.5 hover:border-emerald-400/30"
                 >
                   <div className="flex items-center gap-3">
-                    <span className="text-2xl">{country.flag}</span>
+                    <span className="text-2xl">{countryFlag(country.code)}</span>
                     <div>
                       <p className="text-sm font-bold text-white">{country.name}</p>
                       <p className="text-[11px] text-slate-500">
-                        {country.dialCode} · {country.stock.toLocaleString()} numbers
+                        {country.dialCode} Â· {country.stock.toLocaleString()} numbers
                       </p>
                     </div>
                   </div>
@@ -267,9 +268,9 @@ export default async function HomePage() {
           />
           <div className="mx-auto mt-10 grid max-w-5xl gap-5 md:grid-cols-3">
             {[
-              { amount: 500, label: "Starter", note: "≈ 12 Nigerian Gmail codes", bonus: 0, featured: false },
-              { amount: 5000, label: "Pro", note: "≈ 130 codes · 10% bonus", bonus: 500, featured: true },
-              { amount: 20000, label: "Agency", note: "≈ 520 codes · 10% bonus + priority routes", bonus: 2000, featured: false },
+              { amount: 500, label: "Starter", note: "â‰ˆ 12 Nigerian Gmail codes", bonus: 0, featured: false },
+              { amount: 5000, label: "Pro", note: "â‰ˆ 130 codes Â· 10% bonus", bonus: 500, featured: true },
+              { amount: 20000, label: "Agency", note: "â‰ˆ 520 codes Â· 10% bonus + priority routes", bonus: 2000, featured: false },
             ].map((pack) => (
               <div
                 key={pack.label}
@@ -311,8 +312,8 @@ export default async function HomePage() {
             <div className="mt-10 grid gap-5 md:grid-cols-3">
               {REVIEWS.map((review) => (
                 <div key={review.name} className="card p-6">
-                  <p className="text-amber-300">★★★★★</p>
-                  <p className="mt-3 text-sm leading-relaxed text-slate-300">“{review.text}”</p>
+                  <p className="text-amber-300">â˜…â˜…â˜…â˜…â˜…</p>
+                  <p className="mt-3 text-sm leading-relaxed text-slate-300">â€œ{review.text}â€</p>
                   <div className="mt-5 border-t border-white/5 pt-4">
                     <p className="text-sm font-bold text-white">{review.name}</p>
                     <p className="text-xs text-slate-500">{review.place}</p>
@@ -331,7 +332,7 @@ export default async function HomePage() {
               <details key={question} className="card group p-5 open:border-emerald-400/25">
                 <summary className="flex cursor-pointer list-none items-center justify-between gap-4 text-sm font-bold text-white">
                   {question}
-                  <span className="text-emerald-300 transition group-open:rotate-45">＋</span>
+                  <span className="text-emerald-300 transition group-open:rotate-45">ï¼‹</span>
                 </summary>
                 <p className="mt-3 text-sm leading-relaxed text-slate-400">{answer}</p>
               </details>
@@ -347,7 +348,7 @@ export default async function HomePage() {
               Your next OTP is 14 seconds away
             </h2>
             <p className="mx-auto mt-3 max-w-xl text-slate-400">
-              Create an account, claim your $1.00 welcome credit and rent your first number — no card
+              Create an account, claim your $1.00 welcome credit and rent your first number â€” no card
               required to start.
             </p>
             <div className="mt-8 flex flex-wrap justify-center gap-3">
@@ -355,7 +356,7 @@ export default async function HomePage() {
                 href={user ? "/dashboard" : "/register"}
                 className="glow-btn rounded-xl bg-gradient-to-r from-mint-500 to-brand-500 px-7 py-3.5 text-sm font-extrabold text-ink-950 transition hover:brightness-110"
               >
-                {user ? "Rent a number" : "Start free — $1.00 credit"}
+                {user ? "Rent a number" : "Start free â€” $1.00 credit"}
               </Link>
               <Link
                 href="/login"
@@ -384,3 +385,4 @@ function Stat({ label, value }: { label: string; value: string }) {
     </div>
   );
 }
+
