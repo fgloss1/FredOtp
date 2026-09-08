@@ -1,13 +1,8 @@
 import { eq } from "drizzle-orm";
 import { db } from "@/db";
-import { transactions, users } from "@/db/schema";
+import { users } from "@/db/schema";
 import { createSession, hashPassword } from "@/lib/auth";
-import { reference } from "@/lib/rental-engine";
-
 export const dynamic = "force-dynamic";
-
-const WELCOME_BONUS_CENTS = 100;
-
 export async function POST(request: Request) {
   let body: { name?: string; email?: string; password?: string };
   try {
@@ -39,18 +34,9 @@ export async function POST(request: Request) {
       email,
       name,
       passwordHash: hashPassword(password),
-      balanceCents: WELCOME_BONUS_CENTS,
+      balanceCents: 0,
     })
     .returning({ id: users.id, name: users.name, email: users.email });
-
-  await db.insert(transactions).values({
-    userId: created.id,
-    type: "bonus",
-    amountCents: WELCOME_BONUS_CENTS,
-    description: "Welcome bonus credit",
-    reference: reference("BON"),
-  });
-
-  await createSession(created.id);
+await createSession(created.id);
   return Response.json({ user: created });
 }

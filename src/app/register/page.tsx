@@ -7,7 +7,7 @@ import { getCurrentUser } from "@/lib/auth";
 export const dynamic = "force-dynamic";
 
 const PERKS = [
-  "$1.00 welcome credit on signup",
+  "Fast access to virtual numbers",
   "16 country pools including 🇳🇬 Nigeria",
   "Automatic refunds when no SMS arrives",
 ];
@@ -53,7 +53,7 @@ export default async function RegisterPage({
           </div>
           <div className="card p-7">
             <h1 className="text-2xl font-black text-white">Create your account</h1>
-            <p className="mt-1 text-sm text-slate-400">Free to join · $1.00 credit included.</p>
+            <p className="mt-1 text-sm text-slate-400">Free to join - Add funds whenever you are ready.</p>
             <div className="mt-6">
               <AuthForm mode="register" next={next} />
             </div>

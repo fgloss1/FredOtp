@@ -70,7 +70,37 @@ const SERVICES = [
   ["amazon", "Amazon", "Marketplace", "📦", "#f59e0b", 42, "{code} is your Amazon OTP. Do not share it.", false],
   ["netflix", "Netflix", "Entertainment", "🎬", "#dc2626", 50, "Netflix: {code} is your verification code.", false],
   ["openai", "OpenAI / ChatGPT", "Tech", "🤖", "#10b981", 80, "Your OpenAI verification code is {code}", true],
-];
+
+  ["okcupid", "OkCupid", "Dating", "O", "#22c55e", 75, "OkCupid verification code: {code}.", false],
+  ["plentyoffish", "Plenty of Fish", "Dating", "P", "#14b8a6", 70, "POF verification code: {code}.", false],
+  ["grindr", "Grindr", "Dating", "G", "#8b5cf6", 72, "Grindr verification code: {code}.", false],
+  ["her", "HER", "Dating", "H", "#ec4899", 74, "HER verification code: {code}.", false],
+  ["happn", "Happn", "Dating", "H", "#ef4444", 70, "Happn verification code: {code}.", false],
+  ["coffeemeetsbagel", "Coffee Meets Bagel", "Dating", "C", "#92400e", 75, "CMB verification code: {code}.", false],
+  ["protonmail", "Proton Mail", "Email", "P", "#6d28d9", 50, "Proton verification code: {code}.", false],
+  ["microsoft", "Microsoft", "Email", "M", "#2563eb", 48, "Microsoft verification code: {code}.", false],
+  ["wise", "Wise", "Finance", "W", "#14b8a6", 110, "Wise verification code: {code}.", false],
+  ["stripe", "Stripe", "Finance", "S", "#6366f1", 115, "Stripe verification code: {code}.", false],
+  ["viber", "Viber", "Messaging", "V", "#8b5cf6", 48, "Viber verification code: {code}.", false],
+  ["line", "LINE", "Messaging", "L", "#16a34a", 48, "LINE verification code: {code}.", false],
+  ["wechat", "WeChat", "Messaging", "W", "#22c55e", 58, "WeChat verification code: {code}.", false],
+  ["skype", "Skype", "Messaging", "S", "#0ea5e9", 45, "Skype verification code: {code}.", false],
+  ["slack", "Slack", "Messaging", "S", "#ec4899", 55, "Slack verification code: {code}.", false],
+  ["reddit", "Reddit", "Social", "R", "#f97316", 42, "Reddit verification code: {code}.", false],
+  ["ebay", "eBay", "Marketplace", "E", "#2563eb", 48, "eBay verification code: {code}.", false],
+  ["etsy", "Etsy", "Marketplace", "E", "#f97316", 50, "Etsy verification code: {code}.", false],
+  ["spotify", "Spotify", "Entertainment", "S", "#22c55e", 42, "Spotify verification code: {code}.", false],
+  ["twitch", "Twitch", "Entertainment", "T", "#8b5cf6", 45, "Twitch verification code: {code}.", false],
+  ["steam", "Steam", "Entertainment", "S", "#64748b", 55, "Steam Guard code: {code}.", false],
+  ["roblox", "Roblox", "Entertainment", "R", "#ef4444", 45, "Roblox verification code: {code}.", false],
+  ["github", "GitHub", "Tech", "G", "#475569", 55, "GitHub verification code: {code}.", false],
+  ["gitlab", "GitLab", "Tech", "G", "#f97316", 55, "GitLab verification code: {code}.", false],
+  ["notion", "Notion", "Tech", "N", "#111827", 48, "Notion verification code: {code}.", false],
+  ["canva", "Canva", "Tech", "C", "#06b6d4", 50, "Canva verification code: {code}.", false],
+  ["zoom", "Zoom", "Tech", "Z", "#2563eb", 45, "Zoom verification code: {code}.", false],
+  ["dropbox", "Dropbox", "Tech", "D", "#2563eb", 48, "Dropbox verification code: {code}.", false],
+  ["apple", "Apple", "Tech", "A", "#94a3b8", 65, "Apple verification code: {code}.", false],
+  ["other", "Other / Custom Service", "Other", "O", "#10b981", 90, "Your verification code is {code}.", true],];
 
 function pseudoRandom(seed) {
   let h = 2166136261;

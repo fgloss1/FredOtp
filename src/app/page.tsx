@@ -348,15 +348,14 @@ export default async function HomePage() {
               Your next OTP is 14 seconds away
             </h2>
             <p className="mx-auto mt-3 max-w-xl text-slate-400">
-              Create an account, claim your $1.00 welcome credit and rent your first number — no card
-              required to start.
+              Create an account, fund your wallet and rent your first number when you are ready.
             </p>
             <div className="mt-8 flex flex-wrap justify-center gap-3">
               <Link
                 href={user ? "/dashboard" : "/register"}
                 className="glow-btn rounded-xl bg-gradient-to-r from-mint-500 to-brand-500 px-7 py-3.5 text-sm font-extrabold text-ink-950 transition hover:brightness-110"
               >
-                {user ? "Rent a number" : "Start free — $1.00 credit"}
+                {user ? "Rent a number" : "Create your account"}
               </Link>
               <Link
                 href="/login"

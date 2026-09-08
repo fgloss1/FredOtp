@@ -4,6 +4,7 @@ import Link from "next/link";
 import { useRouter } from "next/navigation";
 import { useCallback, useEffect, useMemo, useRef, useState } from "react";
 import { countdown, ngn, usd } from "@/lib/format";
+import { ServiceBrandIcon } from "@/components/ServiceBrandIcon";
 import { countryFlag, serviceIcon } from "@/lib/visuals";
 import { statusLabel, statusTone } from "@/lib/otp";
 import type { Catalog, RentalView } from "@/lib/queries";
