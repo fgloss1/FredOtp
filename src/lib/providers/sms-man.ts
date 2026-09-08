@@ -2,6 +2,7 @@ import type { OtpProvider, ProviderOrder, ProviderQuote, ProviderSms } from "@/l
 
 const BASE_URL = "https://api.sms-man.com/control";
 const CURRENCY = (process.env.SMSMAN_CURRENCY || "USD").trim().toUpperCase();
+const PROVIDER_REQUEST_TIMEOUT_MS = 15000;
 
 const COUNTRY_OVERRIDE_KEYS: Record<string, string> = {
   NG: "SMSMAN_COUNTRY_NG",
@@ -46,31 +47,44 @@ function token(): string | null {
 }
 
 async function jsonRequest<T>(url: string): Promise<T> {
-  const response = await fetch(url, {
-    headers: { Accept: "application/json" },
-    cache: "no-store",
-  });
+  const controller = new AbortController();
+  const timer = setTimeout(() => controller.abort(), PROVIDER_REQUEST_TIMEOUT_MS);
 
-  const text = await response.text();
-  let data: unknown = null;
+  try {
+    const response = await fetch(url, {
+      signal: controller.signal,
+      headers: { Accept: "application/json" },
+      cache: "no-store",
+    });
 
-  if (text) {
-    try {
-      data = JSON.parse(text);
-    } catch {
-      data = null;
+    const text = await response.text();
+    let data: unknown = null;
+
+    if (text) {
+      try {
+        data = JSON.parse(text);
+      } catch {
+        data = null;
+      }
     }
-  }
 
-  if (!response.ok) {
-    const message =
-      typeof data === "object" && data !== null && typeof (data as Record<string, unknown>).error_msg === "string"
-        ? String((data as Record<string, unknown>).error_msg)
-        : `SMS-Man request failed (${response.status})`;
-    throw new Error(message);
-  }
+    if (!response.ok) {
+      const message =
+        typeof data === "object" && data !== null && typeof (data as Record<string, unknown>).error_msg === "string"
+          ? String((data as Record<string, unknown>).error_msg)
+          : `SMS-Man request failed (${response.status})`;
+      throw new Error(message);
+    }
 
-  return data as T;
+    return data as T;
+  } catch (error) {
+    if (error instanceof Error && error.name === "AbortError") {
+      throw new Error("SMS-Man request timed out after 15 seconds.");
+    }
+    throw error;
+  } finally {
+    clearTimeout(timer);
+  }
 }
 
 type SmsManCountry = {
