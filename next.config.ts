@@ -1,19 +1,5 @@
-﻿import type { NextConfig } from "next";
+import type { NextConfig } from "next";
 
-const nextConfig: NextConfig = {
-  async headers() {
-    return [
-      {
-        source: "/((?!api(?:/|$)).*)",
-        headers: [
-          {
-            key: "Content-Type",
-            value: "text/html; charset=utf-8",
-          },
-        ],
-      },
-    ];
-  },
-};
+const nextConfig: NextConfig = {};
 
 export default nextConfig;
