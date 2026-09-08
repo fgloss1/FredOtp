@@ -1,4 +1,4 @@
-"use client";
+﻿"use client";
 
 import Link from "next/link";
 import { useRouter } from "next/navigation";
@@ -12,6 +12,7 @@ const INPUT =
 export function AuthForm({ mode, next }: { mode: Mode; next?: string }) {
   const router = useRouter();
   const [name, setName] = useState("");
+  const [username, setUsername] = useState("");
   const [email, setEmail] = useState("");
   const [password, setPassword] = useState("");
   const [error, setError] = useState<string | null>(null);
@@ -25,7 +26,7 @@ export function AuthForm({ mode, next }: { mode: Mode; next?: string }) {
     const response = await fetch(`/api/auth/${mode}`, {
       method: "POST",
       headers: { "Content-Type": "application/json" },
-      body: JSON.stringify(mode === "register" ? { name, email, password } : { email, password }),
+      body: JSON.stringify(mode === "register" ? { username, name, email, password } : { username, password }),
     });
     const data = (await response.json()) as { error?: string };
 
@@ -53,16 +54,33 @@ export function AuthForm({ mode, next }: { mode: Mode; next?: string }) {
         </Field>
       )}
 
-      <Field label="Email address">
+      <Field label="Username">
         <input
-          type="email"
-          value={email}
-          onChange={(event) => setEmail(event.target.value)}
+          type="text"
+          value={username}
+          onChange={(event) => setUsername(event.target.value)}
           required
-          placeholder="you@email.com"
+          minLength={3}
+          maxLength={32}
+          autoCapitalize="none"
+          autoCorrect="off"
+          spellCheck={false}
+          placeholder="yourusername"
           className={INPUT}
         />
       </Field>
+      {mode === "register" && (
+        <Field label="Email address">
+          <input
+            type="email"
+            value={email}
+            onChange={(event) => setEmail(event.target.value)}
+            required
+            placeholder="you@email.com"
+            className={INPUT}
+          />
+        </Field>
+      )}
 
       <Field label="Password">
         <input
@@ -87,7 +105,7 @@ export function AuthForm({ mode, next }: { mode: Mode; next?: string }) {
         disabled={busy}
         className="glow-btn w-full rounded-xl bg-gradient-to-r from-mint-500 to-brand-500 py-3.5 text-sm font-extrabold text-ink-950 transition hover:brightness-110 disabled:opacity-60"
       >
-        {busy ? "Please wait…" : mode === "login" ? "Sign in" : "Create account"}
+        {busy ? "Please waitâ€¦" : mode === "login" ? "Sign in" : "Create account"}
       </button>
 
       <p className="text-center text-sm text-slate-500">
@@ -122,3 +140,4 @@ function Field({ label, children }: { label: string; children: React.ReactNode }
     </label>
   );
 }
+

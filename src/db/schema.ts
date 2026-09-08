@@ -1,4 +1,4 @@
-import {
+﻿import {
   boolean,
   index,
   integer,
@@ -14,6 +14,7 @@ export const users = pgTable(
   "users",
   {
     id: serial("id").primaryKey(),
+    username: varchar("username", { length: 32 }).notNull(),
     email: varchar("email", { length: 255 }).notNull(),
     name: varchar("name", { length: 120 }).notNull(),
     passwordHash: text("password_hash").notNull(),
@@ -21,7 +22,10 @@ export const users = pgTable(
     isAdmin: boolean("is_admin").notNull().default(false),
     createdAt: timestamp("created_at", { withTimezone: true }).notNull().defaultNow(),
   },
-  (table) => [uniqueIndex("users_email_unique").on(table.email)],
+  (table) => [
+    uniqueIndex("users_username_unique").on(table.username),
+    uniqueIndex("users_email_unique").on(table.email),
+  ],
 );
 
 export const sessions = pgTable(
@@ -60,7 +64,7 @@ export const services = pgTable(
     slug: varchar("slug", { length: 80 }).notNull(),
     name: varchar("name", { length: 120 }).notNull(),
     category: varchar("category", { length: 60 }).notNull(),
-    icon: varchar("icon", { length: 16 }).notNull().default("📱"),
+    icon: varchar("icon", { length: 16 }).notNull().default("ðŸ“±"),
     accent: varchar("accent", { length: 24 }).notNull().default("#38bdf8"),
     basePriceCents: integer("base_price_cents").notNull(),
     smsTemplate: text("sms_template").notNull(),
@@ -169,3 +173,4 @@ export type Rental = typeof rentals.$inferSelect;
 export type Transaction = typeof transactions.$inferSelect;
 
 export type Payment = typeof payments.$inferSelect;
+

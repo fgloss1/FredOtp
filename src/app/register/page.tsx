@@ -1,4 +1,4 @@
-import Link from "next/link";
+﻿import Link from "next/link";
 import { redirect } from "next/navigation";
 import { AuthForm } from "@/components/AuthForm";
 import { Logo } from "@/components/Logo";
@@ -8,7 +8,7 @@ export const dynamic = "force-dynamic";
 
 const PERKS = [
   "Fast access to virtual numbers",
-  "16 country pools including 🇳🇬 Nigeria",
+  "16 country pools including ðŸ‡³ðŸ‡¬ Nigeria",
   "Automatic refunds when no SMS arrives",
 ];
 
@@ -36,14 +36,14 @@ export default async function RegisterPage({
             {PERKS.map((perk) => (
               <li key={perk} className="flex items-center gap-3 text-sm text-slate-300">
                 <span className="grid h-6 w-6 place-items-center rounded-full bg-emerald-400/15 text-xs text-emerald-300">
-                  ✓
+                  âœ“
                 </span>
                 {perk}
               </li>
             ))}
           </ul>
           <Link href="/pricing" className="mt-8 text-sm font-semibold text-emerald-300 hover:underline">
-            View the full price list →
+            View the full price list â†’
           </Link>
         </div>
 
@@ -63,3 +63,4 @@ export default async function RegisterPage({
     </main>
   );
 }
+
