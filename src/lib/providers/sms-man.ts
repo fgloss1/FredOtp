@@ -106,6 +106,9 @@ type SmsManNumberResponse = {
   country_id: number | string;
   application_id: number | string;
   number: string;
+  success?: boolean;
+  error_code?: string;
+  error_msg?: string | Record<string, unknown>;
 };
 
 type SmsManSmsResponse = {
@@ -114,6 +117,7 @@ type SmsManSmsResponse = {
   sms_text?: string;
   text?: string;
   error_code?: string;
+  error_msg?: string;
 };
 
 type SmsManCountriesCache = { expiresAt: number; items: SmsManCountry[] };
@@ -213,6 +217,12 @@ function findPrice(
   return { cost, count };
 }
 
+function providerError(data: SmsManNumberResponse): string {
+  if (typeof data.error_msg === "string" && data.error_msg.trim()) return data.error_msg.trim();
+  if (data.error_code) return `SMS-Man error: ${data.error_code}`;
+  return "SMS-Man did not return a usable number.";
+}
+
 export const smsMan: OtpProvider = {
   name: "sms-man",
 
@@ -253,6 +263,7 @@ export const smsMan: OtpProvider = {
       country_id: String(countryId),
       application_id: String(applicationId),
       currency: CURRENCY,
+      status: "ready",
     });
     if (maxPrice != null) params.set("maxPrice", String(maxPrice));
 
@@ -260,8 +271,8 @@ export const smsMan: OtpProvider = {
       `${BASE_URL}/get-number?${params.toString()}`,
     );
 
-    if (!order?.request_id || !order.number) {
-      throw new Error("SMS-Man returned an invalid order.");
+    if (order?.success === false || !order?.request_id || !order.number) {
+      throw new Error(providerError(order));
     }
 
     return {
