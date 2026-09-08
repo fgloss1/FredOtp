@@ -68,15 +68,17 @@ async function jsonRequest<T>(url: string, init?: RequestInit): Promise<T> {
       try {
         data = JSON.parse(text);
       } catch {
-        data = null;
+        data = text;
       }
     }
 
     if (!response.ok) {
       const message =
-        typeof data === "object" && data !== null && typeof (data as Record<string, unknown>).message === "string"
-          ? String((data as Record<string, unknown>).message)
-          : `5SIM request failed (${response.status})`;
+        typeof data === "string" && data.trim()
+          ? data.trim()
+          : typeof data === "object" && data !== null && typeof (data as Record<string, unknown>).message === "string"
+            ? String((data as Record<string, unknown>).message)
+            : `5SIM request failed (${response.status})`;
       throw new Error(message);
     }
 
