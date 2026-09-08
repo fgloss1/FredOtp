@@ -71,7 +71,7 @@ export default async function PricingPage({
               </p>
             </div>
             <div>
-              <h3 className="text-sm font-bold text-white">🎁 Volume bonus</h3>
+              <h3 className="text-sm font-bold text-white">ðŸŽ Volume bonus</h3>
               <p className="mt-2 text-sm text-slate-400">
                 Top-ups of $50+ automatically receive a 10% bonus credit added to your balance.
               </p>

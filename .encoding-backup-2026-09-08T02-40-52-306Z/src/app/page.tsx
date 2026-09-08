@@ -33,9 +33,9 @@ const FEATURES = [
   { icon: "⚡", title: "8–20 second delivery", body: "Direct carrier routes keep median OTP delivery under 20 seconds, even on Nigerian MTN and Airtel ranges." },
   { icon: "💸", title: "Pay per code", body: "No subscription. Wallet balance is only charged when a number is issued and instantly refunded when a code never arrives." },
   { icon: "🇳🇬", title: "Naira friendly", body: "Fund your wallet with local bank transfer, card or USDT. Every price is shown in USD and Naira side by side." },
-  { icon: "🔁", title: "Auto refunds", body: "Cancel a waiting rental in one tap or let it expire — either way the balance returns to your wallet automatically." },
+  { icon: "ðŸ”", title: "Auto refunds", body: "Cancel a waiting rental in one tap or let it expire — either way the balance returns to your wallet automatically." },
   { icon: "🛡️", title: "Numbers are never reused", body: "A number is retired from the pool after your verification, so nobody else can request codes on that identity." },
-  { icon: "🧑‍💻", title: "Developer API ready", body: "Everything in the dashboard is backed by clean REST endpoints so you can automate bulk verification flows." },
+  { icon: "ðŸ§‘â€ðŸ’»", title: "Developer API ready", body: "Everything in the dashboard is backed by clean REST endpoints so you can automate bulk verification flows." },
 ];
 
 const FAQS: [string, string][] = [
@@ -142,7 +142,7 @@ export default async function HomePage() {
               <div className="card absolute -bottom-6 -left-4 w-64 p-4 shadow-2xl backdrop-blur sm:-left-8">
                 <div className="flex items-center gap-2 text-xs font-semibold text-slate-400">
                   <span className="h-2 w-2 rounded-full bg-emerald-400 pulse-ring" />
-                  Incoming SMS · 🇳🇬 +234 803 ••• 1290
+                  Incoming SMS · 🇳🇬 +234 803 â€¢â€¢â€¢ 1290
                 </div>
                 <p className="mt-2 text-sm text-slate-300">
                   Match: <span className="font-mono font-bold text-emerald-300">482917</span> is your
@@ -268,9 +268,9 @@ export default async function HomePage() {
           />
           <div className="mx-auto mt-10 grid max-w-5xl gap-5 md:grid-cols-3">
             {[
-              { amount: 500, label: "Starter", note: "≈ 12 Nigerian Gmail codes", bonus: 0, featured: false },
-              { amount: 5000, label: "Pro", note: "≈ 130 codes · 10% bonus", bonus: 500, featured: true },
-              { amount: 20000, label: "Agency", note: "≈ 520 codes · 10% bonus + priority routes", bonus: 2000, featured: false },
+              { amount: 500, label: "Starter", note: "â‰ˆ 12 Nigerian Gmail codes", bonus: 0, featured: false },
+              { amount: 5000, label: "Pro", note: "â‰ˆ 130 codes · 10% bonus", bonus: 500, featured: true },
+              { amount: 20000, label: "Agency", note: "â‰ˆ 520 codes · 10% bonus + priority routes", bonus: 2000, featured: false },
             ].map((pack) => (
               <div
                 key={pack.label}
@@ -312,7 +312,7 @@ export default async function HomePage() {
             <div className="mt-10 grid gap-5 md:grid-cols-3">
               {REVIEWS.map((review) => (
                 <div key={review.name} className="card p-6">
-                  <p className="text-amber-300">★★★★★</p>
+                  <p className="text-amber-300">â˜…â˜…â˜…â˜…â˜…</p>
                   <p className="mt-3 text-sm leading-relaxed text-slate-300">“{review.text}”</p>
                   <div className="mt-5 border-t border-white/5 pt-4">
                     <p className="text-sm font-bold text-white">{review.name}</p>
@@ -332,7 +332,7 @@ export default async function HomePage() {
               <details key={question} className="card group p-5 open:border-emerald-400/25">
                 <summary className="flex cursor-pointer list-none items-center justify-between gap-4 text-sm font-bold text-white">
                   {question}
-                  <span className="text-emerald-300 transition group-open:rotate-45">＋</span>
+                  <span className="text-emerald-300 transition group-open:rotate-45">ï¼‹</span>
                 </summary>
                 <p className="mt-3 text-sm leading-relaxed text-slate-400">{answer}</p>
               </details>

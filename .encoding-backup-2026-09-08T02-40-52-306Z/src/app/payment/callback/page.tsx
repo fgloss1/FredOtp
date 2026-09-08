@@ -1,4 +1,4 @@
-﻿"use client";
+"use client";
 
 import { useEffect, useState, Suspense } from "react";
 import Link from "next/link";
@@ -61,7 +61,7 @@ function PaymentCallbackContentPage() {
       <div className="mx-auto max-w-lg">
         <div className="card p-7 text-center sm:p-9">
           <div className="mx-auto flex h-16 w-16 items-center justify-center rounded-2xl border border-white/10 bg-white/[0.04] text-2xl">
-            {state === "loading" ? "⏳" : state === "success" ? "✅" : "⚠️"}
+            {state === "loading" ? "â³" : state === "success" ? "✅" : "⚠️"}
           </div>
           <h1 className="mt-5 text-2xl font-black">
             {state === "loading" ? "Confirming payment" : state === "success" ? "Payment successful" : "Payment check"}

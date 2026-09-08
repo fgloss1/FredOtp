@@ -1,4 +1,4 @@
-﻿import "dotenv/config";
+import "dotenv/config";
 import { randomBytes, scryptSync } from "node:crypto";
 import pg from "pg";
 
@@ -19,57 +19,57 @@ const productionServiceSlugs = new Set(
 );
 
 const COUNTRIES = [
-  ["NG", "Nigeria", "+234", "ðŸ‡³ðŸ‡¬", "+234 8## ### ####", 90, "Africa"],
-  ["US", "United States", "+1", "ðŸ‡ºðŸ‡¸", "+1 (%##) %##-####", 135, "North America"],
-  ["GB", "United Kingdom", "+44", "ðŸ‡¬ðŸ‡§", "+44 7%# ### ###", 125, "Europe"],
-  ["CA", "Canada", "+1", "ðŸ‡¨ðŸ‡¦", "+1 (%##) %##-####", 120, "North America"],
-  ["GH", "Ghana", "+233", "ðŸ‡¬ðŸ‡­", "+233 %# ### ####", 85, "Africa"],
-  ["KE", "Kenya", "+254", "ðŸ‡°ðŸ‡ª", "+254 7## ### ###", 80, "Africa"],
-  ["ZA", "South Africa", "+27", "ðŸ‡¿ðŸ‡¦", "+27 %# ### ####", 100, "Africa"],
-  ["EG", "Egypt", "+20", "ðŸ‡ªðŸ‡¬", "+20 1## ### ####", 70, "Africa"],
-  ["IN", "India", "+91", "ðŸ‡®ðŸ‡³", "+91 %#### #####", 70, "Asia"],
-  ["PH", "Philippines", "+63", "ðŸ‡µðŸ‡­", "+63 9## ### ####", 75, "Asia"],
-  ["ID", "Indonesia", "+62", "ðŸ‡®ðŸ‡©", "+62 8%# #### ####", 65, "Asia"],
-  ["DE", "Germany", "+49", "ðŸ‡©ðŸ‡ª", "+49 1%# ########", 130, "Europe"],
-  ["FR", "France", "+33", "ðŸ‡«ðŸ‡·", "+33 6 ## ## ## ##", 115, "Europe"],
-  ["NL", "Netherlands", "+31", "ðŸ‡³ðŸ‡±", "+31 6 ## ## ## ##", 118, "Europe"],
-  ["BR", "Brazil", "+55", "ðŸ‡§ðŸ‡·", "+55 %# 9####-####", 90, "South America"],
-  ["UA", "Ukraine", "+380", "ðŸ‡ºðŸ‡¦", "+380 %# ### ####", 55, "Europe"],
+  ["NG", "Nigeria", "+234", "🇳🇬", "+234 8## ### ####", 90, "Africa"],
+  ["US", "United States", "+1", "🇺🇸", "+1 (%##) %##-####", 135, "North America"],
+  ["GB", "United Kingdom", "+44", "🇬🇧", "+44 7%# ### ###", 125, "Europe"],
+  ["CA", "Canada", "+1", "🇨🇦", "+1 (%##) %##-####", 120, "North America"],
+  ["GH", "Ghana", "+233", "🇬🇭", "+233 %# ### ####", 85, "Africa"],
+  ["KE", "Kenya", "+254", "🇰🇪", "+254 7## ### ###", 80, "Africa"],
+  ["ZA", "South Africa", "+27", "🇿🇦", "+27 %# ### ####", 100, "Africa"],
+  ["EG", "Egypt", "+20", "🇪🇬", "+20 1## ### ####", 70, "Africa"],
+  ["IN", "India", "+91", "🇮🇳", "+91 %#### #####", 70, "Asia"],
+  ["PH", "Philippines", "+63", "🇵🇭", "+63 9## ### ####", 75, "Asia"],
+  ["ID", "Indonesia", "+62", "🇮🇩", "+62 8%# #### ####", 65, "Asia"],
+  ["DE", "Germany", "+49", "🇩🇪", "+49 1%# ########", 130, "Europe"],
+  ["FR", "France", "+33", "🇫🇷", "+33 6 ## ## ## ##", 115, "Europe"],
+  ["NL", "Netherlands", "+31", "🇳🇱", "+31 6 ## ## ## ##", 118, "Europe"],
+  ["BR", "Brazil", "+55", "🇧🇷", "+55 %# 9####-####", 90, "South America"],
+  ["UA", "Ukraine", "+380", "🇺🇦", "+380 %# ### ####", 55, "Europe"],
 ];
 
 const SERVICES = [
-  ["match", "Match", "Dating", "ðŸ’˜", "#f43f5e", 95, "Match: {code} is your verification code. Do not share it.", true],
-  ["zoosk", "Zoosk", "Dating", "ðŸ’«", "#f97316", 85, "Zoosk code: {code}. Enter it to verify your account.", true],
-  ["tinder", "Tinder", "Dating", "ðŸ”¥", "#fb7185", 90, "Your Tinder code is {code}. Don't share.", true],
-  ["bumble", "Bumble", "Dating", "ðŸ", "#facc15", 88, "Bumble: your verification code is {code}.", false],
-  ["hinge", "Hinge", "Dating", "ðŸª„", "#a78bfa", 82, "Hinge code {code}. Never share this code.", false],
-  ["badoo", "Badoo", "Dating", "ðŸ’œ", "#c084fc", 78, "Badoo: {code} is your confirmation code.", false],
-  ["gmail", "Gmail / Google", "Email", "âœ‰ï¸", "#ef4444", 45, "G-{code} is your Google verification code.", true],
-  ["outlook", "Outlook", "Email", "ðŸ“®", "#0ea5e9", 42, "Microsoft account security code: {code}", false],
-  ["yahoo", "Yahoo Mail", "Email", "ðŸ“¬", "#7c3aed", 40, "{code} is your Yahoo verification code.", false],
-  ["paypal", "PayPal", "Finance", "ðŸ…¿ï¸", "#2563eb", 120, "PayPal: {code} is your security code. Never share it.", true],
-  ["venmo", "Venmo", "Finance", "ðŸ’¸", "#38bdf8", 135, "Venmo: your phone verification code is {code}.", true],
-  ["cashapp", "Cash App", "Finance", "ðŸ’µ", "#22c55e", 140, "Cash App: {code} is your sign-in code.", true],
-  ["coinbase", "Coinbase", "Finance", "ðŸª™", "#3b82f6", 150, "Coinbase verification code: {code}. Never share.", false],
-  ["binance", "Binance", "Finance", "ðŸŸ¡", "#eab308", 130, "[Binance] Verification code: {code}", false],
-  ["revolut", "Revolut", "Finance", "ðŸ¦", "#818cf8", 125, "Revolut code: {code}. We will never call you for it.", false],
-  ["chime", "Chime", "Finance", "ðŸŒ¿", "#34d399", 128, "Chime: {code} is your verification code.", false],
-  ["whatsapp", "WhatsApp", "Messaging", "ðŸ’¬", "#25d366", 60, "Your WhatsApp code is {code}. Don't share this code.", true],
-  ["telegram", "Telegram", "Messaging", "âœˆï¸", "#38bdf8", 55, "Telegram code: {code}. Do not give this code to anyone.", true],
-  ["signal", "Signal", "Messaging", "ðŸ”", "#6366f1", 58, "Your Signal verification code: {code}", false],
-  ["discord", "Discord", "Messaging", "ðŸŽ®", "#818cf8", 30, "Your Discord verification code is {code}.", false],
-  ["facebook", "Facebook", "Social", "ðŸ“˜", "#1d4ed8", 35, "{code} is your Facebook confirmation code.", true],
-  ["instagram", "Instagram", "Social", "ðŸ“¸", "#ec4899", 40, "{code} is your Instagram code. Don't share it.", true],
-  ["tiktok", "TikTok", "Social", "ðŸŽµ", "#f43f5e", 38, "[TikTok] {code} is your verification code", false],
-  ["twitter", "X (Twitter)", "Social", "âœ–ï¸", "#94a3b8", 48, "Your X confirmation code is {code}.", false],
-  ["snapchat", "Snapchat", "Social", "ðŸ‘»", "#fbbf24", 45, "Snapchat: your code is {code}. Snap it up!", false],
-  ["linkedin", "LinkedIn", "Social", "ðŸ’¼", "#0284c7", 52, "{code} is your LinkedIn verification code.", false],
-  ["uber", "Uber", "Marketplace", "ðŸš—", "#0f172a", 65, "Your Uber code is {code}. Reply STOP to unsubscribe.", false],
-  ["airbnb", "Airbnb", "Marketplace", "ðŸ ", "#fb7185", 75, "Your Airbnb verification code is {code}.", false],
-  ["doordash", "DoorDash", "Marketplace", "ðŸ›µ", "#ef4444", 70, "DoorDash: your verification code is {code}.", false],
-  ["amazon", "Amazon", "Marketplace", "ðŸ“¦", "#f59e0b", 42, "{code} is your Amazon OTP. Do not share it.", false],
-  ["netflix", "Netflix", "Entertainment", "ðŸŽ¬", "#dc2626", 50, "Netflix: {code} is your verification code.", false],
-  ["openai", "OpenAI / ChatGPT", "Tech", "ðŸ¤–", "#10b981", 80, "Your OpenAI verification code is {code}", true],
+  ["match", "Match", "Dating", "💘", "#f43f5e", 95, "Match: {code} is your verification code. Do not share it.", true],
+  ["zoosk", "Zoosk", "Dating", "💫", "#f97316", 85, "Zoosk code: {code}. Enter it to verify your account.", true],
+  ["tinder", "Tinder", "Dating", "🔥", "#fb7185", 90, "Your Tinder code is {code}. Don't share.", true],
+  ["bumble", "Bumble", "Dating", "🐝", "#facc15", 88, "Bumble: your verification code is {code}.", false],
+  ["hinge", "Hinge", "Dating", "🪄", "#a78bfa", 82, "Hinge code {code}. Never share this code.", false],
+  ["badoo", "Badoo", "Dating", "💜", "#c084fc", 78, "Badoo: {code} is your confirmation code.", false],
+  ["gmail", "Gmail / Google", "Email", "✉️", "#ef4444", 45, "G-{code} is your Google verification code.", true],
+  ["outlook", "Outlook", "Email", "📮", "#0ea5e9", 42, "Microsoft account security code: {code}", false],
+  ["yahoo", "Yahoo Mail", "Email", "📬", "#7c3aed", 40, "{code} is your Yahoo verification code.", false],
+  ["paypal", "PayPal", "Finance", "🅿️", "#2563eb", 120, "PayPal: {code} is your security code. Never share it.", true],
+  ["venmo", "Venmo", "Finance", "💸", "#38bdf8", 135, "Venmo: your phone verification code is {code}.", true],
+  ["cashapp", "Cash App", "Finance", "💵", "#22c55e", 140, "Cash App: {code} is your sign-in code.", true],
+  ["coinbase", "Coinbase", "Finance", "🪙", "#3b82f6", 150, "Coinbase verification code: {code}. Never share.", false],
+  ["binance", "Binance", "Finance", "🟡", "#eab308", 130, "[Binance] Verification code: {code}", false],
+  ["revolut", "Revolut", "Finance", "🏦", "#818cf8", 125, "Revolut code: {code}. We will never call you for it.", false],
+  ["chime", "Chime", "Finance", "🌿", "#34d399", 128, "Chime: {code} is your verification code.", false],
+  ["whatsapp", "WhatsApp", "Messaging", "💬", "#25d366", 60, "Your WhatsApp code is {code}. Don't share this code.", true],
+  ["telegram", "Telegram", "Messaging", "✈️", "#38bdf8", 55, "Telegram code: {code}. Do not give this code to anyone.", true],
+  ["signal", "Signal", "Messaging", "🔐", "#6366f1", 58, "Your Signal verification code: {code}", false],
+  ["discord", "Discord", "Messaging", "🎮", "#818cf8", 30, "Your Discord verification code is {code}.", false],
+  ["facebook", "Facebook", "Social", "📘", "#1d4ed8", 35, "{code} is your Facebook confirmation code.", true],
+  ["instagram", "Instagram", "Social", "📸", "#ec4899", 40, "{code} is your Instagram code. Don't share it.", true],
+  ["tiktok", "TikTok", "Social", "🎵", "#f43f5e", 38, "[TikTok] {code} is your verification code", false],
+  ["twitter", "X (Twitter)", "Social", "✖️", "#94a3b8", 48, "Your X confirmation code is {code}.", false],
+  ["snapchat", "Snapchat", "Social", "👻", "#fbbf24", 45, "Snapchat: your code is {code}. Snap it up!", false],
+  ["linkedin", "LinkedIn", "Social", "💼", "#0284c7", 52, "{code} is your LinkedIn verification code.", false],
+  ["uber", "Uber", "Marketplace", "🚗", "#0f172a", 65, "Your Uber code is {code}. Reply STOP to unsubscribe.", false],
+  ["airbnb", "Airbnb", "Marketplace", "🏠", "#fb7185", 75, "Your Airbnb verification code is {code}.", false],
+  ["doordash", "DoorDash", "Marketplace", "🛵", "#ef4444", 70, "DoorDash: your verification code is {code}.", false],
+  ["amazon", "Amazon", "Marketplace", "📦", "#f59e0b", 42, "{code} is your Amazon OTP. Do not share it.", false],
+  ["netflix", "Netflix", "Entertainment", "🎬", "#dc2626", 50, "Netflix: {code} is your verification code.", false],
+  ["openai", "OpenAI / ChatGPT", "Tech", "🤖", "#10b981", 80, "Your OpenAI verification code is {code}", true],
 ];
 
 function pseudoRandom(seed) {
@@ -157,7 +157,7 @@ async function main() {
       const userId = created[0].id;
       await client.query(
         `insert into transactions (user_id, type, amount_cents, description, reference)
-         values ($1,'topup',2500,'Wallet top-up Â· Demo data','TOP-DEMO-01')`,
+         values ($1,'topup',2500,'Wallet top-up · Demo data','TOP-DEMO-01')`,
         [userId],
       );
 
@@ -198,7 +198,7 @@ async function main() {
     "select (select count(*) from countries) c, (select count(*) from services) s, (select count(*) from offers) o",
   );
   console.log(
-    `Seed complete â†’ countries: ${counts.rows[0].c}, services: ${counts.rows[0].s}, offers: ${counts.rows[0].o}`,
+    `Seed complete → countries: ${counts.rows[0].c}, services: ${counts.rows[0].s}, offers: ${counts.rows[0].o}`,
   );
 
   await client.end();

@@ -1,4 +1,4 @@
-﻿import { desc, eq, sql } from "drizzle-orm";
+import { desc, eq, sql } from "drizzle-orm";
 import { db } from "@/db";
 import { countries, offers, rentals, services, transactions } from "@/db/schema";
 
@@ -93,6 +93,7 @@ export type RentalView = {
   serviceIcon: string;
   serviceSlug: string;
   countryName: string;
+  countryCode: string;
   countryFlag: string;
 };
 
@@ -111,6 +112,7 @@ export async function getUserRentals(userId: number, limit = 50): Promise<Rental
       serviceIcon: services.icon,
       serviceSlug: services.slug,
       countryName: countries.name,
+      countryCode: countries.code,
       countryFlag: countries.flag,
     })
     .from(rentals)
@@ -171,4 +173,5 @@ export async function getPlatformStats() {
     delivered: (row?.delivered ?? 0) + 184213,
   };
 }
+
 

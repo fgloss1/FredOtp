@@ -72,7 +72,7 @@ export function CatalogExplorer({
         <div className="flex flex-col gap-4 lg:flex-row lg:items-center">
           <div className="relative flex-1">
             <span className="pointer-events-none absolute left-3.5 top-1/2 -translate-y-1/2 text-slate-500">
-              🔍
+              ðŸ”
             </span>
             <input
               value={query}

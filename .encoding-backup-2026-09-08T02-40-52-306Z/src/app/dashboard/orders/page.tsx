@@ -32,7 +32,7 @@ export default async function OrdersPage() {
 
       {rentals.length === 0 ? (
         <div className="card p-12 text-center">
-          <p className="text-4xl">🧾</p>
+          <p className="text-4xl">ðŸ§¾</p>
           <p className="mt-3 font-semibold text-white">No rentals yet</p>
           <p className="mt-1 text-sm text-slate-500">Your rental history will appear here.</p>
         </div>

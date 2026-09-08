@@ -34,8 +34,10 @@
 };
 
 export function serviceIcon(slug: string): string {
-  const codePoints = SERVICE_ICON_CODEPOINTS[slug.toLowerCase()];
-  return codePoints ? String.fromCodePoint(...codePoints) : String.fromCodePoint(0x1F4F1);
+  const codePoints = SERVICE_ICON_CODEPOINTS[slug.trim().toLowerCase()];
+  return codePoints
+    ? String.fromCodePoint(...codePoints)
+    : String.fromCodePoint(0x1F4F1);
 }
 
 export function countryFlag(code: string): string {
@@ -46,6 +48,8 @@ export function countryFlag(code: string): string {
   }
 
   return String.fromCodePoint(
-    ...normalized.split("").map((character) => 127397 + character.charCodeAt(0)),
+    ...normalized
+      .split("")
+      .map((character) => 127397 + character.charCodeAt(0)),
   );
 }

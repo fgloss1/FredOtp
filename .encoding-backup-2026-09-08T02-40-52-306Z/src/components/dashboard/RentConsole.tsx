@@ -170,7 +170,7 @@ export function RentConsole({
             <div>
               <h2 className="text-lg font-black text-white">Rent a number</h2>
               <p className="text-sm text-slate-500">
-                {catalog.services.length} services · {catalog.countries.length} countries
+                {catalog.services.length} services Ã‚· {catalog.countries.length} countries
               </p>
             </div>
             <span className="rounded-lg border border-white/10 px-3 py-1.5 text-xs font-bold text-slate-300">
@@ -202,7 +202,7 @@ export function RentConsole({
               <input
                 value={query}
                 onChange={(event) => setQuery(event.target.value)}
-                placeholder="match, zoosk, paypal…"
+                placeholder="match, zoosk, paypalÃ¢€Â¦"
                 className="w-full rounded-xl border border-white/12 bg-ink-950/70 px-3 py-3 text-sm text-white placeholder:text-slate-600 outline-none focus:border-emerald-400/60"
               />
             </div>
@@ -242,7 +242,7 @@ export function RentConsole({
             })}
             {filteredServices.length === 0 && (
               <p className="col-span-full py-6 text-center text-sm text-slate-500">
-                Nothing matches “{query}”.
+                Nothing matches Ã¢€Å“{query}Ã¢€Â.
               </p>
             )}
           </div>
@@ -253,12 +253,12 @@ export function RentConsole({
           <h3 className="text-sm font-bold uppercase tracking-wider text-slate-500">Order summary</h3>
           <div className="mt-4 flex items-center gap-3 rounded-xl bg-white/[0.03] p-3">
             <span className="grid h-11 w-11 place-items-center rounded-xl bg-white/5 text-xl ring-1 ring-white/10">
-              {service?.icon ?? "📱"}
+              {service?.icon ?? "Ã°Å¸“Â±"}
             </span>
             <div>
               <p className="text-sm font-bold text-white">{service?.name ?? "Select a service"}</p>
               <p className="text-xs text-slate-500">
-                {country?.flag} {country?.name} · {country?.dialCode}
+                {country?.flag} {country?.name} Ã‚· {country?.dialCode}
               </p>
             </div>
           </div>
@@ -291,7 +291,7 @@ export function RentConsole({
               disabled={busy || !offer || (offer?.stock ?? 0) <= 0}
               className="glow-btn mt-5 w-full rounded-xl bg-gradient-to-r from-mint-500 to-brand-500 py-3.5 text-sm font-extrabold text-ink-950 transition hover:brightness-110 disabled:cursor-not-allowed disabled:opacity-50"
             >
-              {busy ? "Reserving number…" : `Rent number · ${usd(price)}`}
+              {busy ? "Reserving numberÃ¢€Â¦" : `Rent number Ã‚· ${usd(price)}`}
             </button>
           )}
           <p className="mt-3 text-center text-[11px] leading-relaxed text-slate-500">
@@ -312,13 +312,13 @@ export function RentConsole({
             )}
           </h2>
           <Link href="/dashboard/orders" className="text-xs font-semibold text-emerald-300 hover:underline">
-            View all rentals →
+            View all rentals Ã¢â€ ’
           </Link>
         </div>
 
         {rentals.length === 0 ? (
           <div className="card p-10 text-center">
-            <p className="text-3xl">📭</p>
+            <p className="text-3xl">Ã°Å¸“Â­</p>
             <p className="mt-3 text-sm font-semibold text-white">No rentals yet</p>
             <p className="mt-1 text-sm text-slate-500">
               Pick a service and country above to receive your first OTP.
@@ -336,7 +336,7 @@ export function RentConsole({
                     <div>
                       <p className="text-sm font-bold text-white">
                         {rental.serviceName}{" "}
-                        <span className="text-slate-500">· {countryFlag(rental.countryCode)} {rental.countryName}</span>
+                        <span className="text-slate-500">Ã‚· {countryFlag(rental.countryCode)} {rental.countryName}</span>
                       </p>
                       <button
                         type="button"
@@ -365,7 +365,7 @@ export function RentConsole({
                   <div className="mt-4 flex flex-wrap items-center justify-between gap-3 rounded-xl border border-amber-400/20 bg-amber-400/[0.06] px-4 py-3">
                     <div className="flex items-center gap-2.5 text-sm text-amber-200">
                       <span className="h-2 w-2 rounded-full bg-amber-400 pulse-ring" />
-                      Listening for SMS… expires in{" "}
+                      Listening for SMSÃ¢€Â¦ expires in{" "}
                       <span className="font-mono font-bold">{countdown(rental.expiresAt)}</span>
                     </div>
                     <button
