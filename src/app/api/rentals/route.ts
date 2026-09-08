@@ -12,9 +12,7 @@ function supplierErrorMessage(error: unknown): string | null {
   const message = error.message.trim();
   if (!message) return null;
 
-  if (message.startsWith("Supplier checks failed:")) return message;
-  if (message.startsWith("5SIM ")) return message;
-  if (message.startsWith("SMS-Man ")) return message;
+  if (message.startsWith("OTP supplier error (")) return message;
   return null;
 }
 
