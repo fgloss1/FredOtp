@@ -8,7 +8,7 @@ export function SiteFooter() {
         <div className="space-y-4">
           <Logo />
           <p className="max-w-xs text-sm leading-relaxed text-slate-500">
-            FredOTP rents disposable virtual numbers across 16 countries so you can receive
+            NAVA rents disposable virtual numbers across 16 countries so you can receive
             one-time passcodes in seconds — pay only when the code lands.
           </p>
           <div className="flex gap-2 text-lg">🇳🇬 🇺🇸 🇬🇧 🇬🇭 🇰🇪 🇮🇳 🇵🇭 🇩🇪</div>
@@ -48,7 +48,7 @@ export function SiteFooter() {
 
       <div className="border-t border-white/5">
         <div className="mx-auto flex max-w-7xl flex-col gap-2 px-4 py-6 text-xs text-slate-600 sm:flex-row sm:items-center sm:justify-between sm:px-6">
-          <p>© {new Date().getFullYear()} FredOTP. All rights reserved.</p>
+          <p>© {new Date().getFullYear()} NAVA. All rights reserved.</p>
           <p>
             Demo environment — numbers and SMS traffic are simulated for product demonstration
             purposes.

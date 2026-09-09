@@ -256,7 +256,7 @@ let totalChanges = 0;
 
 console.log("");
 console.log("====================================================");
-console.log(" FredOTP - DEFINITIVE UTF-8 MOJIBAKE REPAIR");
+console.log(" NAVA - DEFINITIVE UTF-8 MOJIBAKE REPAIR");
 console.log("====================================================");
 console.log("");
 

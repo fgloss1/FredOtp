@@ -3,7 +3,7 @@ import type { ReactNode } from "react";
 import "./globals.css";
 
 export const metadata: Metadata = {
-  title: "FredOTP · Rent virtual numbers for instant OTP verification",
+  title: "NAVA · Rent virtual numbers for instant OTP verification",
   description:
     "Rent disposable phone numbers from Nigeria, USA, UK, Ghana, India and 12+ more countries to receive one-time passwords for Match, Zoosk, Gmail, PayPal, Venmo, WhatsApp and 30+ services.",
 };

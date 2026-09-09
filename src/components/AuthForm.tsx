@@ -111,7 +111,7 @@ export function AuthForm({ mode, next }: { mode: Mode; next?: string }) {
       <p className="text-center text-sm text-slate-500">
         {mode === "login" ? (
           <>
-            New to FredOTP?{" "}
+            New to NAVA?{" "}
             <Link href="/register" className="font-semibold text-emerald-300 hover:underline">
               Create an account
             </Link>

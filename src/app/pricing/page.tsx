@@ -10,7 +10,7 @@ import { getCatalog } from "@/lib/queries";
 export const dynamic = "force-dynamic";
 
 export const metadata: Metadata = {
-  title: "Pricing \u00B7 FredOTP virtual number rentals",
+  title: "Pricing \u00B7 NAVA virtual number rentals",
   description:
     "Transparent per-code pricing for Match, Zoosk, Gmail, PayPal, Venmo and 30+ services across Nigeria, USA, UK, Ghana, Kenya, India and more.",
 };

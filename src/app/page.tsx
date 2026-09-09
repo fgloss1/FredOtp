@@ -98,7 +98,7 @@ export default async function HomePage() {
               </h1>
 
               <p className="mt-5 max-w-xl text-lg leading-relaxed text-slate-400">
-                FredOTP gives you disposable virtual numbers from Nigeria, the USA, UK, Ghana,
+                NAVA gives you disposable virtual numbers from Nigeria, the USA, UK, Ghana,
                 Kenya, India and 10 more countries to verify Match, Zoosk, Gmail, PayPal, Venmo,
                 WhatsApp and {stats.services - 6}+ other platforms. Pay per code — refunded
                 automatically if the SMS never lands.
@@ -242,7 +242,7 @@ export default async function HomePage() {
         <section className="border-y border-white/5 bg-white/[0.015] py-20">
           <div className="mx-auto max-w-7xl px-4 sm:px-6">
             <SectionHeading
-              eyebrow="Why FredOTP"
+              eyebrow="Why NAVA"
               title="Built for people who verify at scale"
               subtitle="Fast routes, honest refunds and pricing that respects local currencies."
             />
