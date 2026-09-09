@@ -1,4 +1,4 @@
-import { eq } from "drizzle-orm";
+import { and, eq } from "drizzle-orm";
 import { db } from "@/db";
 import { payments } from "@/db/schema";
 import { getCurrentUser } from "@/lib/auth";
@@ -12,12 +12,14 @@ export async function GET(request: Request) {
 
   const url = new URL(request.url);
   const reference = url.searchParams.get("reference")?.trim();
-  if (!reference) return Response.json({ error: "Payment reference is required." }, { status: 400 });
+  if (!reference || reference.length > 80) {
+    return Response.json({ error: "Payment reference is required." }, { status: 400 });
+  }
 
   const [payment] = await db
     .select({ id: payments.id })
     .from(payments)
-    .where(eq(payments.reference, reference))
+    .where(and(eq(payments.reference, reference), eq(payments.userId, user.id)))
     .limit(1);
 
   if (!payment) return Response.json({ error: "Payment not found." }, { status: 404 });
