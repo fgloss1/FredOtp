@@ -67,7 +67,7 @@ export default async function PricingPage({
             <div>
               <h3 className="text-sm font-bold text-white">💳 Payment methods</h3>
               <p className="mt-2 text-sm text-slate-400">
-                Card, Nigerian bank transfer, PayPal and USDT (TRC-20). Wallet credit never expires.
+                Card, Nigerian bank transfer and USSD. Wallet credit never expires.
               </p>
             </div>
             <div>
@@ -99,5 +99,4 @@ function PriceStat({ label, value, note }: { label: string; value: string; note:
     </div>
   );
 }
-
 
