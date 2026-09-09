@@ -23,22 +23,35 @@ export function AuthForm({ mode, next }: { mode: Mode; next?: string }) {
     setBusy(true);
     setError(null);
 
-    const response = await fetch(`/api/auth/${mode}`, {
-      method: "POST",
-      headers: { "Content-Type": "application/json" },
-      body: JSON.stringify(mode === "register" ? { username, name, email, password } : { username, password }),
-    });
-    const data = (await response.json()) as { error?: string };
+    try {
+      const response = await fetch(`/api/auth/${mode}`, {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify(
+          mode === "register"
+            ? { username, name, email, password }
+            : { username, password },
+        ),
+      });
 
-    if (!response.ok) {
-      setError(data.error ?? "Something went wrong.");
+      const data = (await response.json()) as { error?: string };
+
+      if (!response.ok) {
+        setError(data.error ?? "Something went wrong.");
+        return;
+      }
+
+      const safeNext =
+        next && next.startsWith("/") && !next.startsWith("//")
+          ? next
+          : "/dashboard";
+      router.replace(safeNext);
+      router.refresh();
+    } catch {
+      setError("Could not reach NAVA right now. Please try again.");
+    } finally {
       setBusy(false);
-      return;
     }
-
-    const safeNext = next && next.startsWith("/") && !next.startsWith("//") ? next : "/dashboard";
-    router.replace(safeNext);
-    router.refresh();
   }
 
   return (
@@ -70,6 +83,7 @@ export function AuthForm({ mode, next }: { mode: Mode; next?: string }) {
           className={INPUT}
         />
       </Field>
+
       {mode === "register" && (
         <Field label="Email address">
           <input
@@ -126,7 +140,6 @@ export function AuthForm({ mode, next }: { mode: Mode; next?: string }) {
           </>
         )}
       </p>
-
     </form>
   );
 }
