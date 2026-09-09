@@ -7,16 +7,6 @@ import { createRental, syncActiveRentals } from "@/lib/rental-engine";
 
 export const dynamic = "force-dynamic";
 
-function supplierErrorMessage(error: unknown): string | null {
-  if (!(error instanceof Error)) return null;
-  const message = error.message.trim();
-  if (!message) return null;
-
-  if (/^(5SIM|SMS-Man)\s*:/i.test(message)) return message;
-  if (/^OTP supplier error\s*\(/i.test(message)) return message;
-  return null;
-}
-
 export async function GET() {
   const user = await getCurrentUser();
   if (!user) return Response.json({ error: "Sign in required." }, { status: 401 });
@@ -60,9 +50,8 @@ export async function POST(request: Request) {
     return Response.json({ rental: result.rental, balanceCents: result.balanceCents });
   } catch (error) {
     console.error("Rental creation error", error);
-    const supplierMessage = supplierErrorMessage(error);
     return Response.json(
-      { error: supplierMessage ?? "The OTP suppliers are temporarily unavailable. Please try again." },
+      { error: "The OTP suppliers are temporarily unavailable. Please try again." },
       { status: 503 },
     );
   }
