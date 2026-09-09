@@ -17,6 +17,9 @@ jobs:
         with:
           fetch-depth: 0
 
+      - name: Remove previous repair backups
+        run: find . -maxdepth 1 -type d -name '.encoding-backup-*' -prune -exec rm -rf {} +
+
       - name: Setup Node
         uses: actions/setup-node@v4
         with:
@@ -24,6 +27,9 @@ jobs:
 
       - name: Repair mojibake
         run: node fix-encoding.mjs
+
+      - name: Remove generated backup directory
+        run: find . -maxdepth 1 -type d -name '.encoding-backup-*' -prune -exec rm -rf {} +
 
       - name: Commit repaired source
         run: |
