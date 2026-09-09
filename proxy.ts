@@ -24,7 +24,7 @@ function clientIp(request: NextRequest): string {
 
 function limitFor(pathname: string, method: string): number | null {
   if (pathname === "/api/rentals" && method === "POST") return LIMITS["/api/rentals"];
-  if (pathname === "/api/rentals" && method === "DELETE") return 20;
+  if (pathname.startsWith("/api/rentals/") && method === "DELETE") return 20;
   if (method === "POST") return LIMITS[pathname] ?? null;
   if (method === "GET" && pathname === "/api/payments/paystack/verify") return LIMITS[pathname];
   return null;
@@ -43,7 +43,7 @@ export function proxy(request: NextRequest) {
   if (limit == null) return NextResponse.next();
 
   const now = Date.now();
-  const key = `${clientIp(request)}:${method}:${pathname}`;
+  const key = `${clientIp(request)}:${method}:${pathname.startsWith("/api/rentals/") ? "/api/rentals/:id" : pathname}`;
   const current = buckets.get(key);
 
   if (!current || current.resetAt <= now) {
