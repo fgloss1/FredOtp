@@ -17,6 +17,20 @@ type Props = {
   defaultCountryCode?: string;
 };
 
+const CATEGORY_ORDER = [
+  "Popular",
+  "Dating",
+  "Messaging",
+  "Social",
+  "Finance",
+  "Shopping",
+  "Email",
+  "Entertainment",
+  "Travel",
+  "Tech",
+  "Other",
+];
+
 export function RentConsole({
   catalog,
   initialRentals,
@@ -28,6 +42,7 @@ export function RentConsole({
   const [rentals, setRentals] = useState<RentalView[]>(initialRentals);
   const [balance, setBalance] = useState(initialBalanceCents);
   const [query, setQuery] = useState("");
+  const [category, setCategory] = useState("Popular");
   const [serviceId, setServiceId] = useState<number>(
     catalog.services.find((s) => s.slug === defaultServiceSlug)?.id ?? catalog.services[0]?.id ?? 0,
   );
@@ -49,21 +64,29 @@ export function RentConsole({
     return map;
   }, [catalog.offers]);
 
+  const categories = useMemo(() => {
+    const available = new Set(catalog.services.map((service) => service.category));
+    return CATEGORY_ORDER.filter((item) => item === "Popular" || available.has(item));
+  }, [catalog.services]);
+
   const filteredServices = useMemo(() => {
     const q = query.trim().toLowerCase();
-    if (!q) return catalog.services;
-    return catalog.services.filter(
-      (service) =>
+    return catalog.services.filter((service) => {
+      const categoryMatch = category === "Popular" ? service.popular : service.category === category;
+      const queryMatch =
+        !q ||
         service.name.toLowerCase().includes(q) ||
         service.slug.includes(q) ||
-        service.category.toLowerCase().includes(q),
-    );
-  }, [catalog.services, query]);
+        service.category.toLowerCase().includes(q);
+      return categoryMatch && queryMatch;
+    });
+  }, [catalog.services, category, query]);
 
   const service = catalog.services.find((s) => s.id === serviceId);
   const country = catalog.countries.find((c) => c.id === countryId);
   const offer = offerMap.get(`${serviceId}:${countryId}`);
   const price = offer?.priceCents ?? service?.minPriceCents ?? 0;
+  const isLivePriced = !offer && Boolean(service);
   const waiting = rentals.filter((rental) => rental.status === "waiting");
 
   const refreshWaiting = useCallback(async () => {
@@ -174,7 +197,6 @@ export function RentConsole({
   return (
     <div className="space-y-6">
       <div className="grid gap-6 lg:grid-cols-[minmax(0,1fr)_360px]">
-        {/* Picker */}
         <section className="card p-5 sm:p-6">
           <div className="flex items-center justify-between gap-4">
             <div>
@@ -218,10 +240,28 @@ export function RentConsole({
             </div>
           </div>
 
-          <div className="scrollbar-thin mt-4 grid max-h-72 gap-2 overflow-y-auto pr-1 sm:grid-cols-2">
+          <div className="scrollbar-thin mt-4 flex gap-2 overflow-x-auto pb-1">
+            {categories.map((item) => (
+              <button
+                key={item}
+                type="button"
+                onClick={() => setCategory(item)}
+                className={`whitespace-nowrap rounded-full px-3.5 py-1.5 text-xs font-bold transition ${
+                  category === item
+                    ? "bg-emerald-400 text-ink-950"
+                    : "border border-white/10 bg-white/[0.03] text-slate-400 hover:text-white"
+                }`}
+              >
+                {item}
+              </button>
+            ))}
+          </div>
+
+          <div className="scrollbar-thin mt-3 grid max-h-80 gap-2 overflow-y-auto pr-1 sm:grid-cols-2">
             {filteredServices.map((item) => {
               const itemOffer = offerMap.get(`${item.id}:${countryId}`);
               const selected = item.id === serviceId;
+              const live = !itemOffer;
               return (
                 <button
                   key={item.id}
@@ -240,25 +280,27 @@ export function RentConsole({
                         {item.name}
                       </span>
                       <span className="block text-[11px] text-slate-500">
-                        {(itemOffer?.stock ?? 0).toLocaleString()} left
+                        {live ? "Live availability" : `${(itemOffer.stock ?? 0).toLocaleString()} left`}
                       </span>
                     </span>
                   </span>
-                  <span className="shrink-0 text-sm font-bold text-emerald-300">
-                    {usd(itemOffer?.priceCents ?? item.minPriceCents)}
+                  <span className="shrink-0 text-right text-sm font-bold text-emerald-300">
+                    {live ? "Live" : usd(itemOffer.priceCents)}
                   </span>
                 </button>
               );
             })}
             {filteredServices.length === 0 && (
-              <p className="col-span-full py-6 text-center text-sm text-slate-500">
-                Nothing matches “{query}”.
-              </p>
+              <div className="col-span-full rounded-xl border border-dashed border-white/10 py-8 text-center">
+                <p className="text-sm font-semibold text-slate-300">Service not found?</p>
+                <p className="mt-1 text-xs text-slate-500">
+                  Choose <span className="font-bold text-emerald-300">Other</span> to request an unlisted service.
+                </p>
+              </div>
             )}
           </div>
         </section>
 
-        {/* Summary */}
         <section className="card h-fit p-5 sm:p-6">
           <h3 className="text-sm font-bold uppercase tracking-wider text-slate-500">Order summary</h3>
           <div className="mt-4 flex items-center gap-3 rounded-xl bg-white/[0.03] p-3">
@@ -275,12 +317,16 @@ export function RentConsole({
           </div>
 
           <dl className="mt-4 space-y-2.5 text-sm">
-            <Row label="Price per code" value={usd(price)} />
-            <Row label="In Naira" value={ngn(price)} muted />
-            <Row label="Success rate" value={`${offer?.successRate ?? 95}%`} muted />
-            <Row label="Numbers in pool" value={(offer?.stock ?? 0).toLocaleString()} muted />
+            <Row label="Price per code" value={isLivePriced ? "Live supplier price" : usd(price)} />
+            <Row label="In Naira" value={isLivePriced ? "Calculated at purchase" : ngn(price)} muted />
+            <Row label="Success rate" value={isLivePriced ? "Live" : `${offer?.successRate ?? 95}%`} muted />
+            <Row label="Numbers in pool" value={isLivePriced ? "Live" : (offer?.stock ?? 0).toLocaleString()} muted />
             <Row label="Hold window" value="15 minutes" muted />
           </dl>
+
+          <div className="mt-4 rounded-xl border border-emerald-400/15 bg-emerald-400/[0.04] px-3 py-2.5 text-xs leading-relaxed text-slate-400">
+            Can't find your site or app? Select <span className="font-bold text-emerald-300">Other</span>. We’ll use the supplier’s generic service for the SMS verification.
+          </div>
 
           {error && (
             <p className="mt-4 rounded-xl border border-rose-400/30 bg-rose-400/10 px-3 py-2.5 text-xs text-rose-300">
@@ -288,7 +334,7 @@ export function RentConsole({
             </p>
           )}
 
-          {balance < price ? (
+          {balance < price && !isLivePriced ? (
             <Link
               href="/dashboard/wallet"
               className="mt-5 block rounded-xl bg-gradient-to-r from-amber-400 to-orange-500 py-3.5 text-center text-sm font-extrabold text-ink-950"
@@ -299,19 +345,18 @@ export function RentConsole({
             <button
               type="button"
               onClick={rent}
-              disabled={busy || !offer}
+              disabled={busy || !service || !country}
               className="glow-btn mt-5 w-full rounded-xl bg-gradient-to-r from-mint-500 to-brand-500 py-3.5 text-sm font-extrabold text-ink-950 transition hover:brightness-110 disabled:cursor-not-allowed disabled:opacity-50"
             >
-              {busy ? "Reserving number…" : `Rent number - ${usd(price)}`}
+              {busy ? "Reserving number…" : isLivePriced ? "Check live price & rent" : `Rent number - ${usd(price)}`}
             </button>
           )}
           <p className="mt-3 text-center text-[11px] leading-relaxed text-slate-500">
-            Charged now, refunded automatically if no SMS arrives within 15 minutes.
+            Charged only after a supplier successfully provides a number. Refunded automatically if no SMS arrives within 15 minutes.
           </p>
         </section>
       </div>
 
-      {/* Active rentals */}
       <section className="space-y-3">
         <div className="flex items-center justify-between">
           <h2 className="text-lg font-black text-white">
@@ -341,10 +386,7 @@ export function RentConsole({
               <article key={rental.id} className="card p-4 sm:p-5">
                 <div className="flex flex-wrap items-start justify-between gap-3">
                   <div className="flex items-center gap-3">
-                    <ServiceBrandIcon
-                      slug={rental.serviceSlug}
-                      name={rental.serviceName}
-                    />
+                    <ServiceBrandIcon slug={rental.serviceSlug} name={rental.serviceName} />
                     <div>
                       <p className="text-sm font-bold text-white">
                         {rental.serviceName}{" "}
@@ -364,9 +406,7 @@ export function RentConsole({
                   </div>
 
                   <div className="flex items-center gap-2">
-                    <span
-                      className={`rounded-full px-2.5 py-1 text-[11px] font-bold ring-1 ${statusTone(rental.status)}`}
-                    >
+                    <span className={`rounded-full px-2.5 py-1 text-[11px] font-bold ring-1 ${statusTone(rental.status)}`}>
                       {statusLabel(rental.status)}
                     </span>
                     <span className="text-xs font-semibold text-slate-500">{usd(rental.priceCents)}</span>
@@ -377,8 +417,7 @@ export function RentConsole({
                   <div className="mt-4 flex flex-wrap items-center justify-between gap-3 rounded-xl border border-amber-400/20 bg-amber-400/[0.06] px-4 py-3">
                     <div className="flex items-center gap-2.5 text-sm text-amber-200">
                       <span className="h-2 w-2 rounded-full bg-amber-400 pulse-ring" />
-                      Listening for SMS… expires in{" "}
-                      <span className="font-mono font-bold">{countdown(rental.expiresAt)}</span>
+                      Listening for SMS… expires in <span className="font-mono font-bold">{countdown(rental.expiresAt)}</span>
                     </div>
                     <button
                       type="button"
@@ -393,12 +432,8 @@ export function RentConsole({
                 {rental.status === "received" && rental.otpCode && (
                   <div className="mt-4 flex flex-wrap items-center justify-between gap-3 rounded-xl border border-emerald-400/25 bg-emerald-400/[0.07] px-4 py-3">
                     <div>
-                      <p className="text-[11px] font-bold uppercase tracking-wider text-emerald-400/80">
-                        One-time code
-                      </p>
-                      <p className="font-mono text-2xl font-black tracking-[0.3em] text-emerald-300">
-                        {rental.otpCode}
-                      </p>
+                      <p className="text-[11px] font-bold uppercase tracking-wider text-emerald-400/80">One-time code</p>
+                      <p className="font-mono text-2xl font-black tracking-[0.3em] text-emerald-300">{rental.otpCode}</p>
                       <p className="mt-1 max-w-md text-[11px] text-slate-400">{rental.smsText}</p>
                     </div>
                     <button
@@ -423,9 +458,7 @@ function Row({ label, value, muted = false }: { label: string; value: string; mu
   return (
     <div className="flex items-center justify-between">
       <dt className="text-slate-500">{label}</dt>
-      <dd className={muted ? "font-semibold text-slate-300" : "text-base font-black text-white"}>
-        {value}
-      </dd>
+      <dd className={muted ? "font-semibold text-slate-300" : "text-base font-black text-white"}>{value}</dd>
     </div>
   );
 }
