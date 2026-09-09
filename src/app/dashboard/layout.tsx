@@ -3,6 +3,7 @@ import { redirect } from "next/navigation";
 import type { ReactNode } from "react";
 import { Logo } from "@/components/Logo";
 import { LogoutButton } from "@/components/LogoutButton";
+import { IdleSessionGuard } from "@/components/IdleSessionGuard";
 import { WalletModalTrigger } from "@/components/dashboard/WalletModalTrigger";
 import { getCurrentUser } from "@/lib/auth";
 import { ngn, usd } from "@/lib/format";
@@ -22,6 +23,8 @@ export default async function DashboardLayout({ children }: { children: ReactNod
 
   return (
     <div className="min-h-screen">
+      <IdleSessionGuard />
+
       <header className="sticky top-0 z-40 border-b border-white/5 bg-ink-950/85 backdrop-blur-xl">
         <div className="mx-auto flex h-16 max-w-7xl items-center justify-between gap-4 px-4 sm:px-6">
           <Logo />
