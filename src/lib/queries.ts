@@ -1,6 +1,7 @@
 import { desc, eq, sql } from "drizzle-orm";
 import { db } from "@/db";
 import { countries, offers, rentals, services, transactions } from "@/db/schema";
+import { syncSupplierCatalog } from "@/lib/catalog-sync";
 
 export type CatalogCountry = {
   id: number;
@@ -37,6 +38,8 @@ export type Catalog = {
 };
 
 export async function getCatalog(): Promise<Catalog> {
+  await syncSupplierCatalog();
+
   const [countryRows, serviceRows, offerRows] = await Promise.all([
     db
       .select({
@@ -173,5 +176,3 @@ export async function getPlatformStats() {
     delivered: (row?.delivered ?? 0) + 184213,
   };
 }
-
-
