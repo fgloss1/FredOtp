@@ -48,6 +48,36 @@ type CreateResult =
   | { ok: true; rental: RentalView; balanceCents: number }
   | { ok: false; error: string };
 
+const CUSTOMER_UNAVAILABLE_ERROR =
+  "This number is temporarily unavailable. Please try another service or country.";
+const CUSTOMER_RETRY_ERROR =
+  "We could not secure a number right now. Please try again or choose another option.";
+
+async function refundFailedRental(rentalId: number, userId: number): Promise<void> {
+  await db.transaction(async (tx) => {
+    const [current] = await tx
+      .select({ status: rentals.status, priceCents: rentals.priceCents, phoneNumber: rentals.phoneNumber })
+      .from(rentals)
+      .where(and(eq(rentals.id, rentalId), eq(rentals.userId, userId), eq(rentals.status, "waiting")))
+      .limit(1);
+
+    if (!current) return;
+
+    await tx.update(rentals).set({ status: "expired" }).where(eq(rentals.id, rentalId));
+    await tx
+      .update(users)
+      .set({ balanceCents: sql`${users.balanceCents} + ${current.priceCents}` })
+      .where(eq(users.id, userId));
+    await tx.insert(transactions).values({
+      userId,
+      type: "refund",
+      amountCents: current.priceCents,
+      description: `Refund · failed rental ${current.phoneNumber}`,
+      reference: reference("REF"),
+    });
+  });
+}
+
 export async function createRental(
   userId: number,
   serviceId: number,
@@ -66,7 +96,7 @@ export async function createRental(
     .where(and(eq(offers.serviceId, serviceId), eq(offers.countryId, countryId)))
     .limit(1);
 
-  if (!offer) return { ok: false, error: "That service is not available in this country." };
+  if (!offer) return { ok: false, error: CUSTOMER_UNAVAILABLE_ERROR };
 
   const [user] = await db
     .select({ balanceCents: users.balanceCents })
@@ -76,13 +106,19 @@ export async function createRental(
 
   if (!user) return { ok: false, error: "Account not found." };
 
-  const quotes = await getProviderQuotes({
-    countryCode: offer.countryCode,
-    serviceSlug: offer.serviceSlug,
-  });
+  let quotes;
+  try {
+    quotes = await getProviderQuotes({
+      countryCode: offer.countryCode,
+      serviceSlug: offer.serviceSlug,
+    });
+  } catch (error) {
+    console.error("Supplier availability check failed", error);
+    return { ok: false, error: CUSTOMER_UNAVAILABLE_ERROR };
+  }
 
   if (quotes.length === 0) {
-    return { ok: false, error: "No supplier currently has an available number for this service and country." };
+    return { ok: false, error: CUSTOMER_UNAVAILABLE_ERROR };
   }
 
   let lastError: unknown = null;
@@ -120,7 +156,7 @@ export async function createRental(
         }
         return {
           ok: false,
-          error: "Your wallet balance is too low for the supplier price returned at purchase time.",
+          error: "Your wallet balance changed. Please try again.",
         };
       }
 
@@ -183,12 +219,18 @@ export async function createRental(
 
       const view = await getRentalView(outcome.rentalId, userId);
       if (!view) {
+        console.error("Rental was created but could not be read back", { rentalId: outcome.rentalId });
         try {
           await provider.cancel(providerOrder.orderId);
         } catch {
           // Best-effort supplier cleanup.
         }
-        return { ok: false, error: "Could not create rental." };
+        try {
+          await refundFailedRental(outcome.rentalId, userId);
+        } catch (refundError) {
+          console.error("Failed to refund an unreadable rental", refundError);
+        }
+        return { ok: false, error: CUSTOMER_RETRY_ERROR };
       }
 
       return { ok: true, rental: view, balanceCents: outcome.balanceCents };
@@ -198,8 +240,11 @@ export async function createRental(
     }
   }
 
-  if (lastError instanceof Error) throw lastError;
-  throw new Error("No supplier could complete the rental.");
+  if (lastError instanceof Error) {
+    console.error("All supplier rental attempts failed", lastError);
+  }
+
+  return { ok: false, error: CUSTOMER_UNAVAILABLE_ERROR };
 }
 
 function providerStatusToRentalStatus(status: string): "waiting" | "received" | "cancelled" | "expired" {
