@@ -83,20 +83,35 @@ export async function createRental(
   serviceId: number,
   countryId: number,
 ): Promise<CreateResult> {
-  const [offer] = await db
+  const [serviceRow] = await db
     .select({
-      priceCents: offers.priceCents,
-      stock: offers.stock,
-      countryCode: countries.code,
-      serviceSlug: services.slug,
+      id: services.id,
+      slug: services.slug,
+      name: services.name,
+      basePriceCents: services.basePriceCents,
+      active: services.active,
     })
+    .from(services)
+    .where(and(eq(services.id, serviceId), eq(services.active, true)))
+    .limit(1);
+
+  if (!serviceRow) return { ok: false, error: CUSTOMER_UNAVAILABLE_ERROR };
+
+  const [country] = await db
+    .select({ id: countries.id, code: countries.code, active: countries.active })
+    .from(countries)
+    .where(and(eq(countries.id, countryId), eq(countries.active, true)))
+    .limit(1);
+
+  if (!country) return { ok: false, error: CUSTOMER_UNAVAILABLE_ERROR };
+
+  const [offer] = await db
+    .select({ priceCents: offers.priceCents })
     .from(offers)
-    .innerJoin(countries, eq(countries.id, offers.countryId))
-    .innerJoin(services, eq(services.id, offers.serviceId))
     .where(and(eq(offers.serviceId, serviceId), eq(offers.countryId, countryId)))
     .limit(1);
 
-  if (!offer) return { ok: false, error: CUSTOMER_UNAVAILABLE_ERROR };
+  const basePriceCents = offer?.priceCents ?? serviceRow.basePriceCents;
 
   const [user] = await db
     .select({ balanceCents: users.balanceCents })
@@ -109,8 +124,8 @@ export async function createRental(
   let quotes;
   try {
     quotes = await getProviderQuotes({
-      countryCode: offer.countryCode,
-      serviceSlug: offer.serviceSlug,
+      countryCode: country.code,
+      serviceSlug: serviceRow.slug,
     });
   } catch (error) {
     console.error("Supplier availability check failed", error);
@@ -126,11 +141,11 @@ export async function createRental(
   for (const quote of quotes) {
     if (quote.costCents == null) continue;
 
-    const customerPriceCents = customerPriceForProviderCost(quote.costCents, offer.priceCents);
+    const customerPriceCents = customerPriceForProviderCost(quote.costCents, basePriceCents);
     if (user.balanceCents < customerPriceCents) {
       return {
         ok: false,
-        error: `Insufficient wallet balance. This live supplier price is ${customerPriceCents / 100 >= 1 ? `$${(customerPriceCents / 100).toFixed(2)}` : `${customerPriceCents}¢`}.`,
+        error: `Insufficient wallet balance. The current price is ${customerPriceCents / 100 >= 1 ? `$${(customerPriceCents / 100).toFixed(2)}` : `${customerPriceCents}¢`}.`,
       };
     }
 
@@ -138,14 +153,14 @@ export async function createRental(
 
     try {
       const providerOrder = await provider.buy({
-        countryCode: offer.countryCode,
-        serviceSlug: offer.serviceSlug,
+        countryCode: country.code,
+        serviceSlug: serviceRow.slug,
         maxCostCents: quote.costCents,
       });
 
       const finalCustomerPriceCents = customerPriceForProviderCost(
         providerOrder.costCents,
-        offer.priceCents,
+        basePriceCents,
       );
 
       if (user.balanceCents < finalCustomerPriceCents) {
@@ -156,7 +171,7 @@ export async function createRental(
         }
         return {
           ok: false,
-          error: "Your wallet balance changed. Please try again.",
+          error: "Your wallet balance is too low for the supplier price returned at purchase time.",
         };
       }
 
@@ -219,17 +234,12 @@ export async function createRental(
 
       const view = await getRentalView(outcome.rentalId, userId);
       if (!view) {
-        console.error("Rental was created but could not be read back", { rentalId: outcome.rentalId });
         try {
           await provider.cancel(providerOrder.orderId);
         } catch {
           // Best-effort supplier cleanup.
         }
-        try {
-          await refundFailedRental(outcome.rentalId, userId);
-        } catch (refundError) {
-          console.error("Failed to refund an unreadable rental", refundError);
-        }
+        await refundFailedRental(outcome.rentalId, userId);
         return { ok: false, error: CUSTOMER_RETRY_ERROR };
       }
 
@@ -241,10 +251,9 @@ export async function createRental(
   }
 
   if (lastError instanceof Error) {
-    console.error("All supplier rental attempts failed", lastError);
+    console.error("All supplier purchase attempts failed", lastError);
   }
-
-  return { ok: false, error: CUSTOMER_UNAVAILABLE_ERROR };
+  return { ok: false, error: CUSTOMER_RETRY_ERROR };
 }
 
 function providerStatusToRentalStatus(status: string): "waiting" | "received" | "cancelled" | "expired" {
