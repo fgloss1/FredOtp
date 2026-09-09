@@ -1,4 +1,4 @@
-﻿node_modules/
+node_modules/
 .next/
 out/
 .env
@@ -6,3 +6,6 @@ out/
 !.env.example
 *.log
 .DS_Store
+.encoding-backup-*/
+*.utf8-backup
+*.tsbuildinfo
