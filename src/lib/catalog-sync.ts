@@ -7,13 +7,7 @@ type SupplierApplication = {
   name?: string;
 };
 
-type CuratedService = {
-  slug: string;
-  name: string;
-  category: string;
-  basePriceCents: number;
-  popular?: boolean;
-};
+type CuratedService = [string, string, string, number, boolean?];
 
 const BASE_URL = "https://api.sms-man.com/control";
 const SYNC_INTERVAL_MS = 10 * 60 * 1000;
@@ -21,7 +15,6 @@ let lastSyncAt = 0;
 let syncPromise: Promise<void> | null = null;
 
 const CURATED_SERVICES: CuratedService[] = [
-  // Dating
   ["tinder", "Tinder", "Dating", 90, true], ["bumble", "Bumble", "Dating", 88, true], ["hinge", "Hinge", "Dating", 82, true],
   ["badoo", "Badoo", "Dating", 78, true], ["match", "Match", "Dating", 95, true], ["zoosk", "Zoosk", "Dating", 85, true],
   ["okcupid", "OkCupid", "Dating", 75, true], ["plentyoffish", "Plenty of Fish", "Dating", 70, true], ["grindr", "Grindr", "Dating", 72, true],
@@ -31,7 +24,6 @@ const CURATED_SERVICES: CuratedService[] = [
   ["bumble-bizz", "Bumble Bizz", "Dating", 88], ["datingcom", "Dating.com", "Dating", 75], ["lovoo", "LOVOO", "Dating", 70],
   ["grindr-xtra", "Grindr XTRA", "Dating", 75], ["wink", "Wink", "Dating", 68], ["chappy", "Chappy", "Dating", 68],
 
-  // Messaging
   ["whatsapp", "WhatsApp", "Messaging", 60, true], ["telegram", "Telegram", "Messaging", 55, true], ["signal", "Signal", "Messaging", 58],
   ["discord", "Discord", "Messaging", 30, true], ["messenger", "Messenger", "Messaging", 40], ["viber", "Viber", "Messaging", 48],
   ["line", "LINE", "Messaging", 48], ["wechat", "WeChat", "Messaging", 58], ["skype", "Skype", "Messaging", 45],
@@ -39,26 +31,22 @@ const CURATED_SERVICES: CuratedService[] = [
   ["wire", "Wire", "Messaging", 50], ["imo", "imo", "Messaging", 45], ["textnow", "TextNow", "Messaging", 55],
   ["zalo", "Zalo", "Messaging", 48], ["wechat-work", "WeCom", "Messaging", 52], ["groupme", "GroupMe", "Messaging", 48],
 
-  // Social
   ["facebook", "Facebook", "Social", 35, true], ["instagram", "Instagram", "Social", 40, true], ["tiktok", "TikTok", "Social", 38, true],
   ["twitter", "X (Twitter)", "Social", 48, true], ["snapchat", "Snapchat", "Social", 45, true], ["linkedin", "LinkedIn", "Social", 52, true],
   ["reddit", "Reddit", "Social", 42], ["pinterest", "Pinterest", "Social", 42], ["tumblr", "Tumblr", "Social", 40],
   ["quora", "Quora", "Social", 40], ["threads", "Threads", "Social", 42], ["bluesky", "Bluesky", "Social", 45],
   ["mastodon", "Mastodon", "Social", 45], ["bereal", "BeReal", "Social", 44], ["clubhouse", "Clubhouse", "Social", 45],
-  ["telegram-channel", "Telegram Channels", "Social", 55], ["weverse", "Weverse", "Social", 50], ["discord-server", "Discord Server", "Social", 30],
+  ["weverse", "Weverse", "Social", 50],
 
-  // Finance
   ["paypal", "PayPal", "Finance", 120, true], ["venmo", "Venmo", "Finance", 135, true], ["cashapp", "Cash App", "Finance", 140, true],
   ["coinbase", "Coinbase", "Finance", 150], ["binance", "Binance", "Finance", 130], ["revolut", "Revolut", "Finance", 125],
   ["chime", "Chime", "Finance", 128], ["wise", "Wise", "Finance", 110], ["stripe", "Stripe", "Finance", 115],
-  ["cashnet", "CashNet", "Finance", 100], ["skrill", "Skrill", "Finance", 105], ["neteller", "Neteller", "Finance", 105],
-  ["payoneer", "Payoneer", "Finance", 115], ["paysend", "Paysend", "Finance", 100], ["remitly", "Remitly", "Finance", 100],
-  ["monzo", "Monzo", "Finance", 115], ["n26", "N26", "Finance", 115], ["bunq", "bunq", "Finance", 115],
-  ["cashapp-business", "Cash App Business", "Finance", 145], ["bybit", "Bybit", "Finance", 130], ["kucoin", "KuCoin", "Finance", 125],
-  ["okx", "OKX", "Finance", 125], ["kraken", "Kraken", "Finance", 135], ["metamask", "MetaMask", "Finance", 140],
-  ["trustwallet", "Trust Wallet", "Finance", 135],
+  ["skrill", "Skrill", "Finance", 105], ["neteller", "Neteller", "Finance", 105], ["payoneer", "Payoneer", "Finance", 115],
+  ["paysend", "Paysend", "Finance", 100], ["remitly", "Remitly", "Finance", 100], ["monzo", "Monzo", "Finance", 115],
+  ["n26", "N26", "Finance", 115], ["bunq", "bunq", "Finance", 115], ["bybit", "Bybit", "Finance", 130],
+  ["kucoin", "KuCoin", "Finance", 125], ["okx", "OKX", "Finance", 125], ["kraken", "Kraken", "Finance", 135],
+  ["metamask", "MetaMask", "Finance", 140], ["trustwallet", "Trust Wallet", "Finance", 135],
 
-  // Shopping
   ["amazon", "Amazon", "Shopping", 42, true], ["ebay", "eBay", "Shopping", 48], ["etsy", "Etsy", "Shopping", 50],
   ["walmart", "Walmart", "Shopping", 45], ["aliexpress", "AliExpress", "Shopping", 45], ["alibaba", "Alibaba", "Shopping", 48],
   ["shopify", "Shopify", "Shopping", 50], ["temu", "Temu", "Shopping", 45], ["shein", "SHEIN", "Shopping", 48],
@@ -67,13 +55,11 @@ const CURATED_SERVICES: CuratedService[] = [
   ["doordash", "DoorDash", "Shopping", 70], ["ubereats", "Uber Eats", "Shopping", 68], ["instacart", "Instacart", "Shopping", 65],
   ["deliveroo", "Deliveroo", "Shopping", 65], ["glovo", "Glovo", "Shopping", 62], ["postmates", "Postmates", "Shopping", 62],
 
-  // Email
   ["gmail", "Gmail / Google", "Email", 45, true], ["outlook", "Outlook", "Email", 42], ["yahoo", "Yahoo Mail", "Email", 40],
   ["protonmail", "Proton Mail", "Email", 50], ["microsoft", "Microsoft", "Email", 48], ["icloud", "iCloud", "Email", 55],
   ["gmx", "GMX", "Email", 42], ["mailru", "Mail.ru", "Email", 42], ["zoho", "Zoho Mail", "Email", 45],
   ["yandex", "Yandex", "Email", 45], ["aol", "AOL Mail", "Email", 42], ["tutanota", "Tuta Mail", "Email", 48],
 
-  // Entertainment
   ["netflix", "Netflix", "Entertainment", 50], ["spotify", "Spotify", "Entertainment", 42, true], ["twitch", "Twitch", "Entertainment", 45],
   ["steam", "Steam", "Entertainment", 55], ["roblox", "Roblox", "Entertainment", 45], ["disneyplus", "Disney+", "Entertainment", 52],
   ["hulu", "Hulu", "Entertainment", 50], ["primevideo", "Prime Video", "Entertainment", 48], ["paramountplus", "Paramount+", "Entertainment", 48],
@@ -81,13 +67,11 @@ const CURATED_SERVICES: CuratedService[] = [
   ["dazn", "DAZN", "Entertainment", 48], ["crunchyroll", "Crunchyroll", "Entertainment", 48], ["epicgames", "Epic Games", "Entertainment", 55],
   ["xbox", "Xbox", "Entertainment", 55], ["playstation", "PlayStation", "Entertainment", 55], ["nintendo", "Nintendo", "Entertainment", 55],
 
-  // Travel / transport
   ["uber", "Uber", "Travel", 65], ["airbnb", "Airbnb", "Travel", 75], ["booking", "Booking.com", "Travel", 70],
   ["expedia", "Expedia", "Travel", 65], ["tripadvisor", "Tripadvisor", "Travel", 55], ["lyft", "Lyft", "Travel", 65],
   ["bolt", "Bolt", "Travel", 62], ["careem", "Careem", "Travel", 62], ["agoda", "Agoda", "Travel", 65],
   ["hotelscom", "Hotels.com", "Travel", 62], ["skyscanner", "Skyscanner", "Travel", 55], ["kayak", "KAYAK", "Travel", 55],
 
-  // Tech / work
   ["openai", "OpenAI / ChatGPT", "Tech", 80, true], ["github", "GitHub", "Tech", 55], ["gitlab", "GitLab", "Tech", 55],
   ["notion", "Notion", "Tech", 48], ["canva", "Canva", "Tech", 50], ["zoom", "Zoom", "Tech", 45],
   ["dropbox", "Dropbox", "Tech", 48], ["apple", "Apple", "Tech", 65], ["adobe", "Adobe", "Tech", 55],
@@ -96,9 +80,8 @@ const CURATED_SERVICES: CuratedService[] = [
   ["vercel", "Vercel", "Tech", 50], ["digitalocean", "DigitalOcean", "Tech", 55], ["aws", "Amazon Web Services", "Tech", 60],
   ["cloudflare", "Cloudflare", "Tech", 55], ["coursera", "Coursera", "Tech", 48], ["udemy", "Udemy", "Tech", 48],
 
-  // Other common consumer services
-  ["googlevoice", "Google Voice", "Other", 55], ["googlemaps", "Google Maps", "Other", 42], ["cashback", "Cashback Service", "Other", 50],
-  ["shopback", "ShopBack", "Other", 48], ["airtime", "Airtime Service", "Other", 45], ["delivery", "Delivery Service", "Other", 55],
+  ["googlevoice", "Google Voice", "Other", 55], ["googlemaps", "Google Maps", "Other", 42], ["shopback", "ShopBack", "Other", 48],
+  ["airtime", "Airtime Service", "Other", 45], ["delivery", "Delivery Service", "Other", 55],
 ];
 
 function token(): string | null {
@@ -149,8 +132,7 @@ async function fetchApplications(): Promise<SupplierApplication[]> {
   return data as SupplierApplication[];
 }
 
-async function upsertService(item: CuratedService | { slug: string; name: string; category: string; basePriceCents?: number; popular?: boolean }) {
-  const { slug, name, category, basePriceCents = 50, popular = false } = item;
+async function upsertService(slug: string, name: string, category: string, basePriceCents: number, popular: boolean): Promise<void> {
   await db
     .insert(services)
     .values({
@@ -177,9 +159,8 @@ async function upsertService(item: CuratedService | { slug: string; name: string
 }
 
 async function runSync(): Promise<void> {
-  for (const item of CURATED_SERVICES) {
-    const [slug, name, category, basePriceCents, popular] = item as unknown as [string, string, string, number, boolean?];
-    await upsertService({ slug, name, category, basePriceCents, popular: Boolean(popular) });
+  for (const [slug, name, category, basePriceCents, popular] of CURATED_SERVICES) {
+    await upsertService(slug, name, category, basePriceCents, Boolean(popular));
   }
 
   const applications = await fetchApplications();
@@ -191,13 +172,7 @@ async function runSync(): Promise<void> {
     if (!name || !slug || slug === "other" || seen.has(slug)) continue;
     seen.add(slug);
 
-    await upsertService({
-      slug,
-      name,
-      category: categoryFor(name),
-      basePriceCents: 50,
-      popular: true,
-    });
+    await upsertService(slug, name, categoryFor(name), 50, true);
   }
 }
 
