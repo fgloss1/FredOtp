@@ -36,7 +36,8 @@ export function AuthForm({ mode, next }: { mode: Mode; next?: string }) {
       return;
     }
 
-    router.replace(next && next.startsWith("/") ? next : "/dashboard");
+    const safeNext = next && next.startsWith("/") && !next.startsWith("//") ? next : "/dashboard";
+    router.replace(safeNext);
     router.refresh();
   }
 
@@ -48,7 +49,7 @@ export function AuthForm({ mode, next }: { mode: Mode; next?: string }) {
             value={name}
             onChange={(event) => setName(event.target.value)}
             required
-            placeholder="Fred Okonkwo"
+            placeholder="Your full name"
             className={INPUT}
           />
         </Field>
@@ -140,4 +141,3 @@ function Field({ label, children }: { label: string; children: React.ReactNode }
     </label>
   );
 }
-
