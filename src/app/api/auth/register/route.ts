@@ -1,9 +1,21 @@
-﻿import { eq } from "drizzle-orm";
+import { eq } from "drizzle-orm";
 import { db } from "@/db";
 import { users } from "@/db/schema";
 import { createSession, hashPassword } from "@/lib/auth";
+
 export const dynamic = "force-dynamic";
+
+const MAX_BODY_BYTES = 8 * 1024;
+const MAX_NAME_LENGTH = 120;
+const MAX_EMAIL_LENGTH = 255;
+const MAX_PASSWORD_LENGTH = 128;
+
 export async function POST(request: Request) {
+  const contentLength = Number(request.headers.get("content-length") ?? "0");
+  if (contentLength > MAX_BODY_BYTES) {
+    return Response.json({ error: "Request is too large." }, { status: 413 });
+  }
+
   let body: { username?: string; name?: string; email?: string; password?: string };
   try {
     body = await request.json();
@@ -21,12 +33,15 @@ export async function POST(request: Request) {
       { error: "Username must be 3-32 characters using letters, numbers, or underscores." },
       { status: 400 },
     );
-  }  if (name.length < 2) return Response.json({ error: "Enter your full name." }, { status: 400 });
-  if (!/^[^@\s]+@[^@\s]+\.[^@\s]+$/.test(email)) {
+  }
+  if (name.length < 2 || name.length > MAX_NAME_LENGTH) {
+    return Response.json({ error: "Enter a valid full name." }, { status: 400 });
+  }
+  if (email.length > MAX_EMAIL_LENGTH || !/^[^@\s]+@[^@\s]+\.[^@\s]+$/.test(email)) {
     return Response.json({ error: "Enter a valid email address." }, { status: 400 });
   }
-  if (password.length < 8) {
-    return Response.json({ error: "Password must be at least 8 characters." }, { status: 400 });
+  if (password.length < 8 || password.length > MAX_PASSWORD_LENGTH) {
+    return Response.json({ error: "Password must be 8-128 characters." }, { status: 400 });
   }
 
   const existingUsername = await db
@@ -59,7 +74,11 @@ export async function POST(request: Request) {
       balanceCents: 0,
     })
     .returning({ id: users.id, username: users.username, name: users.name, email: users.email });
-await createSession(created.id);
+
+  if (!created) {
+    return Response.json({ error: "Could not create the account." }, { status: 500 });
+  }
+
+  await createSession(created.id);
   return Response.json({ user: created });
 }
-
