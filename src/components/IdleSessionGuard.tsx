@@ -30,23 +30,28 @@ export function IdleSessionGuard() {
       }
     };
 
-    const resetTimer = () => {
+    const scheduleLogout = () => {
+      if (idleTimer) clearTimeout(idleTimer);
+      const remaining = Math.max(0, IDLE_TIMEOUT_MS - (Date.now() - lastActivityAt));
+      idleTimer = setTimeout(() => {
+        if (Date.now() - lastActivityAt >= IDLE_TIMEOUT_MS) {
+          void logoutForIdle();
+        } else {
+          scheduleLogout();
+        }
+      }, remaining);
+    };
+
+    const recordActivity = () => {
       if (loggingOut) return;
 
       const now = Date.now();
       if (now - lastActivityAt < ACTIVITY_THROTTLE_MS) return;
       lastActivityAt = now;
-
-      if (idleTimer) clearTimeout(idleTimer);
-      idleTimer = setTimeout(() => {
-        void logoutForIdle();
-      }, IDLE_TIMEOUT_MS);
+      scheduleLogout();
     };
 
-    if (idleTimer) clearTimeout(idleTimer);
-    idleTimer = setTimeout(() => {
-      void logoutForIdle();
-    }, IDLE_TIMEOUT_MS);
+    scheduleLogout();
 
     const events: Array<keyof WindowEventMap> = [
       "mousedown",
@@ -58,18 +63,25 @@ export function IdleSessionGuard() {
     ];
 
     for (const event of events) {
-      window.addEventListener(event, resetTimer, { passive: true });
+      window.addEventListener(event, recordActivity, { passive: true });
     }
 
     const handleVisibility = () => {
-      if (!document.hidden) resetTimer();
+      if (document.hidden || loggingOut) return;
+
+      if (Date.now() - lastActivityAt >= IDLE_TIMEOUT_MS) {
+        void logoutForIdle();
+        return;
+      }
+
+      scheduleLogout();
     };
     document.addEventListener("visibilitychange", handleVisibility);
 
     return () => {
       if (idleTimer) clearTimeout(idleTimer);
       for (const event of events) {
-        window.removeEventListener(event, resetTimer);
+        window.removeEventListener(event, recordActivity);
       }
       document.removeEventListener("visibilitychange", handleVisibility);
     };
