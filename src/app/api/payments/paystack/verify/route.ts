@@ -22,14 +22,22 @@ export async function GET(request: Request) {
 
   if (!payment) return Response.json({ error: "Payment not found." }, { status: 404 });
 
-  const result = await fulfillPaystackPayment(reference, user.id);
-  if (!result.ok) return Response.json({ error: result.error }, { status: 400 });
+  try {
+    const result = await fulfillPaystackPayment(reference, user.id);
+    if (!result.ok) return Response.json({ error: result.error }, { status: 400 });
 
-  return Response.json({
-    ok: true,
-    alreadyFulfilled: result.alreadyFulfilled,
-    balanceCents: result.balanceCents,
-    bonusCents: result.bonusCents,
-    amountCents: result.amountCents,
-  });
+    return Response.json({
+      ok: true,
+      alreadyFulfilled: result.alreadyFulfilled,
+      balanceCents: result.balanceCents,
+      bonusCents: result.bonusCents,
+      amountCents: result.amountCents,
+    });
+  } catch (error) {
+    console.error("Paystack verification error", error);
+    return Response.json(
+      { error: "Could not verify this payment right now. Please check your wallet shortly." },
+      { status: 503 },
+    );
+  }
 }
