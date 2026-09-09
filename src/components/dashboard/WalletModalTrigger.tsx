@@ -61,14 +61,14 @@ export function WalletModalTrigger({
             role="dialog"
             aria-modal="true"
             aria-labelledby="wallet-modal-title"
-            className="relative max-h-[90vh] w-full max-w-2xl overflow-y-auto rounded-2xl border border-white/10 bg-ink-950 shadow-2xl"
+            className="w-full max-w-xl origin-center animate-[walletPop_180ms_ease-out] overflow-hidden rounded-3xl border border-white/10 bg-ink-950 shadow-[0_24px_90px_rgba(0,0,0,0.65)]"
           >
-            <div className="sticky top-0 z-10 flex items-center justify-between border-b border-white/10 bg-ink-950/95 px-5 py-4 backdrop-blur-xl sm:px-6">
+            <div className="flex items-center justify-between border-b border-white/10 bg-white/[0.02] px-5 py-4 sm:px-6">
               <div>
-                <p className="text-[10px] font-bold uppercase tracking-widest text-emerald-400/70">
+                <p className="text-[10px] font-bold uppercase tracking-[0.2em] text-emerald-400/70">
                   Nava Wallet
                 </p>
-                <h2 id="wallet-modal-title" className="text-xl font-black text-white">
+                <h2 id="wallet-modal-title" className="mt-1 text-xl font-black text-white">
                   {mode === "topup" ? "Add funds" : "Wallet"}
                 </h2>
               </div>
@@ -82,7 +82,7 @@ export function WalletModalTrigger({
               </button>
             </div>
 
-            <div className="p-4 sm:p-6">
+            <div className="max-h-[78vh] overflow-y-auto p-4 sm:p-6">
               <WalletTopUp balanceCents={balanceCents} />
               <div className="mt-4 text-center">
                 <a
@@ -96,6 +96,19 @@ export function WalletModalTrigger({
           </section>
         </div>
       )}
+
+      <style jsx>{`
+        @keyframes walletPop {
+          from {
+            opacity: 0;
+            transform: scale(0.92) translateY(8px);
+          }
+          to {
+            opacity: 1;
+            transform: scale(1) translateY(0);
+          }
+        }
+      `}</style>
     </>
   );
 }
