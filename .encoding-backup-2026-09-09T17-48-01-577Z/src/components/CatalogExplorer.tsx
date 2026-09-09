@@ -263,7 +263,7 @@ export function CatalogExplorer({
         <div className="flex flex-col gap-4 lg:flex-row lg:items-center">
           <div className="relative flex-1">
             <span className="pointer-events-none absolute left-3.5 top-1/2 -translate-y-1/2 text-slate-500">
-              🔍
+              Ã°Å¸â€Â
             </span>
 
             <input
@@ -688,7 +688,7 @@ export function CatalogExplorer({
                               </Link>
                             ) : (
                               <span className="text-slate-700">
-                                —
+                                Ã¢â‚¬â€
                               </span>
                             )}
                           </td>

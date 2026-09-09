@@ -1,6 +1,6 @@
 {
-  "id": "06e7dd5c-8d47-47bc-9f61-d167301ad15f",
-  "prevId": "e6795a75-f52c-4e2c-9734-113c1c2dc6fe",
+  "id": "6497e216-d17d-41d4-b636-5ade85464c2b",
+  "prevId": "06e7dd5c-8d47-47bc-9f61-d167301ad15f",
   "version": "7",
   "dialect": "postgresql",
   "tables": {
@@ -441,6 +441,36 @@
           "type": "timestamp with time zone",
           "primaryKey": false,
           "notNull": false
+        },
+        "provider": {
+          "name": "provider",
+          "type": "varchar(32)",
+          "primaryKey": false,
+          "notNull": false
+        },
+        "provider_order_id": {
+          "name": "provider_order_id",
+          "type": "varchar(80)",
+          "primaryKey": false,
+          "notNull": false
+        },
+        "provider_cost_minor": {
+          "name": "provider_cost_minor",
+          "type": "integer",
+          "primaryKey": false,
+          "notNull": false
+        },
+        "provider_cost_currency": {
+          "name": "provider_cost_currency",
+          "type": "varchar(8)",
+          "primaryKey": false,
+          "notNull": false
+        },
+        "provider_status": {
+          "name": "provider_status",
+          "type": "varchar(32)",
+          "primaryKey": false,
+          "notNull": false
         }
       },
       "indexes": {
@@ -546,7 +576,7 @@
           "type": "varchar(16)",
           "primaryKey": false,
           "notNull": true,
-          "default": "'📱'"
+          "default": "'ðŸ“±'"
         },
         "accent": {
           "name": "accent",

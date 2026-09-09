@@ -546,7 +546,7 @@
           "type": "varchar(16)",
           "primaryKey": false,
           "notNull": true,
-          "default": "'📱'"
+          "default": "'ðŸ“±'"
         },
         "accent": {
           "name": "accent",

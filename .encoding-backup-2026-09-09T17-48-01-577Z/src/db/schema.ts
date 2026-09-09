@@ -64,7 +64,7 @@ export const services = pgTable(
     slug: varchar("slug", { length: 80 }).notNull(),
     name: varchar("name", { length: 120 }).notNull(),
     category: varchar("category", { length: 60 }).notNull(),
-    icon: varchar("icon", { length: 16 }).notNull().default("📱"),
+    icon: varchar("icon", { length: 16 }).notNull().default("ðŸ“±"),
     accent: varchar("accent", { length: 24 }).notNull().default("#38bdf8"),
     basePriceCents: integer("base_price_cents").notNull(),
     smsTemplate: text("sms_template").notNull(),
