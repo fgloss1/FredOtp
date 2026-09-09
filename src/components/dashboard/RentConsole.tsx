@@ -212,7 +212,7 @@ export function RentConsole({
               <input
                 value={query}
                 onChange={(event) => setQuery(event.target.value)}
-                placeholder="match, zoosk, paypal…"
+                placeholder="Search Match, WhatsApp, Gmail, PayPal..."
                 className="w-full rounded-xl border border-white/12 bg-ink-950/70 px-3 py-3 text-sm text-white placeholder:text-slate-600 outline-none focus:border-emerald-400/60"
               />
             </div>
@@ -429,4 +429,3 @@ function Row({ label, value, muted = false }: { label: string; value: string; mu
     </div>
   );
 }
-
