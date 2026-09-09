@@ -1,5 +1,5 @@
 import { RentConsole } from "@/components/dashboard/RentConsole";
-import { requireUser } from "@/lib/auth";
+import { getCurrentUser, requireUser } from "@/lib/auth";
 import { usd } from "@/lib/format";
 import { getCatalog, getUserRentals } from "@/lib/queries";
 import { syncActiveRentals } from "@/lib/rental-engine";
@@ -11,9 +11,17 @@ export default async function DashboardPage({
 }: {
   searchParams: Promise<{ service?: string; country?: string }>;
 }) {
-  const [params, user] = await Promise.all([searchParams, requireUser()]);
-  await syncActiveRentals(user.id);
-  const [catalog, rentals] = await Promise.all([getCatalog(), getUserRentals(user.id)]);
+  const [params, initialUser] = await Promise.all([searchParams, requireUser()]);
+
+  await syncActiveRentals(initialUser.id);
+
+  const [user, catalog, rentals] = await Promise.all([
+    getCurrentUser(),
+    getCatalog(),
+    getUserRentals(initialUser.id),
+  ]);
+
+  if (!user) return null;
 
   const received = rentals.filter((rental) => rental.status === "received");
   const spent = rentals
