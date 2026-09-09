@@ -302,7 +302,7 @@ export function RentConsole({
               disabled={busy || !offer}
               className="glow-btn mt-5 w-full rounded-xl bg-gradient-to-r from-mint-500 to-brand-500 py-3.5 text-sm font-extrabold text-ink-950 transition hover:brightness-110 disabled:cursor-not-allowed disabled:opacity-50"
             >
-              {busy ? "Reserving number…" : `Rent number · ${usd(price)}`}
+              {busy ? "Reserving number…" : `Rent number - ${usd(price)}`}
             </button>
           )}
           <p className="mt-3 text-center text-[11px] leading-relaxed text-slate-500">
