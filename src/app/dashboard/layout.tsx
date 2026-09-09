@@ -3,6 +3,7 @@ import { redirect } from "next/navigation";
 import type { ReactNode } from "react";
 import { Logo } from "@/components/Logo";
 import { LogoutButton } from "@/components/LogoutButton";
+import { WalletModalTrigger } from "@/components/dashboard/WalletModalTrigger";
 import { getCurrentUser } from "@/lib/auth";
 import { ngn, usd } from "@/lib/format";
 
@@ -36,12 +37,11 @@ export default async function DashboardLayout({ children }: { children: ReactNod
                 </span>
               </p>
             </div>
-            <Link
-              href="/dashboard/wallet"
+            <WalletModalTrigger
+              balanceCents={user.balanceCents}
+              mode="topup"
               className="rounded-xl bg-gradient-to-r from-mint-500 to-brand-500 px-4 py-2 text-sm font-bold text-ink-950 transition hover:brightness-110"
-            >
-              Top up
-            </Link>
+            />
             <LogoutButton />
           </div>
         </div>
@@ -53,16 +53,25 @@ export default async function DashboardLayout({ children }: { children: ReactNod
             <p className="px-3 pb-2 text-[11px] font-bold uppercase tracking-widest text-slate-600">
               {user.name}
             </p>
-            {LINKS.map((link) => (
-              <Link
-                key={link.href}
-                href={link.href}
-                className="flex items-center gap-3 rounded-xl px-3 py-2.5 text-sm font-semibold text-slate-400 transition hover:bg-white/5 hover:text-white"
-              >
-                <span>{link.icon}</span>
-                {link.label}
-              </Link>
-            ))}
+            {LINKS.map((link) =>
+              link.label === "Wallet" ? (
+                <WalletModalTrigger
+                  key={link.href}
+                  balanceCents={user.balanceCents}
+                  label={`${link.icon} ${link.label}`}
+                  className="flex w-full items-center gap-3 rounded-xl px-3 py-2.5 text-left text-sm font-semibold text-slate-400 transition hover:bg-white/5 hover:text-white"
+                />
+              ) : (
+                <Link
+                  key={link.href}
+                  href={link.href}
+                  className="flex items-center gap-3 rounded-xl px-3 py-2.5 text-sm font-semibold text-slate-400 transition hover:bg-white/5 hover:text-white"
+                >
+                  <span>{link.icon}</span>
+                  {link.label}
+                </Link>
+              ),
+            )}
             <div className="card mt-6 p-4">
               <p className="text-xs font-bold text-white">Need bulk numbers?</p>
               <p className="mt-1 text-[11px] leading-relaxed text-slate-500">
@@ -82,16 +91,25 @@ export default async function DashboardLayout({ children }: { children: ReactNod
       </div>
 
       <nav className="sticky bottom-0 z-40 flex border-t border-white/10 bg-ink-950/95 backdrop-blur lg:hidden">
-        {LINKS.slice(0, 3).map((link) => (
-          <Link
-            key={link.href}
-            href={link.href}
-            className="flex flex-1 flex-col items-center gap-0.5 py-3 text-[11px] font-semibold text-slate-400"
-          >
-            <span className="text-base">{link.icon}</span>
-            {link.label}
-          </Link>
-        ))}
+        {LINKS.slice(0, 3).map((link) =>
+          link.label === "Wallet" ? (
+            <WalletModalTrigger
+              key={link.href}
+              balanceCents={user.balanceCents}
+              label={`${link.icon} ${link.label}`}
+              className="flex flex-1 flex-col items-center gap-0.5 py-3 text-[11px] font-semibold text-slate-400"
+            />
+          ) : (
+            <Link
+              key={link.href}
+              href={link.href}
+              className="flex flex-1 flex-col items-center gap-0.5 py-3 text-[11px] font-semibold text-slate-400"
+            >
+              <span className="text-base">{link.icon}</span>
+              {link.label}
+            </Link>
+          ),
+        )}
       </nav>
     </div>
   );
