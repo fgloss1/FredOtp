@@ -2,8 +2,8 @@
 
 import { useEffect } from "react";
 
-const IDLE_TIMEOUT_MS = 30 * 60 * 1000;
-const ACTIVITY_THROTTLE_MS = 30 * 1000;
+const IDLE_TIMEOUT_MS = 60 * 1000;
+const ACTIVITY_THROTTLE_MS = 10 * 1000;
 const LAST_ACTIVITY_KEY = "fredotp_last_activity";
 
 export function IdleSessionGuard() {
