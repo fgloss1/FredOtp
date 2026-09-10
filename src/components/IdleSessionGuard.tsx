@@ -38,10 +38,10 @@ export function IdleSessionGuard() {
     };
 
     const scheduleLogout = () => {
-      if (idleTimer) window.clearTimeout(idleTimer);
+      if (idleTimer) clearTimeout(idleTimer);
       const elapsed = Date.now() - lastActivityAt;
       const remaining = Math.max(0, IDLE_TIMEOUT_MS - elapsed);
-      idleTimer = window.setTimeout(() => {
+      idleTimer = setTimeout(() => {
         if (Date.now() - lastActivityAt >= IDLE_TIMEOUT_MS) {
           void logoutForIdle();
         } else {
@@ -95,7 +95,7 @@ export function IdleSessionGuard() {
     document.addEventListener("visibilitychange", handleVisibility);
 
     return () => {
-      if (idleTimer) window.clearTimeout(idleTimer);
+      if (idleTimer) clearTimeout(idleTimer);
       for (const event of events) {
         window.removeEventListener(event, recordActivity);
       }
