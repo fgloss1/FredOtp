@@ -1,4 +1,5 @@
 ﻿import NavaPhone from "@/components/voice/NavaPhone";
+import NavaSmsInbox from "@/components/voice/NavaSmsInbox";
 
 export default function PhonePage() {
   return (
@@ -13,6 +14,8 @@ export default function PhonePage() {
       <div className="card p-6">
         <NavaPhone />
       </div>
+
+      <NavaSmsInbox />
     </div>
   );
 }
