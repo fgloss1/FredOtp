@@ -2,13 +2,14 @@
 
 import { useState } from "react";
 import { ngn, usd } from "@/lib/format";
+import { UiIcon } from "@/components/UiIcon";
 
 const PRESETS = [500, 1000, 2500, 5000, 10000, 20000];
 
 const METHODS: { id: string; label: string; icon: string; hint: string }[] = [
-  { id: "card", label: "Card", icon: "💳", hint: "Visa · Mastercard · Verve" },
-  { id: "transfer", label: "Bank transfer", icon: "🏦", hint: "Nigerian bank transfer" },
-  { id: "ussd", label: "USSD", icon: "📲", hint: "Supported Nigerian banks" },
+  { id: "card", label: "Card", icon: "credit-card", hint: "Visa · Mastercard · Verve" },
+  { id: "transfer", label: "Bank transfer", icon: "bank", hint: "Nigerian bank transfer" },
+  { id: "ussd", label: "USSD", icon: "phone", hint: "Supported Nigerian banks" },
 ];
 
 export function WalletTopUp({
@@ -129,7 +130,7 @@ export function WalletTopUp({
                 : "border-white/8 bg-white/[0.02] hover:border-white/20"
             }`}
           >
-            <span className="text-xl">{item.icon}</span>
+            <UiIcon name={item.icon} className="h-5 w-5 text-slate-300" />
             <span>
               <span className="block text-sm font-bold text-white">{item.label}</span>
               <span className="block text-[11px] text-slate-500">{item.hint}</span>
@@ -145,7 +146,7 @@ export function WalletTopUp({
       )}
       {message && (
         <p className="mt-4 rounded-xl border border-emerald-400/30 bg-emerald-400/10 px-4 py-3 text-sm text-emerald-300">
-          ✅ {message}
+          <span className="inline-flex items-center gap-2"><UiIcon name="check" className="h-4 w-4" /> <span>{message}</span></span>
         </p>
       )}
 
