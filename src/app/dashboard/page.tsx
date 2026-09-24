@@ -33,7 +33,7 @@ export default async function DashboardPage({
   return (
     <div className="space-y-6">
       <div>
-        <h1 className="text-2xl font-black text-white">Hey {user.name.split(" ")[0]} 👋</h1>
+        <h1 className="text-2xl font-black text-white">Hey {user.name.split(" ")[0]}</h1>
         <p className="text-sm text-slate-500">
           Rent a disposable number and your OTP lands here automatically.
         </p>
