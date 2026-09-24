@@ -1,5 +1,5 @@
 import Telnyx from "telnyx";
-import { and, eq } from "drizzle-orm";
+import { eq } from "drizzle-orm";
 import { db } from "@/db";
 import { smsMessages } from "@/db/schema";
 
@@ -62,6 +62,12 @@ export async function POST(request: Request) {
       return Response.json({ ok: true, ignored: true });
     }
 
+    const ownerUserId = Number(process.env.NAVA_PHONE_OWNER_USER_ID);
+    if (!Number.isInteger(ownerUserId) || ownerUserId <= 0) {
+      console.error("NAVA_PHONE_OWNER_USER_ID is missing or invalid.");
+      return new Response("Webhook owner is not configured", { status: 500 });
+    }
+
     const existing = await db
       .select({ id: smsMessages.id })
       .from(smsMessages)
@@ -73,6 +79,7 @@ export async function POST(request: Request) {
     }
 
     await db.insert(smsMessages).values({
+      userId: ownerUserId,
       messageId,
       fromNumber,
       toNumber,
