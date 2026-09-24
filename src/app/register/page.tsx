@@ -1,4 +1,4 @@
-﻿import Link from "next/link";
+import Link from "next/link";
 import { UiIcon } from "@/components/UiIcon";
 import { redirect } from "next/navigation";
 import { AuthForm } from "@/components/AuthForm";
