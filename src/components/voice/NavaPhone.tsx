@@ -167,6 +167,8 @@ export default function NavaPhone() {
 
                 const stats = await pc.getStats();
                 const outboundAudio: any[] = [];
+                const localAudioSource: any[] = [];
+                const remoteInboundAudio: any[] = [];
 
                 stats.forEach((report: any) => {
                   if (
@@ -177,11 +179,41 @@ export default function NavaPhone() {
                       bytesSent: report.bytesSent,
                       packetsSent: report.packetsSent,
                       ssrc: report.ssrc,
+                      totalAudioEnergy: report.totalAudioEnergy,
+                      totalSamplesSent: report.totalSamplesSent,
+                      codecId: report.codecId,
+                    });
+                  }
+
+                  if (
+                    report.type === "media-source" &&
+                    report.kind === "audio"
+                  ) {
+                    localAudioSource.push({
+                      id: report.id,
+                      trackIdentifier: report.trackIdentifier,
+                      audioLevel: report.audioLevel,
+                      totalAudioEnergy: report.totalAudioEnergy,
+                      totalSamplesDuration: report.totalSamplesDuration,
+                    });
+                  }
+
+                  if (
+                    report.type === "remote-inbound-rtp" &&
+                    report.kind === "audio"
+                  ) {
+                    remoteInboundAudio.push({
+                      ssrc: report.ssrc,
+                      packetsLost: report.packetsLost,
+                      fractionLost: report.fractionLost,
+                      roundTripTime: report.roundTripTime,
                     });
                   }
                 });
 
+                console.log("NAVA MIC AUDIO SOURCE", localAudioSource);
                 console.log("NAVA OUTBOUND AUDIO RTP", outboundAudio);
+                console.log("NAVA REMOTE INBOUND AUDIO", remoteInboundAudio);
 
                 if (outboundAudio.length > 0) {
                   const totalBytes = outboundAudio.reduce(
