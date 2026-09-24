@@ -41,3 +41,24 @@ The repository and local database/typecheck verification are now past the
 SMS build stage. The next functional step is live SMS webhook testing:
 send an SMS to the NAVA Telnyx number and confirm it appears in the
 authenticated /dashboard/phone SMS inbox.
+
+
+PHONE UI PANEL UPDATE
+=====================
+
+Implemented commit:
+280f458c2060dd81012b57339cfb9fc3ccf2b282
+
+File changed:
+src/app/dashboard/phone/page.tsx
+
+Change:
+- Kept NavaPhone unchanged.
+- Kept NavaSmsInbox unchanged.
+- Moved the existing SMS Inbox from below the phone into a right-side responsive panel.
+- Desktop layout uses a 2:1 main-phone/right-inbox grid.
+- Smaller screens stack the two panels for responsive behavior.
+- No SMS API, webhook, database, or Telnyx voice logic was changed.
+
+Verified remote file SHA:
+eef9fc6dcb4e33968d498fed9cf4853c0139a814
