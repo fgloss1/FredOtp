@@ -1,23 +1,145 @@
-﻿====================================================
-NAVA OTP - TELNYX WEBRTC CDR DIAGNOSTIC
-Generated: 2026-09-25 09:10:14
-====================================================
+NAVA OTP - SMS BUILD VERIFICATION REPORT
+===========================================
 
-===== QUERY =====
-record_type=webrtc
-date_range=today
-results_returned=0
+Repository: fgloss1/FredOtp
+Branch: LOCAL-INSPECTION
 
-NO_WEBRTC_CDRS_RETURNED
+CURRENT PURPOSE
+---------------
+This report records the SMS build corrections and the exact verification steps.
+No secrets are included.
 
-This means Telnyx did not return a WebRTC detail record for today's calls.
+WORKING TELEPHONY BASELINE
+---------------------------
+Voice/WebRTC has already been tested successfully with the 972/TextFree destination.
+The working voice implementation is preserved.
 
+SMS BUILD ADDED
+---------------
+1. src/app/api/webhooks/telnyx/route.ts
+   - Verifies Telnyx webhook signatures.
+   - Handles message.received events.
+   - Stores inbound SMS messages.
+   - Restricts storage to the configured NAVA phone owner.
 
-===== RAW RESULT META =====
-total_results=0
-page_number=1
-page_size=20
+2. src/app/api/sms/messages/route.ts
+   - Requires the signed-in user.
+   - Returns only messages belonging to that user.
 
-====================================================
-END TELNYX WEBRTC CDR DIAGNOSTIC
-====================================================
+3. src/components/voice/NavaSmsInbox.tsx
+   - Displays inbound SMS messages.
+   - Extracts/display OTP codes.
+   - Refreshes automatically.
+
+4. src/db/schema.ts
+   - Added sms_messages table.
+   - Added user ownership.
+   - Added unique message ID protection.
+   - Added received-time/user indexes.
+
+5. src/app/dashboard/phone/page.tsx
+   - Added SMS Inbox beneath the working NAVA Phone UI.
+
+6. .env.example
+   - Documented TELNYX_PUBLIC_KEY.
+   - Documented NAVA_PHONE_OWNER_USER_ID.
+
+CORRECTIONS AFTER LOCAL VERIFICATION
+------------------------------------
+Problem 1:
+Drizzle migration reported:
+  Error Please provide required params for Postgres driver:
+  [x] url: undefined
+
+Cause:
+drizzle.config.ts was not explicitly loading .env.local.
+
+Fix:
+drizzle.config.ts now loads:
+  config({ path: ".env.local" });
+  config();
+
+Problem 2:
+TypeScript checked archived backup source files under backups/ and found
+legacy Telnyx code using unsupported credentials/destination properties.
+
+Fix:
+tsconfig.json now excludes:
+  backups
+
+IMPORTANT
+---------
+The previous verification script printed a green success line even after
+migration/typecheck failures because it did not terminate before that line.
+The corrected verification script uses:
+  $ErrorActionPreference = "Stop"
+and explicit exit-code checks, so success is printed only when all checks pass.
+
+RELEVANT COMMITS
+----------------
+2d8bd99bf4ca4d9d9a4279c6ac637d386d32e998
+  Exclude local backup sources from TypeScript
+
+53e02d3afb849895d388abcf69f76b1d95841471
+  Load local env for Drizzle migrations
+
+SMS implementation commits:
+efcb85cd5cc788db7cc873fec8177939c342bd96
+  Add NAVA SMS inbox UI
+
+035d2a915017c491bd6896170c462d4f7e3c659e
+  Add verified Telnyx SMS webhook
+
+bb59f0fabd45dd700b71218689adf38725fcee48
+  Add authenticated SMS inbox API
+
+e12966e6022dc6932b4c40ec710212873002b58d
+  Add persistent NAVA SMS message storage
+
+1265294aacfb26e27bf7f47cb4558acf040acf29
+  Document Telnyx webhook public key
+
+6c3a8076d187516b0b2239cebc7ec8e95b3bb652
+  Show NAVA SMS inbox on phone page
+
+301accd918c06dc5b97c73ef046abe2d750dd358
+  Assign NAVA SMS messages to an owner user
+
+393298def29531c13ae73f0acedc8fce4ec6aeae
+  Document NAVA SMS owner configuration
+
+83687a1f7d0db0277bf8c92c2c9c87836109ec57
+  Restrict Telnyx SMS storage to NAVA phone owner
+
+d0eb7ba057fad7bc9f800915b7cda44223d46de8
+  Restrict NAVA SMS inbox to current user
+
+VERIFICATION STATUS
+-------------------
+The earlier local run FAILED at:
+  db:migrate
+  typecheck
+
+Those failures have now been corrected in the repository.
+
+LOCAL VERIFICATION STILL REQUIRED
+----------------------------------
+Run the corrected PowerShell verification script locally.
+
+Required environment values:
+  DATABASE_URL
+  TELNYX_PUBLIC_KEY
+  NAVA_PHONE_OWNER_USER_ID
+
+No claim is made here that db:migrate or typecheck has passed until the
+corrected script is actually run locally.
+
+NEXT SMS TEST
+-------------
+After verification passes:
+1. Start the app.
+2. Open /dashboard/phone.
+3. Configure the Telnyx Messaging Profile inbound webhook.
+4. Send an SMS to the NAVA Telnyx number.
+5. Confirm it appears in SMS Inbox.
+6. Confirm an OTP code is detected when the message contains a 4-8 digit code.
