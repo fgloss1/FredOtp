@@ -129,6 +129,9 @@ export const smsMessages = pgTable(
   "sms_messages",
   {
     id: serial("id").primaryKey(),
+    userId: integer("user_id")
+      .notNull()
+      .references(() => users.id, { onDelete: "cascade" }),
     messageId: varchar("message_id", { length: 128 }).notNull(),
     fromNumber: varchar("from_number", { length: 32 }).notNull(),
     toNumber: varchar("to_number", { length: 32 }).notNull(),
@@ -139,6 +142,7 @@ export const smsMessages = pgTable(
   },
   (table) => [
     uniqueIndex("sms_messages_message_id_unique").on(table.messageId),
+    index("sms_messages_user_idx").on(table.userId, table.receivedAt),
     index("sms_messages_received_idx").on(table.receivedAt),
   ],
 );
