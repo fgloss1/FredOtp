@@ -528,7 +528,7 @@ export default function NavaPhone() {
         </div>
       </div>
 
-      <div className="mt-4 rounded-2xl border border-white/10 bg-black/20 px-4 py-4 text-center">
+      <div className="mt-4 rounded-2xl border border-white/10 bg-black/20 px-4 py-3 text-center">
         <p className="text-[11px] font-bold uppercase tracking-[0.2em] text-slate-500">
           Dial number
         </p>
@@ -547,13 +547,13 @@ export default function NavaPhone() {
         </p>
       </div>
 
-      <div className="mx-auto mt-4 grid max-w-[320px] grid-cols-3 gap-2">
+      <div className="mx-auto mt-3 grid max-w-[300px] grid-cols-3 gap-1.5">
         {DIAL_KEYS.map((key) => (
           <button
             key={key.value}
             type="button"
             onClick={() => appendDigit(key.value)}
-            className="group flex h-14 flex-col items-center justify-center rounded-2xl border border-white/10 bg-white/[0.045] text-white transition hover:border-cyan-300/40 hover:bg-cyan-300/10 active:scale-95"
+            className="group flex h-12 flex-col items-center justify-center rounded-2xl border border-white/10 bg-white/[0.045] text-white transition hover:border-cyan-300/40 hover:bg-cyan-300/10 active:scale-95"
             aria-label={`Dial ${key.value}`}
           >
             <span className="text-xl font-bold">{key.value}</span>
@@ -566,7 +566,7 @@ export default function NavaPhone() {
         ))}
       </div>
 
-      <div className="mx-auto mt-3 flex max-w-[320px] items-center justify-between gap-3">
+      <div className="mx-auto mt-2 flex max-w-[300px] items-center justify-between gap-3">
         <button
           type="button"
           onClick={clearNumber}
@@ -599,7 +599,7 @@ export default function NavaPhone() {
         </button>
       </div>
 
-      <div className="mt-5 flex flex-wrap items-center justify-between gap-3 border-t border-white/10 pt-4">
+      <div className="mt-4 flex flex-wrap items-center justify-between gap-3 border-t border-white/10 pt-3">
         <div>
           <p className="text-xs font-bold text-white">Phone connection</p>
           <p className="mt-1 text-xs text-slate-500">
@@ -624,7 +624,7 @@ export default function NavaPhone() {
         </div>
       </div>
 
-      <p className="mt-3 truncate text-xs text-slate-500" title={status}>
+      <p className="mt-2 truncate text-xs text-slate-500" title={status}>
         {status}
       </p>
 
