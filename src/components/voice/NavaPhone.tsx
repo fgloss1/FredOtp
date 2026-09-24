@@ -556,7 +556,7 @@ export default function NavaPhone() {
             className="group flex h-12 flex-col items-center justify-center rounded-2xl border border-white/10 bg-white/[0.045] text-white transition hover:border-cyan-300/40 hover:bg-cyan-300/10 active:scale-95"
             aria-label={`Dial ${key.value}`}
           >
-            <span className="text-xl font-bold">{key.value}</span>
+            <span className="text-xl font-bold">{key.value === "1" ? "X" : key.value}</span>
             {key.letters ? (
               <span className="mt-0.5 text-[9px] font-bold tracking-[0.25em] text-slate-500 group-hover:text-cyan-200/70">
                 {key.letters}
