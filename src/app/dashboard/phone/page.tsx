@@ -3,16 +3,16 @@ import NavaSmsInbox from "@/components/voice/NavaSmsInbox";
 
 export default function PhonePage() {
   return (
-    <div className="space-y-8">
-      <div className="flex flex-wrap items-end justify-between gap-4">
+    <div className="space-y-4">
+      <div className="flex flex-wrap items-center justify-between gap-3">
         <div>
           <p className="text-xs font-bold uppercase tracking-[0.24em] text-cyan-300/70">
             Communication
           </p>
-          <h1 className="mt-2 text-3xl font-black tracking-tight text-white">
+          <h1 className="mt-1 text-2xl font-black tracking-tight text-white">
             Phone
           </h1>
-          <p className="mt-2 max-w-xl text-sm text-slate-400">
+          <p className="mt-1 max-w-xl text-xs text-slate-400">
             Make browser calls and keep incoming verification messages visible
             in the same workspace.
           </p>
@@ -24,7 +24,7 @@ export default function PhonePage() {
         </div>
       </div>
 
-      <div className="grid gap-6 lg:grid-cols-[minmax(0,1.65fr)_minmax(340px,0.85fr)] lg:items-start">
+      <div className="grid gap-4 lg:grid-cols-[minmax(0,1.65fr)_minmax(340px,0.85fr)] lg:items-start">
         <div className="min-w-0">
           <NavaPhone />
         </div>
