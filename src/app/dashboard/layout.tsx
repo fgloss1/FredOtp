@@ -12,6 +12,7 @@ export const dynamic = "force-dynamic";
 
 const LINKS = [
   { href: "/dashboard", label: "Rent a number", icon: "phone" },
+  { href: "/dashboard/phone", label: "Phone", icon: "phone" },
   { href: "/dashboard/orders", label: "My rentals", icon: "receipt" },
   { href: "/dashboard/wallet", label: "Wallet", icon: "wallet" },
   { href: "/pricing", label: "Price list", icon: "tag" },
