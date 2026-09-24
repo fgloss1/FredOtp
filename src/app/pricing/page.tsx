@@ -1,5 +1,6 @@
 import type { Metadata } from "next";
 import { CatalogExplorer } from "@/components/CatalogExplorer";
+import { UiIcon } from "@/components/UiIcon";
 import { SectionHeading } from "@/components/Section";
 import { SiteFooter } from "@/components/SiteFooter";
 import { SiteHeader } from "@/components/SiteHeader";
@@ -65,13 +66,13 @@ export default async function PricingPage({
 
           <div className="card mt-10 grid gap-6 p-6 md:grid-cols-3">
             <div>
-              <h3 className="text-sm font-bold text-white">💳 Payment methods</h3>
+              <h3 className="flex items-center gap-2 text-sm font-bold text-white"><UiIcon name="credit-card" className="h-4 w-4 text-brand-300" /> Payment methods</h3>
               <p className="mt-2 text-sm text-slate-400">
                 Card, Nigerian bank transfer and USSD. Wallet credit never expires.
               </p>
             </div>
             <div>
-              <h3 className="text-sm font-bold text-white">🎁 Volume bonus</h3>
+              <h3 className="flex items-center gap-2 text-sm font-bold text-white"><UiIcon name="gift" className="h-4 w-4 text-emerald-300" /> Volume bonus</h3>
               <p className="mt-2 text-sm text-slate-400">
                 Top-ups of $50+ automatically receive a 10% bonus credit added to your balance.
               </p>
