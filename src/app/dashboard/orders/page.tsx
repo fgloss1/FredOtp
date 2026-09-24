@@ -6,6 +6,7 @@ import { getUserRentals } from "@/lib/queries";
 import { syncActiveRentals } from "@/lib/rental-engine";
 import { countryFlag } from "@/lib/visuals";
 import { ServiceBrandIcon } from "@/components/ServiceBrandIcon";
+import { UiIcon } from "@/components/UiIcon";
 
 export const dynamic = "force-dynamic";
 
@@ -33,7 +34,7 @@ export default async function OrdersPage() {
 
       {rentals.length === 0 ? (
         <div className="card p-12 text-center">
-          <p className="text-4xl">🧾</p>
+          <UiIcon name="receipt" className="h-10 w-10 text-slate-500" />
           <p className="mt-3 font-semibold text-white">No rentals yet</p>
           <p className="mt-1 text-sm text-slate-500">Your rental history will appear here.</p>
         </div>
