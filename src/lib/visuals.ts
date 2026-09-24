@@ -1,4 +1,4 @@
-﻿const SERVICE_ICON_CODEPOINTS: Record<string, number[]> = {
+const SERVICE_ICON_CODEPOINTS: Record<string, number[]> = {
   match: [0x1F498],
   zoosk: [0x1F4AB],
   tinder: [0x1F525],
