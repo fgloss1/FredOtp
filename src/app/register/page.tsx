@@ -1,4 +1,5 @@
 ﻿import Link from "next/link";
+import { UiIcon } from "@/components/UiIcon";
 import { redirect } from "next/navigation";
 import { AuthForm } from "@/components/AuthForm";
 import { Logo } from "@/components/Logo";
@@ -36,7 +37,7 @@ export default async function RegisterPage({
             {PERKS.map((perk) => (
               <li key={perk} className="flex items-center gap-3 text-sm text-slate-300">
                 <span className="grid h-6 w-6 place-items-center rounded-full bg-emerald-400/15 text-xs text-emerald-300">
-                  ✓
+                  <UiIcon name="check" className="h-4 w-4 text-emerald-300" />
                 </span>
                 {perk}
               </li>
