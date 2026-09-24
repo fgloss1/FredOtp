@@ -1,0 +1,46 @@
+﻿============================================================
+ NAVA OTP — TELNYX RAW JSON NUMBER INSPECTION
+============================================================
+
+Project: C:\Users\Sire-F\OneDrive\Desktop\My Projects\NAVA-OTP-PERSONAL-PHONE
+Branch: LOCAL-INSPECTION
+Test: READ-ONLY
+Vercel: NOT TOUCHED
+
+HTTP status: 200
+Raw response length: 1145
+
+------------------------------------------------------------
+ROOT JSON STRUCTURE
+------------------------------------------------------------
+Root object type: System.Management.Automation.PSCustomObject
+
+Root fields:
+data
+meta
+
+------------------------------------------------------------
+DATA ARRAY
+------------------------------------------------------------
+Data item count: 1
+
+
+------------------------------------------------------------
+SAFETY
+------------------------------------------------------------
+GET request only: YES
+POST: NONE
+PATCH: NONE
+DELETE: NONE
+Number purchased: NO
+Number modified: NO
+Number released: NO
+API key displayed: NO
+API key written: NO
+Full number written: NO
+Application source changed: NO
+Vercel touched: NO
+
+============================================================
+ END RAW JSON INSPECTION
+============================================================
