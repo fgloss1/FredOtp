@@ -1,6 +1,7 @@
 "use client";
 
 import { useCallback, useEffect, useState } from "react";
+import { UiIcon } from "@/components/UiIcon";
 
 type SmsMessage = {
   id: number;
@@ -79,7 +80,7 @@ export default function NavaSmsInbox() {
         <p className="mt-6 text-sm text-rose-300">{error}</p>
       ) : messages.length === 0 ? (
         <div className="mt-6 rounded-xl border border-dashed border-white/10 p-8 text-center">
-          <p className="text-2xl">💬</p>
+          <UiIcon name="message" className="h-7 w-7 text-slate-500" />
           <p className="mt-2 text-sm font-semibold text-white">No SMS yet</p>
           <p className="mt-1 text-xs text-slate-500">
             Send a text to the NAVA number to test inbound messaging.
