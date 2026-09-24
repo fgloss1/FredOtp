@@ -5,6 +5,7 @@ import { useRouter } from "next/navigation";
 import { useCallback, useEffect, useMemo, useRef, useState } from "react";
 import { countdown, ngn, usd } from "@/lib/format";
 import { ServiceBrandIcon } from "@/components/ServiceBrandIcon";
+import { UiIcon } from "@/components/UiIcon";
 import { countryFlag } from "@/lib/visuals";
 import { statusLabel, statusTone } from "@/lib/otp";
 import type { Catalog, RentalView } from "@/lib/queries";
@@ -374,7 +375,7 @@ export function RentConsole({
 
         {rentals.length === 0 ? (
           <div className="card p-10 text-center">
-            <p className="text-3xl">📭</p>
+            <UiIcon name="inbox" className="h-8 w-8 text-slate-500" />
             <p className="mt-3 text-sm font-semibold text-white">No rentals yet</p>
             <p className="mt-1 text-sm text-slate-500">
               Pick a service and country above to receive your first OTP.
