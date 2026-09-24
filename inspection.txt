@@ -62,3 +62,15 @@ Change:
 
 Verified remote file SHA:
 eef9fc6dcb4e33968d498fed9cf4853c0139a814
+
+
+MIGRATION REPOSITORY CHECK
+==========================
+
+GitHub currently contains schema.ts with sms_messages but the committed
+Drizzle migration directory stops at 0002. The local successful verification
+must therefore be preserved by committing the exact locally generated 0003
+migration and its metadata before deployment.
+
+Do not hand-create a replacement migration. Use the local Drizzle-generated
+files and push those exact files.
