@@ -1,0 +1,43 @@
+﻿============================================================
+ NAVA OTP — TELNYX NUMBER CONFIGURATION CHECK v4
+============================================================
+
+Project: C:\Users\Sire-F\OneDrive\Desktop\My Projects\NAVA-OTP-PERSONAL-PHONE
+Branch: LOCAL-INSPECTION
+Test: READ-ONLY
+Vercel: NOT TOUCHED
+
+------------------------------------------------------------
+TELNYX RESPONSE
+------------------------------------------------------------
+HTTP status: 200
+Response length: 1145
+
+Root object type: System.Management.Automation.PSCustomObject
+
+Root property names:
+data
+meta
+
+Data item count: 1
+
+
+------------------------------------------------------------
+SAFETY
+------------------------------------------------------------
+GET request only: YES
+POST: NONE
+PATCH: NONE
+DELETE: NONE
+Number purchased: NO
+Number modified: NO
+Number released: NO
+API key displayed: NO
+API key written: NO
+Full phone number written: NO
+Application source modified: NO
+Vercel touched: NO
+
+============================================================
+ END CONFIGURATION CHECK v4
+============================================================
