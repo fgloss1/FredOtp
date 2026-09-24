@@ -1,0 +1,35 @@
+﻿============================================================
+ NAVA OTP — TELNYX NUMBER CONFIGURATION DIAGNOSTIC v2
+============================================================
+
+Project: C:\Users\Sire-F\OneDrive\Desktop\My Projects\NAVA-OTP-PERSONAL-PHONE
+Branch: LOCAL-INSPECTION
+Test: READ-ONLY
+Vercel: NOT TOUCHED
+
+------------------------------------------------------------
+OWNED NUMBERS
+------------------------------------------------------------
+HTTP status: 200
+Returned count: 1
+
+
+------------------------------------------------------------
+SAFETY
+------------------------------------------------------------
+GET requests only: YES
+POST: NONE
+PATCH: NONE
+DELETE: NONE
+Number purchased: NO
+Number modified: NO
+Number released: NO
+API key written: NO
+API key displayed: NO
+Full phone number written: NO
+Vercel touched: NO
+Application source modified: NO
+
+============================================================
+ END CONFIGURATION DIAGNOSTIC v2
+============================================================
