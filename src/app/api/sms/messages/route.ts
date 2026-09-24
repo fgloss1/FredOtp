@@ -1,4 +1,4 @@
-import { desc } from "drizzle-orm";
+import { desc, eq } from "drizzle-orm";
 import { db } from "@/db";
 import { smsMessages } from "@/db/schema";
 import { getCurrentUser } from "@/lib/auth";
@@ -24,6 +24,7 @@ export async function GET() {
         receivedAt: smsMessages.receivedAt,
       })
       .from(smsMessages)
+      .where(eq(smsMessages.userId, user.id))
       .orderBy(desc(smsMessages.receivedAt))
       .limit(100);
 
