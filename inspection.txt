@@ -1,145 +1,100 @@
-NAVA OTP - SMS BUILD VERIFICATION REPORT
-===========================================
+NAVA OTP - SMS BUILD VERIFICATION
+=================================
 
-Repository: fgloss1/FredOtp
-Branch: LOCAL-INSPECTION
+LATEST LOCAL TEST RESULT
+------------------------
+The verification script was run from:
+C:\Users\Sire-F\OneDrive\Desktop\My Projects\NAVA-OTP-PERSONAL-PHONE
 
-CURRENT PURPOSE
----------------
-This report records the SMS build corrections and the exact verification steps.
-No secrets are included.
+RESULT: NOT PASSED.
 
-WORKING TELEPHONY BASELINE
----------------------------
-Voice/WebRTC has already been tested successfully with the 972/TextFree destination.
-The working voice implementation is preserved.
+IMPORTANT FINDING
+-----------------
+git pull --ff-only origin LOCAL-INSPECTION FAILED because the working tree
+contains uncommitted changes to:
 
-SMS BUILD ADDED
----------------
-1. src/app/api/webhooks/telnyx/route.ts
-   - Verifies Telnyx webhook signatures.
-   - Handles message.received events.
-   - Stores inbound SMS messages.
-   - Restricts storage to the configured NAVA phone owner.
+  src/components/voice/NavaPhone.tsx
 
-2. src/app/api/sms/messages/route.ts
-   - Requires the signed-in user.
-   - Returns only messages belonging to that user.
+Git reported:
+  Your local changes to the following files would be overwritten by merge:
+  src/components/voice/NavaPhone.tsx
+  Please commit your changes or stash them before you merge.
 
-3. src/components/voice/NavaSmsInbox.tsx
-   - Displays inbound SMS messages.
-   - Extracts/display OTP codes.
-   - Refreshes automatically.
+The pull therefore aborted at commit:
+  2df01ab
 
-4. src/db/schema.ts
-   - Added sms_messages table.
-   - Added user ownership.
-   - Added unique message ID protection.
-   - Added received-time/user indexes.
+Remote branch contains newer fixes through:
+  53e02d3afb849895d388abcf69f76b1d95841471
 
-5. src/app/dashboard/phone/page.tsx
-   - Added SMS Inbox beneath the working NAVA Phone UI.
+Because the pull did not complete, the local checkout did NOT receive the
+repository fixes that were intended to resolve the two errors below.
 
-6. .env.example
-   - Documented TELNYX_PUBLIC_KEY.
-   - Documented NAVA_PHONE_OWNER_USER_ID.
-
-CORRECTIONS AFTER LOCAL VERIFICATION
-------------------------------------
-Problem 1:
-Drizzle migration reported:
-  Error Please provide required params for Postgres driver:
-  [x] url: undefined
-
-Cause:
-drizzle.config.ts was not explicitly loading .env.local.
-
-Fix:
-drizzle.config.ts now loads:
-  config({ path: ".env.local" });
-  config();
-
-Problem 2:
-TypeScript checked archived backup source files under backups/ and found
-legacy Telnyx code using unsupported credentials/destination properties.
-
-Fix:
-tsconfig.json now excludes:
-  backups
-
-IMPORTANT
----------
-The previous verification script printed a green success line even after
-migration/typecheck failures because it did not terminate before that line.
-The corrected verification script uses:
-  $ErrorActionPreference = "Stop"
-and explicit exit-code checks, so success is printed only when all checks pass.
-
-RELEVANT COMMITS
+OBSERVED ERROR 1
 ----------------
-2d8bd99bf4ca4d9d9a4279c6ac637d386d32e998
-  Exclude local backup sources from TypeScript
+npm run db:migrate failed with:
 
-53e02d3afb849895d388abcf69f76b1d95841471
-  Load local env for Drizzle migrations
+  Error Please provide required params for Postgres driver:
+      [x] url: undefined
 
-SMS implementation commits:
-efcb85cd5cc788db7cc873fec8177939c342bd96
-  Add NAVA SMS inbox UI
+This is expected to remain on the old local checkout because commit
+53e02d3 (Drizzle .env.local loading fix) was never pulled.
 
-035d2a915017c491bd6896170c462d4f7e3c659e
-  Add verified Telnyx SMS webhook
+OBSERVED ERROR 2
+----------------
+npm run typecheck failed with legacy backup code:
 
-bb59f0fabd45dd700b71218689adf38725fcee48
-  Add authenticated SMS inbox API
+  backups/WEBRTC_MIGRATION_20260925_085716/src/components/voice/NavaPhone.tsx
+  error TS2353: 'credentials' does not exist in type 'IClientOptions'
+  error TS2353: 'destination' does not exist in type 'ICallOptions'
 
-e12966e6022dc6932b4c40ec710212873002b58d
-  Add persistent NAVA SMS message storage
+This is expected to remain on the old local checkout because commit
+2d8bd99 (exclude backups from TypeScript) was never pulled.
 
-1265294aacfb26e27bf7f47cb4558acf040acf29
-  Document Telnyx webhook public key
+OBSERVED MIGRATION GENERATION
+-----------------------------
+npm run db:generate reported:
+  8 tables
+  No schema changes, nothing to migrate
 
-6c3a8076d187516b0b2239cebc7ec8e95b3bb652
-  Show NAVA SMS inbox on phone page
+This also confirms the local checkout is still missing the remote SMS schema
+change. The current remote branch includes the sms_messages schema work,
+but that schema was not present in the local checkout used for this run.
 
-301accd918c06dc5b97c73ef046abe2d750dd358
-  Assign NAVA SMS messages to an owner user
+FALSE GREEN
+-----------
+The script printed:
+  ALL SMS BUILD CHECKS PASSED
 
-393298def29531c13ae73f0acedc8fce4ec6aeae
-  Document NAVA SMS owner configuration
+even though git pull, db:migrate, and typecheck had failed.
+Therefore this output is NOT a successful verification.
 
-83687a1f7d0db0277bf8c92c2c9c87836109ec57
-  Restrict Telnyx SMS storage to NAVA phone owner
-
-d0eb7ba057fad7bc9f800915b7cda44223d46de8
-  Restrict NAVA SMS inbox to current user
-
-VERIFICATION STATUS
--------------------
-The earlier local run FAILED at:
-  db:migrate
-  typecheck
-
-Those failures have now been corrected in the repository.
-
-LOCAL VERIFICATION STILL REQUIRED
-----------------------------------
-Run the corrected PowerShell verification script locally.
-
-Required environment values:
-  DATABASE_URL
-  TELNYX_PUBLIC_KEY
-  NAVA_PHONE_OWNER_USER_ID
-
-No claim is made here that db:migrate or typecheck has passed until the
-corrected script is actually run locally.
-
-NEXT SMS TEST
+SAFE RECOVERY
 -------------
-After verification passes:
-1. Start the app.
-2. Open /dashboard/phone.
-3. Configure the Telnyx Messaging Profile inbound webhook.
-4. Send an SMS to the NAVA Telnyx number.
-5. Confirm it appears in SMS Inbox.
-6. Confirm an OTP code is detected when the message contains a 4-8 digit code.
+The local NavaPhone.tsx change must be preserved before updating the checkout.
+
+Recommended local sequence:
+
+  1. git status --short
+  2. git stash push -u -m "NAVA-OTP preserve local NavaPhone before SMS sync"
+  3. git pull --ff-only origin LOCAL-INSPECTION
+  4. git stash pop
+
+After the pull, the local checkout should contain:
+  2d8bd99 - exclude backups from TypeScript
+  53e02d3 - load .env.local for Drizzle
+
+Then run:
+  npm run db:generate
+  npm run db:migrate
+  npm run typecheck
+
+Do NOT delete or reset NavaPhone.tsx. The stash sequence is intended to
+preserve the user's uncommitted work while receiving the remote SMS fixes.
+
+CURRENT STATUS
+--------------
+GitHub SMS implementation is present on LOCAL-INSPECTION.
+Local verification is blocked only because the working tree prevented the
+required remote commits from being pulled.
+
+No secret values are included in this report.
