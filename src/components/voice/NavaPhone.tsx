@@ -108,6 +108,30 @@ export default function NavaPhone() {
               console.warn("NAVA unmuteAudio warning:", error);
             }
 
+            const micTrack =
+              micStreamRef.current?.getAudioTracks?.()[0] ||
+              call.localStream?.getAudioTracks?.()[0];
+
+            const audioSender = call.peer?.instance
+              ?.getSenders?.()
+              .find(
+                (sender: RTCRtpSender) => sender.track?.kind === "audio"
+              );
+
+            if (audioSender && micTrack && audioSender.track !== micTrack) {
+              void audioSender
+                .replaceTrack(micTrack)
+                .then(() => {
+                  console.log("NAVA AUDIO SENDER REBOUND", {
+                    senderTrackId: audioSender.track?.id,
+                    micTrackId: micTrack.id,
+                  });
+                })
+                .catch((error: unknown) => {
+                  console.warn("NAVA AUDIO SENDER REBIND WARNING:", error);
+                });
+            }
+
             const localTracks =
               call.localStream?.getAudioTracks?.() ||
               micStreamRef.current?.getAudioTracks?.() ||
@@ -119,11 +143,14 @@ export default function NavaPhone() {
 
             console.log("NAVA ACTIVE MICROPHONE", {
               tracks: localTracks.map((track: MediaStreamTrack) => ({
+                id: track.id,
                 label: track.label,
                 enabled: track.enabled,
                 muted: track.muted,
                 readyState: track.readyState,
               })),
+              micTrackId: micTrack?.id || null,
+              senderTrackId: audioSender?.track?.id || null,
               isAudioMuted: call.isAudioMuted,
             });
 
