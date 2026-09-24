@@ -3,7 +3,7 @@ import NavaSmsInbox from "@/components/voice/NavaSmsInbox";
 
 export default function PhonePage() {
   return (
-    <div className="space-y-8">
+    <div className="mx-auto w-full max-w-[1440px] space-y-8">
       <div className="flex flex-wrap items-end justify-between gap-4">
         <div>
           <p className="text-xs font-bold uppercase tracking-[0.24em] text-cyan-300/70">
@@ -24,12 +24,12 @@ export default function PhonePage() {
         </div>
       </div>
 
-      <div className="grid gap-6 lg:grid-cols-[minmax(0,1.65fr)_minmax(340px,0.85fr)] lg:items-start">
+      <div className="grid gap-6 lg:grid-cols-[minmax(0,1fr)_minmax(360px,400px)] lg:items-start">
         <div className="min-w-0">
           <NavaPhone />
         </div>
 
-        <div className="min-w-0">
+        <div className="min-w-0 xl:sticky xl:top-24">
           <NavaSmsInbox />
         </div>
       </div>
