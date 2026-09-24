@@ -88,7 +88,7 @@ export default async function DashboardLayout({ children }: { children: ReactNod
                 <WalletModalTrigger
                   key={link.href}
                   balanceCents={user.balanceCents}
-                  label={`${link.icon} ${link.label}`}
+                  label={link.label}
                   className="flex w-full items-center gap-3 rounded-xl px-3 py-2.5 text-left text-sm font-semibold text-slate-400 transition hover:bg-white/5 hover:text-white"
                 />
               ) : (
@@ -126,7 +126,7 @@ export default async function DashboardLayout({ children }: { children: ReactNod
             <WalletModalTrigger
               key={link.href}
               balanceCents={user.balanceCents}
-              label={`${link.icon} ${link.label}`}
+              label={link.label}
               className="flex flex-1 flex-col items-center gap-0.5 py-3 text-[11px] font-semibold text-slate-400"
             />
           ) : (
@@ -135,7 +135,7 @@ export default async function DashboardLayout({ children }: { children: ReactNod
               href={link.href}
               className="flex flex-1 flex-col items-center gap-0.5 py-3 text-[11px] font-semibold text-slate-400"
             >
-              <span className="text-base">{link.icon}</span>
+              <NavIcon name={link.icon} />
               {link.label}
             </Link>
           ),
