@@ -478,23 +478,23 @@ export default function NavaPhone() {
           : "Attention";
 
   return (
-    <section className="overflow-hidden rounded-[28px] border border-white/10 bg-[radial-gradient(circle_at_top_right,_rgba(31,210,180,0.12),_transparent_38%),linear-gradient(145deg,_rgba(15,27,49,0.98),_rgba(8,13,28,0.98))] p-5 shadow-2xl shadow-black/20 sm:p-7">
-      <div className="flex items-start justify-between gap-4">
-        <div className="flex items-center gap-3">
-          <div className="flex h-11 w-11 items-center justify-center rounded-2xl bg-cyan-400 text-xl font-black text-slate-950 shadow-lg shadow-cyan-400/20">
+    <section className="overflow-hidden rounded-[20px] border border-white/10 bg-[radial-gradient(circle_at_top_right,_rgba(31,210,180,0.12),_transparent_38%),linear-gradient(145deg,_rgba(15,27,49,0.98),_rgba(8,13,28,0.98))] p-3 shadow-2xl shadow-black/20 sm:p-4">
+      <div className="flex items-start justify-between gap-2">
+        <div className="flex items-center gap-2">
+          <div className="flex h-9 w-9 items-center justify-center rounded-xl bg-cyan-400 text-lg font-black text-slate-950 shadow-lg shadow-cyan-400/20">
             ☎
           </div>
           <div>
             <p className="text-[11px] font-bold uppercase tracking-[0.22em] text-cyan-300/80">
               Web dialer
             </p>
-            <h2 className="mt-1 text-xl font-black tracking-tight text-white">
+            <h2 className="mt-0.5 text-lg font-black tracking-tight text-white">
               NAVA Phone
             </h2>
           </div>
         </div>
 
-        <div className="inline-flex items-center gap-2 rounded-full border border-white/10 bg-white/[0.04] px-3 py-1.5 text-xs font-bold text-slate-300">
+        <div className="inline-flex items-center gap-1.5 rounded-full border border-white/10 bg-white/[0.04] px-2.5 py-1 text-[11px] font-bold text-slate-300">
           <span
             className={`h-2 w-2 rounded-full ${
               isActive
@@ -508,7 +508,7 @@ export default function NavaPhone() {
         </div>
       </div>
 
-      <div className="mt-7 rounded-2xl border border-white/10 bg-black/20 px-5 py-5 text-center">
+      <div className="mt-3 rounded-xl border border-white/10 bg-black/20 px-3 py-2.5 text-center">
         <p className="text-[11px] font-bold uppercase tracking-[0.2em] text-slate-500">
           Dial number
         </p>
@@ -518,27 +518,27 @@ export default function NavaPhone() {
           placeholder="+1 (000) 000-0000"
           inputMode="tel"
           aria-label="Phone number"
-          className="mt-3 w-full bg-transparent text-center text-2xl font-black tracking-tight text-white outline-none placeholder:text-slate-700 sm:text-3xl"
+          className="mt-2 w-full bg-transparent text-center text-xl font-black tracking-tight text-white outline-none placeholder:text-slate-700 sm:text-2xl"
         />
-        <p className="mt-2 min-h-5 text-xs text-slate-500">
+        <p className="mt-1 min-h-4 text-[11px] text-slate-500">
           {callerNumberRef.current
             ? `Calling from ${callerNumberRef.current}`
             : "Connect your phone to place calls"}
         </p>
       </div>
 
-      <div className="mx-auto mt-6 grid max-w-[360px] grid-cols-3 gap-3">
+      <div className="mx-auto mt-2 grid max-w-[280px] grid-cols-3 gap-1.5">
         {DIAL_KEYS.map((key) => (
           <button
             key={key.value}
             type="button"
             onClick={() => appendDigit(key.value)}
-            className="group flex h-[68px] flex-col items-center justify-center rounded-2xl border border-white/10 bg-white/[0.045] text-white transition hover:border-cyan-300/40 hover:bg-cyan-300/10 active:scale-95"
+            className="group flex h-11 flex-col items-center justify-center rounded-xl border border-white/10 bg-white/[0.045] text-white transition hover:border-cyan-300/40 hover:bg-cyan-300/10 active:scale-95"
             aria-label={`Dial ${key.value}`}
           >
-            <span className="text-xl font-bold">{key.value}</span>
+            <span className="text-lg font-bold">{key.value}</span>
             {key.letters ? (
-              <span className="mt-0.5 text-[9px] font-bold tracking-[0.25em] text-slate-500 group-hover:text-cyan-200/70">
+              <span className="mt-0 text-[8px] font-bold tracking-[0.2em] text-slate-500 group-hover:text-cyan-200/70">
                 {key.letters}
               </span>
             ) : null}
@@ -546,11 +546,11 @@ export default function NavaPhone() {
         ))}
       </div>
 
-      <div className="mx-auto mt-5 flex max-w-[360px] items-center justify-between gap-3">
+      <div className="mx-auto mt-2 flex max-w-[280px] items-center justify-between gap-2">
         <button
           type="button"
           onClick={clearNumber}
-          className="rounded-xl px-3 py-2 text-xs font-bold text-slate-500 transition hover:bg-white/5 hover:text-white"
+          className="rounded-lg px-2 py-1 text-[11px] font-bold text-slate-500 transition hover:bg-white/5 hover:text-white"
         >
           Clear
         </button>
@@ -559,7 +559,7 @@ export default function NavaPhone() {
           type="button"
           onClick={canHangUp ? hangUp : makeCall}
           disabled={isBusy && !canHangUp}
-          className={`flex h-16 w-16 items-center justify-center rounded-full text-2xl text-white shadow-xl transition active:scale-95 disabled:cursor-not-allowed disabled:opacity-50 ${
+          className={`flex h-12 w-12 items-center justify-center rounded-full text-xl text-white shadow-xl transition active:scale-95 disabled:cursor-not-allowed disabled:opacity-50 ${
             canHangUp
               ? "bg-rose-500 shadow-rose-500/25 hover:bg-rose-400"
               : "bg-emerald-400 shadow-emerald-400/25 hover:bg-emerald-300"
@@ -572,17 +572,17 @@ export default function NavaPhone() {
         <button
           type="button"
           onClick={backspace}
-          className="rounded-xl px-3 py-2 text-xs font-bold text-slate-500 transition hover:bg-white/5 hover:text-white"
+          className="rounded-lg px-2 py-1 text-[11px] font-bold text-slate-500 transition hover:bg-white/5 hover:text-white"
           aria-label="Delete last digit"
         >
           ⌫ Delete
         </button>
       </div>
 
-      <div className="mt-7 flex flex-wrap items-center justify-between gap-3 border-t border-white/10 pt-5">
+      <div className="mt-3 flex flex-wrap items-center justify-between gap-2 border-t border-white/10 pt-2">
         <div>
-          <p className="text-xs font-bold text-white">Phone connection</p>
-          <p className="mt-1 text-xs text-slate-500">
+          <p className="text-[11px] font-bold text-white">Phone connection</p>
+          <p className="mt-0.5 text-[10px] text-slate-500">
             Telnyx WebRTC voice line
           </p>
         </div>
@@ -590,21 +590,21 @@ export default function NavaPhone() {
           <button
             type="button"
             onClick={connectPhone}
-            className="rounded-xl border border-cyan-300/20 bg-cyan-300/10 px-3 py-2 text-xs font-bold text-cyan-200 transition hover:bg-cyan-300/20"
+            className="rounded-lg border border-cyan-300/20 bg-cyan-300/10 px-2.5 py-1.5 text-[11px] font-bold text-cyan-200 transition hover:bg-cyan-300/20"
           >
             Connect
           </button>
           <button
             type="button"
             onClick={disconnectPhone}
-            className="rounded-xl border border-white/10 px-3 py-2 text-xs font-bold text-slate-400 transition hover:bg-white/5 hover:text-white"
+            className="rounded-lg border border-white/10 px-2.5 py-1.5 text-[11px] font-bold text-slate-400 transition hover:bg-white/5 hover:text-white"
           >
             Disconnect
           </button>
         </div>
       </div>
 
-      <p className="mt-4 truncate text-xs text-slate-500" title={status}>
+      <p className="mt-1 truncate text-[10px] text-slate-500" title={status}>
         {status}
       </p>
 
