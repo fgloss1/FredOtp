@@ -109,8 +109,7 @@ export default function NavaPhone() {
             }
 
             const micTrack =
-              micStreamRef.current?.getAudioTracks?.()[0] ||
-              call.localStream?.getAudioTracks?.()[0];
+              call.localStream?.getAudioTracks?.()[0] || null;
 
             const audioSender = call.peer?.instance
               ?.getSenders?.()
@@ -282,47 +281,16 @@ export default function NavaPhone() {
     }
 
     try {
-      setStatus("Preparing microphone...");
-
-      if (!micStreamRef.current) {
-        micStreamRef.current =
-          await navigator.mediaDevices.getUserMedia({
-            audio: {
-              echoCancellation: true,
-              noiseSuppression: true,
-              autoGainControl: true,
-            },
-            video: false,
-          });
-      }
-
-      const micTracks = micStreamRef.current.getAudioTracks();
-
-      if (micTracks.length === 0) {
-        throw new Error("No microphone audio track was created.");
-      }
-
-      micTracks.forEach((track) => {
-        track.enabled = true;
-      });
-
-      console.log("NAVA MICROPHONE READY", {
-        trackCount: micTracks.length,
-        tracks: micTracks.map((track) => ({
-          label: track.label,
-          enabled: track.enabled,
-          muted: track.muted,
-          readyState: track.readyState,
-        })),
-      });
-
       setStatus("Starting call...");
 
       const call = client.newCall({
         destinationNumber: number,
         callerNumber: callerNumberRef.current,
-        audio: true,
-        localStream: micStreamRef.current,
+        audio: {
+          echoCancellation: true,
+          noiseSuppression: true,
+          autoGainControl: true,
+        },
       });
 
       callRef.current = call;
