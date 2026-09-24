@@ -1,9 +1,36 @@
-﻿"use client";
+"use client";
 
 import { useEffect, useRef, useState } from "react";
 import { TelnyxRTC } from "@telnyx/webrtc";
 
 const DEFAULT_DESTINATION = "+19727835097";
+
+const DIAL_KEYS = [
+  { value: "1", letters: "" },
+  { value: "2", letters: "ABC" },
+  { value: "3", letters: "DEF" },
+  { value: "4", letters: "GHI" },
+  { value: "5", letters: "JKL" },
+  { value: "6", letters: "MNO" },
+  { value: "7", letters: "PQRS" },
+  { value: "8", letters: "TUV" },
+  { value: "9", letters: "WXYZ" },
+  { value: "*", letters: "" },
+  { value: "0", letters: "+" },
+  { value: "#", letters: "" },
+];
+
+function formatDialNumber(value: string) {
+  const digits = value.replace(/\D/g, "");
+
+  if (digits.length === 11 && digits.startsWith("1")) {
+    return `+1 (${digits.slice(1, 4)}) ${digits.slice(4, 7)}-${digits.slice(
+      7,
+    )}`;
+  }
+
+  return value || "Enter a number";
+}
 
 export default function NavaPhone() {
   const clientRef = useRef<TelnyxRTC | null>(null);
@@ -13,6 +40,7 @@ export default function NavaPhone() {
   const statsTimerRef = useRef<ReturnType<typeof setInterval> | null>(null);
 
   const [destination, setDestination] = useState(DEFAULT_DESTINATION);
+  const [hasEditedNumber, setHasEditedNumber] = useState(false);
   const [status, setStatus] = useState("Ready");
 
   async function connectPhone() {
@@ -31,9 +59,7 @@ export default function NavaPhone() {
       const data = await response.json();
 
       if (!response.ok) {
-        throw new Error(
-          data.error || "Unable to get WebRTC credentials."
-        );
+        throw new Error(data.error || "Unable to get WebRTC credentials.");
       }
 
       if (!data.username || !data.password) {
@@ -59,12 +85,9 @@ export default function NavaPhone() {
         console.error("Telnyx WebRTC error:", event);
 
         const error = event?.error ?? event;
-
         const code = error?.code ? ` [${error.code}]` : "";
         const message =
-          error?.message ||
-          event?.errorMessage ||
-          "Telnyx WebRTC error";
+          error?.message || event?.errorMessage || "Telnyx WebRTC error";
 
         setStatus(`Telnyx error${code}: ${message}`);
       });
@@ -114,7 +137,7 @@ export default function NavaPhone() {
             const audioSender = call.peer?.instance
               ?.getSenders?.()
               .find(
-                (sender: RTCRtpSender) => sender.track?.kind === "audio"
+                (sender: RTCRtpSender) => sender.track?.kind === "audio",
               );
 
             if (audioSender && micTrack && audioSender.track !== micTrack) {
@@ -234,7 +257,7 @@ export default function NavaPhone() {
                 if (outboundAudio.length > 0) {
                   const totalBytes = outboundAudio.reduce(
                     (sum, item) => sum + (item.bytesSent || 0),
-                    0
+                    0,
                   );
 
                   setStatus(`Call active | audio sent ${totalBytes} bytes`);
@@ -254,13 +277,9 @@ export default function NavaPhone() {
           case "done": {
             const cause = call.cause || "unknown";
             const causeCode =
-              call.causeCode !== undefined
-                ? String(call.causeCode)
-                : "n/a";
+              call.causeCode !== undefined ? String(call.causeCode) : "n/a";
             const sipCode =
-              call.sipCode !== undefined
-                ? String(call.sipCode)
-                : "n/a";
+              call.sipCode !== undefined ? String(call.sipCode) : "n/a";
             const sipReason = call.sipReason || "n/a";
 
             console.info("NAVA CALL TERMINATION", {
@@ -275,7 +294,7 @@ export default function NavaPhone() {
             });
 
             setStatus(
-              `DONE | ${cause} | causeCode=${causeCode} | SIP=${sipCode} | ${sipReason}`
+              `DONE | ${cause} | causeCode=${causeCode} | SIP=${sipCode} | ${sipReason}`,
             );
 
             if (statsTimerRef.current) {
@@ -301,9 +320,7 @@ export default function NavaPhone() {
       clientRef.current = null;
 
       setStatus(
-        error instanceof Error
-          ? error.message
-          : "Connection failed"
+        error instanceof Error ? error.message : "Connection failed",
       );
     }
   }
@@ -346,9 +363,7 @@ export default function NavaPhone() {
       console.error("NAVA call failed:", error);
 
       setStatus(
-        error instanceof Error
-          ? error.message
-          : "Unable to start call"
+        error instanceof Error ? error.message : "Unable to start call",
       );
     }
   }
@@ -395,6 +410,32 @@ export default function NavaPhone() {
     }
   }
 
+  function appendDigit(digit: string) {
+    setHasEditedNumber(true);
+    setDestination((current) => {
+      if (!hasEditedNumber) {
+        return digit;
+      }
+
+      return `${current}${digit}`.slice(0, 16);
+    });
+  }
+
+  function handleNumberChange(value: string) {
+    setHasEditedNumber(true);
+    setDestination(value.slice(0, 16));
+  }
+
+  function backspace() {
+    setHasEditedNumber(true);
+    setDestination((current) => current.slice(0, -1));
+  }
+
+  function clearNumber() {
+    setHasEditedNumber(true);
+    setDestination("");
+  }
+
   useEffect(() => {
     return () => {
       if (statsTimerRef.current) {
@@ -417,40 +458,157 @@ export default function NavaPhone() {
     };
   }, []);
 
+  const isActive = status.includes("Call active");
+  const canHangUp =
+    isActive ||
+    /Calling|Sending call|Trying|Ringing|Starting call|Ending call/.test(
+      status,
+    );
+  const isBusy = /Getting|Connecting|Calling|Sending|Trying|Ringing|Starting/.test(
+    status,
+  );
+  const statusLabel = isActive
+    ? "In call"
+    : status === "Ready to call" || status === "Ready"
+      ? "Ready"
+      : isBusy
+        ? "Connecting"
+        : status === "Disconnected"
+          ? "Offline"
+          : "Attention";
+
   return (
-    <div className="space-y-4">
-      <h2>NAVA Phone</h2>
+    <section className="overflow-hidden rounded-[28px] border border-white/10 bg-[radial-gradient(circle_at_top_right,_rgba(31,210,180,0.12),_transparent_38%),linear-gradient(145deg,_rgba(15,27,49,0.98),_rgba(8,13,28,0.98))] p-5 shadow-2xl shadow-black/20 sm:p-7">
+      <div className="flex items-start justify-between gap-4">
+        <div className="flex items-center gap-3">
+          <div className="flex h-11 w-11 items-center justify-center rounded-2xl bg-cyan-400 text-xl font-black text-slate-950 shadow-lg shadow-cyan-400/20">
+            ☎
+          </div>
+          <div>
+            <p className="text-[11px] font-bold uppercase tracking-[0.22em] text-cyan-300/80">
+              Web dialer
+            </p>
+            <h2 className="mt-1 text-xl font-black tracking-tight text-white">
+              NAVA Phone
+            </h2>
+          </div>
+        </div>
 
-      <p>Status: {status}</p>
+        <div className="inline-flex items-center gap-2 rounded-full border border-white/10 bg-white/[0.04] px-3 py-1.5 text-xs font-bold text-slate-300">
+          <span
+            className={`h-2 w-2 rounded-full ${
+              isActive
+                ? "bg-emerald-400 shadow-[0_0_12px_rgba(52,211,153,0.9)]"
+                : isBusy
+                  ? "animate-pulse bg-amber-300"
+                  : "bg-slate-500"
+            }`}
+          />
+          {statusLabel}
+        </div>
+      </div>
 
-      <input
-        value={destination}
-        onChange={(event) => setDestination(event.target.value)}
-        placeholder="+1..."
-        inputMode="tel"
-      />
+      <div className="mt-7 rounded-2xl border border-white/10 bg-black/20 px-5 py-5 text-center">
+        <p className="text-[11px] font-bold uppercase tracking-[0.2em] text-slate-500">
+          Dial number
+        </p>
+        <input
+          value={destination}
+          onChange={(event) => handleNumberChange(event.target.value)}
+          placeholder="+1 (000) 000-0000"
+          inputMode="tel"
+          aria-label="Phone number"
+          className="mt-3 w-full bg-transparent text-center text-2xl font-black tracking-tight text-white outline-none placeholder:text-slate-700 sm:text-3xl"
+        />
+        <p className="mt-2 min-h-5 text-xs text-slate-500">
+          {callerNumberRef.current
+            ? `Calling from ${callerNumberRef.current}`
+            : "Connect your phone to place calls"}
+        </p>
+      </div>
 
-      <div className="flex gap-2">
-        <button type="button" onClick={connectPhone}>
-          Connect Phone
+      <div className="mx-auto mt-6 grid max-w-[360px] grid-cols-3 gap-3">
+        {DIAL_KEYS.map((key) => (
+          <button
+            key={key.value}
+            type="button"
+            onClick={() => appendDigit(key.value)}
+            className="group flex h-[68px] flex-col items-center justify-center rounded-2xl border border-white/10 bg-white/[0.045] text-white transition hover:border-cyan-300/40 hover:bg-cyan-300/10 active:scale-95"
+            aria-label={`Dial ${key.value}`}
+          >
+            <span className="text-xl font-bold">{key.value}</span>
+            {key.letters ? (
+              <span className="mt-0.5 text-[9px] font-bold tracking-[0.25em] text-slate-500 group-hover:text-cyan-200/70">
+                {key.letters}
+              </span>
+            ) : null}
+          </button>
+        ))}
+      </div>
+
+      <div className="mx-auto mt-5 flex max-w-[360px] items-center justify-between gap-3">
+        <button
+          type="button"
+          onClick={clearNumber}
+          className="rounded-xl px-3 py-2 text-xs font-bold text-slate-500 transition hover:bg-white/5 hover:text-white"
+        >
+          Clear
         </button>
 
-        <button type="button" onClick={makeCall}>
-          CALL
+        <button
+          type="button"
+          onClick={canHangUp ? hangUp : makeCall}
+          disabled={isBusy && !canHangUp}
+          className={`flex h-16 w-16 items-center justify-center rounded-full text-2xl text-white shadow-xl transition active:scale-95 disabled:cursor-not-allowed disabled:opacity-50 ${
+            canHangUp
+              ? "bg-rose-500 shadow-rose-500/25 hover:bg-rose-400"
+              : "bg-emerald-400 shadow-emerald-400/25 hover:bg-emerald-300"
+          }`}
+          aria-label={canHangUp ? "Hang up" : "Place call"}
+        >
+          {canHangUp ? "●" : "☎"}
         </button>
 
-        <button type="button" onClick={hangUp}>
-          HANG UP
-        </button>
-
-        <button type="button" onClick={disconnectPhone}>
-          Disconnect
+        <button
+          type="button"
+          onClick={backspace}
+          className="rounded-xl px-3 py-2 text-xs font-bold text-slate-500 transition hover:bg-white/5 hover:text-white"
+          aria-label="Delete last digit"
+        >
+          ⌫ Delete
         </button>
       </div>
 
+      <div className="mt-7 flex flex-wrap items-center justify-between gap-3 border-t border-white/10 pt-5">
+        <div>
+          <p className="text-xs font-bold text-white">Phone connection</p>
+          <p className="mt-1 text-xs text-slate-500">
+            Telnyx WebRTC voice line
+          </p>
+        </div>
+        <div className="flex gap-2">
+          <button
+            type="button"
+            onClick={connectPhone}
+            className="rounded-xl border border-cyan-300/20 bg-cyan-300/10 px-3 py-2 text-xs font-bold text-cyan-200 transition hover:bg-cyan-300/20"
+          >
+            Connect
+          </button>
+          <button
+            type="button"
+            onClick={disconnectPhone}
+            className="rounded-xl border border-white/10 px-3 py-2 text-xs font-bold text-slate-400 transition hover:bg-white/5 hover:text-white"
+          >
+            Disconnect
+          </button>
+        </div>
+      </div>
+
+      <p className="mt-4 truncate text-xs text-slate-500" title={status}>
+        {status}
+      </p>
+
       <audio id="remoteMedia" autoPlay />
-    </div>
+    </section>
   );
 }
-
-
