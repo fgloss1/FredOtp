@@ -211,9 +211,25 @@ export default function NavaPhone() {
                   }
                 });
 
-                console.log("NAVA MIC AUDIO SOURCE", localAudioSource);
-                console.log("NAVA OUTBOUND AUDIO RTP", outboundAudio);
-                console.log("NAVA REMOTE INBOUND AUDIO", remoteInboundAudio);
+                const micSource = localAudioSource[0] || {};
+                const outbound = outboundAudio[0] || {};
+                const remoteInbound = remoteInboundAudio[0] || {};
+
+                console.log("NAVA AUDIO DIAGNOSTIC", {
+                  micAudioLevel: micSource.audioLevel ?? null,
+                  micTotalAudioEnergy: micSource.totalAudioEnergy ?? null,
+                  micSamplesDuration: micSource.totalSamplesDuration ?? null,
+                  senderBytesSent: outbound.bytesSent ?? null,
+                  senderPacketsSent: outbound.packetsSent ?? null,
+                  senderTotalAudioEnergy: outbound.totalAudioEnergy ?? null,
+                  remotePacketsReceived: remoteInbound.packetsReceived ?? null,
+                  remotePacketsLost: remoteInbound.packetsLost ?? null,
+                  remoteFractionLost: remoteInbound.fractionLost ?? null,
+                  remoteRoundTripTime: remoteInbound.roundTripTime ?? null,
+                  senderTrackId: audioSender?.track?.id || null,
+                  senderEnabled: audioSender?.track?.enabled ?? null,
+                  senderReadyState: audioSender?.track?.readyState ?? null,
+                });
 
                 if (outboundAudio.length > 0) {
                   const totalBytes = outboundAudio.reduce(
