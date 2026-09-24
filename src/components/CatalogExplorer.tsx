@@ -5,6 +5,7 @@ import { useMemo, useState } from "react";
 import type { Catalog } from "@/lib/queries";
 import { usd } from "@/lib/format";
 import { ServiceBrandIcon } from "@/components/ServiceBrandIcon";
+import { UiIcon } from "@/components/UiIcon";
 import { countryFlag } from "@/lib/visuals";
 
 type Props = {
@@ -263,7 +264,7 @@ export function CatalogExplorer({
         <div className="flex flex-col gap-4 lg:flex-row lg:items-center">
           <div className="relative flex-1">
             <span className="pointer-events-none absolute left-3.5 top-1/2 -translate-y-1/2 text-slate-500">
-              🔍
+              <UiIcon name="search" className="h-4 w-4" />
             </span>
 
             <input
