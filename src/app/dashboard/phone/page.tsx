@@ -11,11 +11,13 @@ export default function PhonePage() {
         </p>
       </div>
 
-      <div className="card p-6">
-        <NavaPhone />
-      </div>
+      <div className="grid gap-6 lg:grid-cols-[minmax(0,2fr)_minmax(320px,1fr)] lg:items-start">
+        <div className="card p-6">
+          <NavaPhone />
+        </div>
 
-      <NavaSmsInbox />
+        <NavaSmsInbox />
+      </div>
     </div>
   );
 }
