@@ -32,6 +32,26 @@ function formatDialNumber(value: string) {
   return value || "Enter a number";
 }
 
+function PhoneIcon({ slash = false }: { slash?: boolean }) {
+  return (
+    <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" aria-hidden="true">
+      <path d="M22 16.92v3a2 2 0 0 1-2.18 2 19.8 19.8 0 0 1-8.63-3.07 19.5 19.5 0 0 1-6-6A19.8 19.8 0 0 1 2.12 4.18 2 2 0 0 1 4.11 2h3a2 2 0 0 1 2 1.72c.12.9.33 1.78.62 2.63a2 2 0 0 1-.45 2.11L8 9.73a16 16 0 0 0 6 6l1.27-1.27a2 2 0 0 1 2.11-.45c.85.29 1.73.5 2.63.62A2 2 0 0 1 22 16.92Z" />
+      {slash ? <path d="m3 3 18 18" /> : null}
+    </svg>
+  );
+}
+
+function DeleteIcon() {
+  return (
+    <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" aria-hidden="true">
+      <path d="M3 6h18" />
+      <path d="M8 6V4h8v2" />
+      <path d="m19 6-1 14H6L5 6" />
+      <path d="M10 11v5M14 11v5" />
+    </svg>
+  );
+}
+
 export default function NavaPhone() {
   const clientRef = useRef<TelnyxRTC | null>(null);
   const callRef = useRef<any>(null);
@@ -482,7 +502,7 @@ export default function NavaPhone() {
       <div className="flex items-start justify-between gap-4">
         <div className="flex items-center gap-3">
           <div className="flex h-11 w-11 items-center justify-center rounded-2xl bg-cyan-400 text-xl font-black text-slate-950 shadow-lg shadow-cyan-400/20">
-            ☎
+            <PhoneIcon />
           </div>
           <div>
             <p className="text-[11px] font-bold uppercase tracking-[0.22em] text-cyan-300/80">
@@ -566,7 +586,7 @@ export default function NavaPhone() {
           }`}
           aria-label={canHangUp ? "Hang up" : "Place call"}
         >
-          {canHangUp ? "●" : "☎"}
+          {canHangUp ? <PhoneIcon slash /> : <PhoneIcon />}
         </button>
 
         <button
@@ -575,7 +595,7 @@ export default function NavaPhone() {
           className="rounded-xl px-3 py-2 text-xs font-bold text-slate-500 transition hover:bg-white/5 hover:text-white"
           aria-label="Delete last digit"
         >
-          ⌫ Delete
+          <span className="inline-flex items-center gap-2"><DeleteIcon /><span>Delete</span></span>
         </button>
       </div>
 
