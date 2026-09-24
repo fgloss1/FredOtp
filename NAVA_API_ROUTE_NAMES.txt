@@ -1,9 +1,0 @@
-﻿============================================================
-NAVA OTP API ROUTE NAMES
-============================================================
-
-\src\app\api\auth\login\route.ts \src\app\api\auth\logout\route.ts \src\app\api\auth\register\route.ts \src\app\api\catalog\route.ts \src\app\api\health\route.ts \src\app\api\payments\paystack\initialize\route.ts \src\app\api\payments\paystack\verify\route.ts \src\app\api\payments\paystack\webhook\route.ts \src\app\api\rentals\route.ts \src\app\api\rentals\[id]\route.ts \src\app\api\wallet\topup\route.ts
-
-============================================================
-END
-============================================================
