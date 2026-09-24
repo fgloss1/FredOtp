@@ -26,7 +26,7 @@ export default async function DashboardLayout({ children }: { children: ReactNod
       <IdleSessionGuard />
 
       <header className="sticky top-0 z-40 border-b border-white/5 bg-ink-950/85 backdrop-blur-xl">
-        <div className="mx-auto flex h-16 max-w-7xl items-center justify-between gap-4 px-4 sm:px-6">
+        <div className="mx-auto flex h-16 max-w-[1600px] items-center justify-between gap-4 px-4 sm:px-6">
           <Logo />
           <div className="flex items-center gap-3">
             <div className="rounded-xl border border-emerald-400/25 bg-emerald-400/10 px-3.5 py-1.5 text-right">
@@ -50,7 +50,7 @@ export default async function DashboardLayout({ children }: { children: ReactNod
         </div>
       </header>
 
-      <div className="mx-auto flex max-w-7xl gap-8 px-4 py-8 sm:px-6">
+      <div className="mx-auto flex max-w-[1600px] gap-10 px-4 py-8 sm:px-6 lg:px-8">
         <aside className="hidden w-56 shrink-0 lg:block">
           <div className="sticky top-24 space-y-1">
             <p className="px-3 pb-2 text-[11px] font-bold uppercase tracking-widest text-slate-600">
