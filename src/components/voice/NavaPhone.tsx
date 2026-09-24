@@ -34,7 +34,7 @@ function formatDialNumber(value: string) {
 
 function PhoneIcon({ slash = false }: { slash?: boolean }) {
   return (
-    <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" aria-hidden="true">
+    <svg className="h-5 w-5" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" aria-hidden="true">
       <path d="M22 16.92v3a2 2 0 0 1-2.18 2 19.8 19.8 0 0 1-8.63-3.07 19.5 19.5 0 0 1-6-6A19.8 19.8 0 0 1 2.12 4.18 2 2 0 0 1 4.11 2h3a2 2 0 0 1 2 1.72c.12.9.33 1.78.62 2.63a2 2 0 0 1-.45 2.11L8 9.73a16 16 0 0 0 6 6l1.27-1.27a2 2 0 0 1 2.11-.45c.85.29 1.73.5 2.63.62A2 2 0 0 1 22 16.92Z" />
       {slash ? <path d="m3 3 18 18" /> : null}
     </svg>
@@ -43,7 +43,7 @@ function PhoneIcon({ slash = false }: { slash?: boolean }) {
 
 function DeleteIcon() {
   return (
-    <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" aria-hidden="true">
+    <svg className="h-4 w-4" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" aria-hidden="true">
       <path d="M3 6h18" />
       <path d="M8 6V4h8v2" />
       <path d="m19 6-1 14H6L5 6" />
@@ -498,10 +498,10 @@ export default function NavaPhone() {
           : "Attention";
 
   return (
-    <section className="overflow-hidden rounded-[28px] border border-white/10 bg-[radial-gradient(circle_at_top_right,_rgba(31,210,180,0.12),_transparent_38%),linear-gradient(145deg,_rgba(15,27,49,0.98),_rgba(8,13,28,0.98))] p-5 shadow-2xl shadow-black/20 sm:p-7">
+    <section className="overflow-hidden rounded-[24px] border border-white/10 bg-[radial-gradient(circle_at_top_right,_rgba(31,210,180,0.12),_transparent_38%),linear-gradient(145deg,_rgba(15,27,49,0.98),_rgba(8,13,28,0.98))] p-4 shadow-2xl shadow-black/20 sm:p-5">
       <div className="flex items-start justify-between gap-4">
         <div className="flex items-center gap-3">
-          <div className="flex h-11 w-11 items-center justify-center rounded-2xl bg-cyan-400 text-xl font-black text-slate-950 shadow-lg shadow-cyan-400/20">
+          <div className="flex h-10 w-10 items-center justify-center rounded-2xl bg-cyan-400 text-xl font-black text-slate-950 shadow-lg shadow-cyan-400/20">
             <PhoneIcon />
           </div>
           <div>
@@ -528,7 +528,7 @@ export default function NavaPhone() {
         </div>
       </div>
 
-      <div className="mt-7 rounded-2xl border border-white/10 bg-black/20 px-5 py-5 text-center">
+      <div className="mt-4 rounded-2xl border border-white/10 bg-black/20 px-4 py-4 text-center">
         <p className="text-[11px] font-bold uppercase tracking-[0.2em] text-slate-500">
           Dial number
         </p>
@@ -547,13 +547,13 @@ export default function NavaPhone() {
         </p>
       </div>
 
-      <div className="mx-auto mt-6 grid max-w-[360px] grid-cols-3 gap-3">
+      <div className="mx-auto mt-4 grid max-w-[320px] grid-cols-3 gap-2">
         {DIAL_KEYS.map((key) => (
           <button
             key={key.value}
             type="button"
             onClick={() => appendDigit(key.value)}
-            className="group flex h-[68px] flex-col items-center justify-center rounded-2xl border border-white/10 bg-white/[0.045] text-white transition hover:border-cyan-300/40 hover:bg-cyan-300/10 active:scale-95"
+            className="group flex h-14 flex-col items-center justify-center rounded-2xl border border-white/10 bg-white/[0.045] text-white transition hover:border-cyan-300/40 hover:bg-cyan-300/10 active:scale-95"
             aria-label={`Dial ${key.value}`}
           >
             <span className="text-xl font-bold">{key.value}</span>
@@ -566,7 +566,7 @@ export default function NavaPhone() {
         ))}
       </div>
 
-      <div className="mx-auto mt-5 flex max-w-[360px] items-center justify-between gap-3">
+      <div className="mx-auto mt-3 flex max-w-[320px] items-center justify-between gap-3">
         <button
           type="button"
           onClick={clearNumber}
@@ -579,7 +579,7 @@ export default function NavaPhone() {
           type="button"
           onClick={canHangUp ? hangUp : makeCall}
           disabled={isBusy && !canHangUp}
-          className={`flex h-16 w-16 items-center justify-center rounded-full text-2xl text-white shadow-xl transition active:scale-95 disabled:cursor-not-allowed disabled:opacity-50 ${
+          className={`flex h-14 w-14 items-center justify-center rounded-full text-2xl text-white shadow-xl transition active:scale-95 disabled:cursor-not-allowed disabled:opacity-50 ${
             canHangUp
               ? "bg-rose-500 shadow-rose-500/25 hover:bg-rose-400"
               : "bg-emerald-400 shadow-emerald-400/25 hover:bg-emerald-300"
@@ -599,7 +599,7 @@ export default function NavaPhone() {
         </button>
       </div>
 
-      <div className="mt-7 flex flex-wrap items-center justify-between gap-3 border-t border-white/10 pt-5">
+      <div className="mt-5 flex flex-wrap items-center justify-between gap-3 border-t border-white/10 pt-4">
         <div>
           <p className="text-xs font-bold text-white">Phone connection</p>
           <p className="mt-1 text-xs text-slate-500">
@@ -624,7 +624,7 @@ export default function NavaPhone() {
         </div>
       </div>
 
-      <p className="mt-4 truncate text-xs text-slate-500" title={status}>
+      <p className="mt-3 truncate text-xs text-slate-500" title={status}>
         {status}
       </p>
 
