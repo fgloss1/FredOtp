@@ -11,11 +11,38 @@ import { ngn, usd } from "@/lib/format";
 export const dynamic = "force-dynamic";
 
 const LINKS = [
-  { href: "/dashboard", label: "Rent a number", icon: "📲" },
-  { href: "/dashboard/orders", label: "My rentals", icon: "🧾" },
-  { href: "/dashboard/wallet", label: "Wallet", icon: "💳" },
-  { href: "/pricing", label: "Price list", icon: "🏷️" },
+  { href: "/dashboard", label: "Rent a number", icon: "phone" },
+  { href: "/dashboard/orders", label: "My rentals", icon: "receipt" },
+  { href: "/dashboard/wallet", label: "Wallet", icon: "wallet" },
+  { href: "/pricing", label: "Price list", icon: "tag" },
 ];
+
+function NavIcon({ name }: { name: string }) {
+  const common = {
+    className: "h-4 w-4 shrink-0",
+    viewBox: "0 0 24 24",
+    fill: "none",
+    stroke: "currentColor",
+    strokeWidth: 1.8,
+    strokeLinecap: "round" as const,
+    strokeLinejoin: "round" as const,
+    "aria-hidden": true,
+  };
+
+  if (name === "phone") {
+    return <svg {...common}><path d="M22 16.92v3a2 2 0 0 1-2.18 2 19.8 19.8 0 0 1-8.63-3.07 19.5 19.5 0 0 1-6-6A19.8 19.8 0 0 1 2.12 4.18 2 2 0 0 1 4.11 2h3a2 2 0 0 1 2 1.72c.12.9.33 1.78.62 2.63a2 2 0 0 1-.45 2.11L8 9.73a16 16 0 0 0 6 6l1.27-1.27a2 2 0 0 1 2.11-.45c.85.29 1.73.5 2.63.62A2 2 0 0 1 22 16.92Z" /></svg>;
+  }
+
+  if (name === "receipt") {
+    return <svg {...common}><path d="M6 3h12v18l-3-2-3 2-3-2-3 2V3Z" /><path d="M9 8h6M9 12h6M9 16h3" /></svg>;
+  }
+
+  if (name === "wallet") {
+    return <svg {...common}><path d="M4 6.5A2.5 2.5 0 0 1 6.5 4H20v16H6.5A2.5 2.5 0 0 1 4 17.5v-11Z" /><path d="M4 7h16" /><path d="M16 13h4" /><circle cx="16" cy="13" r=".5" fill="currentColor" /></svg>;
+  }
+
+  return <svg {...common}><path d="m20 13-7 7-9-9V4h7l9 9Z" /><path d="M8 8h.01" /></svg>;
+}
 
 export default async function DashboardLayout({ children }: { children: ReactNode }) {
   const user = await getCurrentUser();
@@ -70,7 +97,7 @@ export default async function DashboardLayout({ children }: { children: ReactNod
                   href={link.href}
                   className="flex items-center gap-3 rounded-xl px-3 py-2.5 text-sm font-semibold text-slate-400 transition hover:bg-white/5 hover:text-white"
                 >
-                  <span>{link.icon}</span>
+                  <NavIcon name={link.icon} />
                   {link.label}
                 </Link>
               ),
