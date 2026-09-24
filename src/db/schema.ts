@@ -125,6 +125,24 @@ export const rentals = pgTable(
   (table) => [index("rentals_user_idx").on(table.userId, table.createdAt)],
 );
 
+export const smsMessages = pgTable(
+  "sms_messages",
+  {
+    id: serial("id").primaryKey(),
+    messageId: varchar("message_id", { length: 128 }).notNull(),
+    fromNumber: varchar("from_number", { length: 32 }).notNull(),
+    toNumber: varchar("to_number", { length: 32 }).notNull(),
+    text: text("text").notNull(),
+    otpCode: varchar("otp_code", { length: 12 }),
+    receivedAt: timestamp("received_at", { withTimezone: true }).notNull().defaultNow(),
+    createdAt: timestamp("created_at", { withTimezone: true }).notNull().defaultNow(),
+  },
+  (table) => [
+    uniqueIndex("sms_messages_message_id_unique").on(table.messageId),
+    index("sms_messages_received_idx").on(table.receivedAt),
+  ],
+);
+
 export const payments = pgTable(
   "payments",
   {
@@ -177,3 +195,4 @@ export type Offer = typeof offers.$inferSelect;
 export type Rental = typeof rentals.$inferSelect;
 export type Transaction = typeof transactions.$inferSelect;
 export type Payment = typeof payments.$inferSelect;
+export type SmsMessage = typeof smsMessages.$inferSelect;
