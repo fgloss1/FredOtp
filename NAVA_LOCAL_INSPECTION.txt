@@ -1,0 +1,446 @@
+﻿============================================================
+ NAVA OTP — LOCAL PROJECT INSPECTION
+============================================================
+
+Repository: fgloss1/FredOtp
+Working folder: C:\Users\Sire-F\OneDrive\Desktop\My Projects\NAVA-OTP-PERSONAL-PHONE
+Inspection branch: LOCAL-INSPECTION
+
+IMPORTANT:
+This report was generated locally.
+No Vercel deployment was performed.
+No application source files were intentionally modified.
+
+------------------------------------------------------------
+GIT STATE
+------------------------------------------------------------
+Branch: main
+Commit: 35ccc1ecc9aa0e54732297da8f528f880a6d3853
+Origin/main: 35ccc1ecc9aa0e54732297da8f528f880a6d3853
+
+------------------------------------------------------------
+ROOT DIRECTORY
+------------------------------------------------------------
+FILE  .env.example
+DIR   .git
+DIR   .github
+FILE  .gitignore
+DIR   drizzle
+FILE  drizzle.config.ts
+FILE  eslint.config.mjs
+FILE  fix-encoding.mjs
+FILE  fix-encoding.ps1
+FILE  next.config.ts
+FILE  next-env.d.ts
+FILE  package.json
+FILE  package-lock.json
+FILE  postcss.config.mjs
+FILE  PRODUCTION-SETUP.md
+FILE  proxy.ts
+DIR   public
+DIR   scripts
+DIR   src
+FILE  tsconfig.json
+
+------------------------------------------------------------
+PACKAGE.JSON
+------------------------------------------------------------
+{
+  "name": "nextjs-postgresql-template",
+  "private": true,
+  "scripts": {
+    "dev": "next dev",
+    "build": "next build",
+    "start": "next start",
+    "lint": "eslint .",
+    "typecheck": "tsc --noEmit",
+    "db:generate": "drizzle-kit generate",
+    "db:migrate": "drizzle-kit migrate",
+    "db:seed": "node scripts/seed.mjs"
+  },
+  "dependencies": {
+    "dotenv": "17.3.1",
+    "drizzle-orm": "0.45.2",
+    "next": "16.2.6",
+    "pg": "8.20.0",
+    "react": "19.2.6",
+    "react-dom": "19.2.6"
+  },
+  "devDependencies": {
+    "@tailwindcss/postcss": "4.1.17",
+    "@types/node": "22.19.15",
+    "@types/pg": "8.18.0",
+    "@types/react": "19.2.14",
+    "@types/react-dom": "19.2.3",
+    "drizzle-kit": "0.31.10",
+    "eslint": "9.39.4",
+    "eslint-config-next": "16.2.6",
+    "postcss": "8.5.8",
+    "tailwindcss": "4.1.17",
+    "typescript": "5.9.3"
+  }
+}
+
+------------------------------------------------------------
+SOURCE FILE INVENTORY
+------------------------------------------------------------
+
+### src ###
+src\app\api\auth\login\route.ts
+src\app\api\auth\logout\route.ts
+src\app\api\auth\register\route.ts
+src\app\api\catalog\route.ts
+src\app\api\health\route.ts
+src\app\api\payments\paystack\initialize\route.ts
+src\app\api\payments\paystack\verify\route.ts
+src\app\api\payments\paystack\webhook\route.ts
+src\app\api\rentals\[id]\route.ts
+src\app\api\rentals\route.ts
+src\app\api\wallet\topup\route.ts
+src\app\dashboard\layout.tsx
+src\app\dashboard\orders\page.tsx
+src\app\dashboard\page.tsx
+src\app\dashboard\wallet\page.tsx
+src\app\globals.css
+src\app\layout.tsx
+src\app\login\page.tsx
+src\app\not-found.tsx
+src\app\page.tsx
+src\app\payment\callback\page.tsx
+src\app\pricing\page.tsx
+src\app\register\page.tsx
+src\components\AuthForm.tsx
+src\components\CatalogExplorer.tsx
+src\components\dashboard\RentConsole.tsx
+src\components\dashboard\WalletModalTrigger.tsx
+src\components\dashboard\WalletTopUp.tsx
+src\components\IdleSessionGuard.tsx
+src\components\Logo.tsx
+src\components\LogoutButton.tsx
+src\components\Section.tsx
+src\components\ServiceBrandIcon.tsx
+src\components\SiteFooter.tsx
+src\components\SiteHeader.tsx
+src\db\index.ts
+src\db\schema.ts
+src\lib\auth.ts
+src\lib\catalog-sync.ts
+src\lib\format.ts
+src\lib\otp.ts
+src\lib\payments.ts
+src\lib\paystack.ts
+src\lib\providers\five-sim.ts
+src\lib\providers\pricing.ts
+src\lib\providers\router.ts
+src\lib\providers\sms-man.ts
+src\lib\providers\types.ts
+src\lib\queries.ts
+src\lib\reference.ts
+src\lib\rental-engine.ts
+src\lib\visuals.ts
+
+### scripts ###
+scripts\seed.mjs
+
+------------------------------------------------------------
+RELEVANT FILES / REFERENCES
+------------------------------------------------------------
+src\components\AuthForm.tsx
+src\components\dashboard\WalletModalTrigger.tsx
+src\components\dashboard\WalletTopUp.tsx
+src\lib\auth.ts
+src\lib\payments.ts
+src\lib\paystack.ts
+src\lib\providers\sms-man.ts
+src\lib\rental-engine.ts
+
+------------------------------------------------------------
+ENVIRONMENT FILE INVENTORY
+------------------------------------------------------------
+.env.example  [VALUES NOT READ]
+
+------------------------------------------------------------
+TELECOM / PROVIDER REFERENCES
+------------------------------------------------------------
+
+### SEARCH: FiveSIM ###
+src\lib\providers\five-sim.ts:26: return process.env.FIVESIM_API_TOKEN?.trim() || null;
+src\lib\providers\five-sim.ts:36: const configured = process.env[`FIVESIM_PRODUCT_${slug.toUpperCase().replace(/[^A-Z0-9]/g, "_")}`]?.trim();
+src\lib\providers\five-sim.ts:96: type FiveSimPriceRow = {
+src\lib\providers\five-sim.ts:102: type FiveSimOrderResponse = {
+src\lib\providers\five-sim.ts:110: function findCheapest(rows: Record<string, FiveSimPriceRow>): FiveSimPriceRow | null {
+src\lib\providers\five-sim.ts:122: export const fiveSim: OtpProvider = {
+src\lib\providers\five-sim.ts:129: const response = await jsonRequest<Record<string, Record<string, Record<string, FiveSimPriceRow>>>>(
+src\lib\providers\five-sim.ts:156: const order = await jsonRequest<FiveSimOrderResponse>(
+src\lib\providers\five-sim.ts:183: const order = await jsonRequest<FiveSimOrderResponse>(
+src\lib\providers\router.ts:2: import { fiveSim } from "@/lib/providers/five-sim";
+src\lib\providers\router.ts:5: const providers: OtpProvider[] = [fiveSim, smsMan];
+
+### SEARCH: SMS-Man ###
+src\lib\catalog-sync.ts:12: const BASE_URL = "https://api.sms-man.com/control";
+src\lib\catalog-sync.ts:129: if (!response.ok) throw new Error(`SMS-Man service discovery failed (${response.status}).`);
+src\lib\catalog-sync.ts:131: if (!Array.isArray(data)) throw new Error("SMS-Man returned an invalid service directory.");
+src\lib\providers\router.ts:3: import { smsMan } from "@/lib/providers/sms-man";
+src\lib\providers\sms-man.ts:3: const BASE_URL = "https://api.sms-man.com/control";
+src\lib\providers\sms-man.ts:75: : `SMS-Man request failed (${response.status})`;
+src\lib\providers\sms-man.ts:82: throw new Error("SMS-Man request timed out after 15 seconds.");
+src\lib\providers\sms-man.ts:132: if (!apiToken) throw new Error("SMS-Man is not configured.");
+src\lib\providers\sms-man.ts:145: if (!apiToken) throw new Error("SMS-Man is not configured.");
+src\lib\providers\sms-man.ts:163: if (!expectedNames) throw new Error(`SMS-Man country mapping is missing for ${countryCode}.`);
+src\lib\providers\sms-man.ts:171: if (!match) throw new Error(`SMS-Man country mapping is missing for ${countryCode}.`);
+src\lib\providers\sms-man.ts:198: if (!match) throw new Error(`SMS-Man application mapping is missing for ${serviceSlug}.`);
+src\lib\providers\sms-man.ts:222: if (data.error_code) return `SMS-Man error: ${data.error_code}`;
+src\lib\providers\sms-man.ts:223: return "SMS-Man did not return a usable number.";
+src\lib\providers\sms-man.ts:227: name: "sms-man",
+src\lib\providers\sms-man.ts:231: if (!apiToken) throw new Error("SMS-Man is not configured.");
+src\lib\providers\sms-man.ts:243: provider: "sms-man",
+src\lib\providers\sms-man.ts:252: if (!apiToken) throw new Error("SMS-Man is not configured.");
+src\lib\providers\sms-man.ts:255: throw new Error("SMS-Man currency must be USD for provider cost comparison.");
+src\lib\providers\sms-man.ts:279: provider: "sms-man",
+src\lib\providers\sms-man.ts:290: if (!apiToken) throw new Error("SMS-Man is not configured.");
+src\lib\providers\sms-man.ts:315: if (!apiToken) throw new Error("SMS-Man is not configured.");
+src\lib\providers\sms-man.ts:324: if (!apiToken) throw new Error("SMS-Man is not configured.");
+
+### SEARCH: Telnyx ###
+
+### SEARCH: Twilio ###
+
+### SEARCH: Plivo ###
+
+### SEARCH: Vonage ###
+
+### SEARCH: WebRTC ###
+
+### SEARCH: SMS ###
+package-lock.json:5721: "integrity": "sha512-RHxMLp9lnKHGHRng9QFhRCMbYAcVpn69smSGcq3f36xjgVVWThj4qqLbTLlq7Ssj8B+fIQ1EuCEGI2lKsyQeIw==",
+drizzle\meta\0000_snapshot.json:413: "sms_text": {
+drizzle\meta\0000_snapshot.json:414: "name": "sms_text",
+drizzle\meta\0000_snapshot.json:564: "sms_template": {
+drizzle\meta\0000_snapshot.json:565: "name": "sms_template",
+drizzle\meta\0001_snapshot.json:413: "sms_text": {
+drizzle\meta\0001_snapshot.json:414: "name": "sms_text",
+drizzle\meta\0001_snapshot.json:564: "sms_template": {
+drizzle\meta\0001_snapshot.json:565: "name": "sms_template",
+drizzle\meta\0002_snapshot.json:413: "sms_text": {
+drizzle\meta\0002_snapshot.json:414: "name": "sms_text",
+drizzle\meta\0002_snapshot.json:594: "sms_template": {
+drizzle\meta\0002_snapshot.json:595: "name": "sms_template",
+scripts\seed.mjs:142: `insert into services (slug, name, category, icon, accent, base_price_cents, sms_template, popular, active)
+scripts\seed.mjs:146: sms_template = excluded.sms_template, popular = excluded.popular, active = excluded.active`,
+scripts\seed.mjs:195: `select s.id as service_id, c.id as country_id, o.price_cents, s.sms_template
+scripts\seed.mjs:205: otp_code, sms_text, deliver_after_seconds, created_at, expires_at, received_at)
+scripts\seed.mjs:215: rental.sms_template.replace("{code}", code),
+src\app\page.tsx:28: body: "The inbound SMS lands in your dashboard automatically. No code inside the window? You get an automatic, full refund.",
+src\app\page.tsx:45: ["What if the code never arrives?", "You are refunded automatically. If the 15-minute window closes with no SMS, the full amount returns to your wallet and the rental is marked expired."],
+src\app\page.tsx:47: ["Is this a real SMS gateway?", "This deployment is a fully functional product demo: accounts, wallets, pricing, rentals and refunds all work, and inbound SMS traffic is simulated by our routing engine."],
+src\app\page.tsx:104: automatically if the SMS never lands.
+src\app\page.tsx:145: Incoming SMS · 🇳🇬 +234 803 ••• 1290
+src\app\dashboard\orders\page.tsx:23: Every number you have rented, with the SMS payload we captured.
+src\app\pricing\page.tsx:43: subtitle="No monthly fees, no minimum spend. Every rental is refunded automatically when an SMS does not arrive inside the 15 minute window."
+src\app\register\page.tsx:12: "Automatic refunds when no SMS arrives",
+src\components\SiteFooter.tsx:53: Demo environment — numbers and SMS traffic are simulated for product demonstration
+src\components\dashboard\RentConsole.tsx:328: Can't find your site or app? Select <span className="font-bold text-emerald-300">Other</span>. We’ll use the supplier’s generic service for the SMS verification.
+src\components\dashboard\RentConsole.tsx:355: Charged only after a supplier successfully provides a number. Refunded automatically if no SMS arrives within 15 minutes.
+src\components\dashboard\RentConsole.tsx:420: Listening for SMS… expires in <span className="font-mono font-bold">{countdown(rental.expiresAt)}</span>
+src\components\dashboard\RentConsole.tsx:437: <p className="mt-1 max-w-md text-[11px] text-slate-400">{rental.smsText}</p>
+src\db\schema.ts:70: smsTemplate: text("sms_template").notNull(),
+src\db\schema.ts:114: smsText: text("sms_text"),
+src\lib\catalog-sync.ts:12: const BASE_URL = "https://api.sms-man.com/control";
+src\lib\catalog-sync.ts:88: return process.env.SMSMAN_API_TOKEN?.trim() || null;
+src\lib\catalog-sync.ts:129: if (!response.ok) throw new Error(`SMS-Man service discovery failed (${response.status}).`);
+src\lib\catalog-sync.ts:131: if (!Array.isArray(data)) throw new Error("SMS-Man returned an invalid service directory.");
+src\lib\catalog-sync.ts:145: smsTemplate: "Your verification code is {code}.",
+src\lib\otp.ts:20: export function renderSms(template: string, code: string): string {
+src\lib\otp.ts:24: /** Simulated carrier delivery latency for the inbound SMS. */
+src\lib\otp.ts:36: return "Waiting for SMS";
+src\lib\queries.ts:92: smsText: string | null;
+src\lib\queries.ts:111: smsText: rentals.smsText,
+src\lib\rental-engine.ts:5: import { RENTAL_WINDOW_MINUTES, renderSms } from "@/lib/otp";
+src\lib\rental-engine.ts:22: smsText: rentals.smsText,
+src\lib\rental-engine.ts:312: if (mapped === "received" && result.sms) {
+src\lib\rental-engine.ts:314: .select({ smsTemplate: services.smsTemplate })
+src\lib\rental-engine.ts:319: const code = result.sms.code;
+src\lib\rental-engine.ts:320: const smsText = result.sms.text ?? (code ? renderSms(service?.smsTemplate ?? "Your code is {code}", code) : null);
+src\lib\rental-engine.ts:322: if (code || smsText) {
+src\lib\rental-engine.ts:328: smsText,
+src\lib\rental-engine.ts:338: // SMS has already been received; finishing is best effort.
+src\lib\rental-engine.ts:351: await refundRental(rentalId, userId, `Auto refund · no SMS on ${rental.phoneNumber}`);
+src\lib\providers\five-sim.ts:1: import type { OtpProvider, ProviderOrder, ProviderQuote, ProviderSms } from "@/lib/providers/types";
+src\lib\providers\five-sim.ts:107: sms?: Array<{ code?: string; text?: string; sender?: string }> | null;
+src\lib\providers\five-sim.ts:179: async check(orderId): Promise<{ status: string; sms: ProviderSms | null }> {
+src\lib\providers\five-sim.ts:190: const message = Array.isArray(order.sms) ? order.sms[0] : null;
+src\lib\providers\five-sim.ts:194: sms: message
+src\lib\providers\router.ts:3: import { smsMan } from "@/lib/providers/sms-man";
+src\lib\providers\router.ts:5: const providers: OtpProvider[] = [fiveSim, smsMan];
+src\lib\providers\sms-man.ts:1: import type { OtpProvider, ProviderOrder, ProviderQuote, ProviderSms } from "@/lib/providers/types";
+src\lib\providers\sms-man.ts:3: const BASE_URL = "https://api.sms-man.com/control";
+src\lib\providers\sms-man.ts:4: const CURRENCY = (process.env.SMSMAN_CURRENCY || "USD").trim().toUpperCase();
+src\lib\providers\sms-man.ts:8: NG: "SMSMAN_COUNTRY_NG",
+src\lib\providers\sms-man.ts:9: US: "SMSMAN_COUNTRY_US",
+src\lib\providers\sms-man.ts:10: GB: "SMSMAN_COUNTRY_GB",
+src\lib\providers\sms-man.ts:11: CA: "SMSMAN_COUNTRY_CA",
+src\lib\providers\sms-man.ts:12: GH: "SMSMAN_COUNTRY_GH",
+src\lib\providers\sms-man.ts:13: KE: "SMSMAN_COUNTRY_KE",
+src\lib\providers\sms-man.ts:14: ZA: "SMSMAN_COUNTRY_ZA",
+src\lib\providers\sms-man.ts:15: EG: "SMSMAN_COUNTRY_EG",
+src\lib\providers\sms-man.ts:16: IN: "SMSMAN_COUNTRY_IN",
+src\lib\providers\sms-man.ts:17: PH: "SMSMAN_COUNTRY_PH",
+src\lib\providers\sms-man.ts:18: ID: "SMSMAN_COUNTRY_ID",
+src\lib\providers\sms-man.ts:19: DE: "SMSMAN_COUNTRY_DE",
+src\lib\providers\sms-man.ts:20: FR: "SMSMAN_COUNTRY_FR",
+src\lib\providers\sms-man.ts:21: NL: "SMSMAN_COUNTRY_NL",
+src\lib\providers\sms-man.ts:22: BR: "SMSMAN_COUNTRY_BR",
+src\lib\providers\sms-man.ts:23: UA: "SMSMAN_COUNTRY_UA",
+src\lib\providers\sms-man.ts:46: return process.env.SMSMAN_API_TOKEN?.trim() || null;
+src\lib\providers\sms-man.ts:75: : `SMS-Man request failed (${response.status})`;
+src\lib\providers\sms-man.ts:82: throw new Error("SMS-Man request timed out after 15 seconds.");
+src\lib\providers\sms-man.ts:90: type SmsManCountry = {
+src\lib\providers\sms-man.ts:96: type SmsManApplication = {
+src\lib\providers\sms-man.ts:102: type SmsManPriceTable = Record<string, Record<string, { cost: string | number; count: string | number }>>;
+src\lib\providers\sms-man.ts:104: type SmsManNumberResponse = {
+src\lib\providers\sms-man.ts:114: type SmsManSmsResponse = {
+src\lib\providers\sms-man.ts:116: sms_code?: string;
+src\lib\providers\sms-man.ts:117: sms_text?: string;
+src\lib\providers\sms-man.ts:123: type SmsManCountriesCache = { expiresAt: number; items: SmsManCountry[] };
+src\lib\providers\sms-man.ts:124: type SmsManApplicationsCache = { expiresAt: number; items: SmsManApplication[] };
+src\lib\providers\sms-man.ts:126: let countriesCache: SmsManCountriesCache | null = null;
+src\lib\providers\sms-man.ts:127: let applicationsCache: SmsManApplicationsCache | null = null;
+src\lib\providers\sms-man.ts:130: async function getCountries(): Promise<SmsManCountry[]> {
+src\lib\providers\sms-man.ts:132: if (!apiToken) throw new Error("SMS-Man is not configured.");
+src\lib\providers\sms-man.ts:136: const items = await jsonRequest<SmsManCountry[]>(
+src\lib\providers\sms-man.ts:143: async function getApplications(): Promise<SmsManApplication[]> {
+src\lib\providers\sms-man.ts:145: if (!apiToken) throw new Error("SMS-Man is not configured.");
+src\lib\providers\sms-man.ts:149: const items = await jsonRequest<SmsManApplication[]>(
+src\lib\providers\sms-man.ts:163: if (!expectedNames) throw new Error(`SMS-Man country mapping is missing for ${countryCode}.`);
+
+### SEARCH: voice ###
+src\lib\catalog-sync.ts:83: ["googlevoice", "Google Voice", "Other", 55], ["googlemaps", "Google Maps", "Other", 42], ["shopback", "ShopBack", "Other", 48],
+
+### SEARCH: phoneNumber ###
+src\app\dashboard\orders\page.tsx:64: {rental.phoneNumber}
+src\components\dashboard\RentConsole.tsx:397: onClick={() => copy(rental.phoneNumber.replace(/\s/g, ""), `p-${rental.id}`)}
+src\components\dashboard\RentConsole.tsx:400: {rental.phoneNumber}{" "}
+src\db\schema.ts:110: phoneNumber: varchar("phone_number", { length: 32 }).notNull(),
+src\lib\otp.ts:8: export function generatePhoneNumber(pattern: string): string {
+src\lib\queries.ts:89: phoneNumber: string;
+src\lib\queries.ts:108: phoneNumber: rentals.phoneNumber,
+src\lib\rental-engine.ts:19: phoneNumber: rentals.phoneNumber,
+src\lib\rental-engine.ts:59: .select({ status: rentals.status, priceCents: rentals.priceCents, phoneNumber: rentals.phoneNumber })
+src\lib\rental-engine.ts:75: description: `Refund · failed rental ${current.phoneNumber}`,
+src\lib\rental-engine.ts:198: phoneNumber: providerOrder.phoneNumber,
+src\lib\rental-engine.ts:215: description: `Number rental · ${providerOrder.phoneNumber}`,
+src\lib\rental-engine.ts:351: await refundRental(rentalId, userId, `Auto refund · no SMS on ${rental.phoneNumber}`);
+src\lib\rental-engine.ts:401: description: `Refund · cancelled ${current.phoneNumber}`,
+src\lib\providers\five-sim.ts:172: phoneNumber: order.phone,
+src\lib\providers\sms-man.ts:281: phoneNumber: order.number,
+src\lib\providers\types.ts:11: phoneNumber: string;
+
+### SEARCH: provider ###
+PRODUCTION-SETUP.md:76: Do not activate customer-facing rental offers until the fulfillment provider integration is implemented and tested for each specific service/country combination.
+drizzle\meta\0000_snapshot.json:230: "provider": {
+drizzle\meta\0000_snapshot.json:231: "name": "provider",
+drizzle\meta\0000_snapshot.json:256: "provider_amount_minor": {
+drizzle\meta\0000_snapshot.json:257: "name": "provider_amount_minor",
+drizzle\meta\0000_snapshot.json:275: "provider_transaction_id": {
+drizzle\meta\0000_snapshot.json:276: "name": "provider_transaction_id",
+drizzle\meta\0001_snapshot.json:230: "provider": {
+drizzle\meta\0001_snapshot.json:231: "name": "provider",
+drizzle\meta\0001_snapshot.json:256: "provider_amount_minor": {
+drizzle\meta\0001_snapshot.json:257: "name": "provider_amount_minor",
+drizzle\meta\0001_snapshot.json:275: "provider_transaction_id": {
+drizzle\meta\0001_snapshot.json:276: "name": "provider_transaction_id",
+drizzle\meta\0002_snapshot.json:230: "provider": {
+drizzle\meta\0002_snapshot.json:231: "name": "provider",
+drizzle\meta\0002_snapshot.json:256: "provider_amount_minor": {
+drizzle\meta\0002_snapshot.json:257: "name": "provider_amount_minor",
+drizzle\meta\0002_snapshot.json:275: "provider_transaction_id": {
+drizzle\meta\0002_snapshot.json:276: "name": "provider_transaction_id",
+drizzle\meta\0002_snapshot.json:445: "provider": {
+drizzle\meta\0002_snapshot.json:446: "name": "provider",
+drizzle\meta\0002_snapshot.json:451: "provider_order_id": {
+drizzle\meta\0002_snapshot.json:452: "name": "provider_order_id",
+drizzle\meta\0002_snapshot.json:457: "provider_cost_minor": {
+drizzle\meta\0002_snapshot.json:458: "name": "provider_cost_minor",
+drizzle\meta\0002_snapshot.json:463: "provider_cost_currency": {
+drizzle\meta\0002_snapshot.json:464: "name": "provider_cost_currency",
+drizzle\meta\0002_snapshot.json:469: "provider_status": {
+drizzle\meta\0002_snapshot.json:470: "name": "provider_status",
+src\app\api\payments\paystack\initialize\route.ts:5: import { initializePaystackTransaction, usdCentsToProviderMinor, paystackCurrency } from "@/lib/paystack";
+src\app\api\payments\paystack\initialize\route.ts:45: let providerAmountMinor: number;
+src\app\api\payments\paystack\initialize\route.ts:47: providerAmountMinor = usdCentsToProviderMinor(amountCents);
+src\app\api\payments\paystack\initialize\route.ts:62: providerAmountMinor,
+src\app\api\payments\paystack\initialize\route.ts:71: amountMinor: providerAmountMinor,
+src\db\schema.ts:119: provider: varchar("provider", { length: 32 }),
+src\db\schema.ts:120: providerOrderId: varchar("provider_order_id", { length: 80 }),
+src\db\schema.ts:121: providerCostMinor: integer("provider_cost_minor"),
+src\db\schema.ts:122: providerCostCurrency: varchar("provider_cost_currency", { length: 8 }),
+src\db\schema.ts:123: providerStatus: varchar("provider_status", { length: 32 }),
+src\db\schema.ts:136: provider: varchar("provider", { length: 32 }).notNull().default("paystack"),
+src\db\schema.ts:140: providerAmountMinor: integer("provider_amount_minor").notNull(),
+src\db\schema.ts:143: providerTransactionId: varchar("provider_transaction_id", { length: 80 }),
+src\lib\payments.ts:35: if (data.amount !== payment.providerAmountMinor) {
+src\lib\payments.ts:58: providerTransactionId: String(data.id),
+src\lib\paystack.ts:40: export function usdCentsToProviderMinor(amountCents: number): number {
+src\lib\rental-engine.ts:6: import { getProvider, getProviderQuotes } from "@/lib/providers/router";
+src\lib\rental-engine.ts:7: import { customerPriceForProviderCost } from "@/lib/providers/pricing";
+src\lib\rental-engine.ts:126: quotes = await getProviderQuotes({
+src\lib\rental-engine.ts:144: const customerPriceCents = customerPriceForProviderCost(quote.costCents, basePriceCents);
+src\lib\rental-engine.ts:152: const provider = getProvider(quote.provider);
+src\lib\rental-engine.ts:155: const providerOrder = await provider.buy({
+src\lib\rental-engine.ts:161: const finalCustomerPriceCents = customerPriceForProviderCost(
+src\lib\rental-engine.ts:162: providerOrder.costCents,
+src\lib\rental-engine.ts:168: await provider.cancel(providerOrder.orderId);
+src\lib\rental-engine.ts:198: phoneNumber: providerOrder.phoneNumber,
+src\lib\rental-engine.ts:203: provider: providerOrder.provider,
+src\lib\rental-engine.ts:204: providerOrderId: providerOrder.orderId,
+src\lib\rental-engine.ts:205: providerCostMinor: providerOrder.costCents,
+src\lib\rental-engine.ts:206: providerCostCurrency: providerOrder.currency,
+src\lib\rental-engine.ts:207: providerStatus: providerOrder.status,
+src\lib\rental-engine.ts:215: description: `Number rental · ${providerOrder.phoneNumber}`,
+src\lib\rental-engine.ts:228: await provider.cancel(providerOrder.orderId);
+src\lib\rental-engine.ts:238: await provider.cancel(providerOrder.orderId);
+src\lib\rental-engine.ts:249: lastError = new Error(`${provider.name}: ${detail || "Unknown supplier error."}`);
+src\lib\rental-engine.ts:259: function providerStatusToRentalStatus(status: string): "waiting" | "received" | "cancelled" | "expired" {
+src\lib\rental-engine.ts:304: if (!rental.provider || !rental.providerOrderId) return getRentalView(rentalId, userId);
+src\lib\rental-engine.ts:306: const provider = getProvider(rental.provider);
+src\lib\rental-engine.ts:309: const result = await provider.check(rental.providerOrderId);
+src\lib\rental-engine.ts:310: const mapped = providerStatusToRentalStatus(result.status);
+src\lib\rental-engine.ts:330: providerStatus: result.status,
+src\lib\rental-engine.ts:334: if (provider.finish) {
+src\lib\rental-engine.ts:336: await provider.finish(rental.providerOrderId);
+src\lib\rental-engine.ts:345: await provider.cancel(rental.providerOrderId);
+src\lib\rental-engine.ts:347: // Provider may already have expired the order.
+src\lib\rental-engine.ts:355: .set({ providerStatus: result.status })
+src\lib\rental-engine.ts:359: // Transient provider errors leave the rental waiting for the next sync attempt.
+src\lib\rental-engine.ts:378: if (rental.provider && rental.providerOrderId) {
+src\lib\rental-engine.ts:380: await getProvider(rental.provider).cancel(rental.providerOrderId);
+src\lib\rental-engine.ts:395: await tx.update(rentals).set({ status: "cancelled", providerStatus: "CANCELED" }).where(eq(rentals.id, rentalId));
+src\lib\providers\five-sim.ts:1: import type { OtpProvider, ProviderOrder, ProviderQuote, ProviderSms } from "@/lib/providers/types";
+src\lib\providers\five-sim.ts:4: const PROVIDER_REQUEST_TIMEOUT_MS = 15000;
+src\lib\providers\five-sim.ts:51: const timer = setTimeout(() => controller.abort(), PROVIDER_REQUEST_TIMEOUT_MS);
+src\lib\providers\five-sim.ts:122: export const fiveSim: OtpProvider = {
+src\lib\providers\five-sim.ts:125: async quote({ countryCode, serviceSlug }): Promise<ProviderQuote> {
+src\lib\providers\five-sim.ts:138: provider: "5sim",
+src\lib\providers\five-sim.ts:145: async buy({ countryCode, serviceSlug, maxCostCents }): Promise<ProviderOrder> {
+src\lib\providers\five-sim.ts:170: provider: "5sim",
+src\lib\providers\five-sim.ts:179: async check(orderId): Promise<{ status: string; sms: ProviderSms | null }> {
+src\lib\providers\pricing.ts:1: const DEFAULT_PROVIDER_MARKUP_BPS = 1500;
+src\lib\providers\pricing.ts:4: function providerMarkupBps(): number {
+src\lib\providers\pricing.ts:5: const value = Number(process.env.OTP_PROVIDER_MARKUP_BPS);
+src\lib\providers\pricing.ts:6: if (!Number.isFinite(value) || value < 0) return DEFAULT_PROVIDER_MARKUP_BPS;
+src\lib\providers\pricing.ts:10: export function customerPriceForProviderCost(
+src\lib\providers\pricing.ts:11: providerCostCents: number,
+src\lib\providers\pricing.ts:14: const cost = Math.max(0, Math.round(providerCostCents));
+src\lib\providers\pricing.ts:16: const withMarkup = Math.ceil((cost * (10_000 + providerMarkupBps())) / 10_000);
+src\lib\providers\router.ts:1: import type { OtpProvider, ProviderOrder, ProviderQuote } from "@/lib/providers/types";
+src\lib\providers\router.ts:2: import { fiveSim } from "@/lib/providers/five-sim";
+src\lib\providers\router.ts:3: import { smsMan } from "@/lib/providers/sms-man";
+src\lib\providers\router.ts:5: const providers: OtpProvider[] = [fiveSim, smsMan];
+
+------------------------------------------------------------
+GIT STATUS BEFORE REPORT BRANCH
+------------------------------------------------------------
+
+============================================================
+ END LOCAL INSPECTION
+============================================================
