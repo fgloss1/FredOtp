@@ -1,6 +1,7 @@
 import Image from "next/image";
 import Link from "next/link";
 import { CatalogExplorer } from "@/components/CatalogExplorer";
+import { UiIcon } from "@/components/UiIcon";
 import { SectionHeading } from "@/components/Section";
 import { SiteFooter } from "@/components/SiteFooter";
 import { SiteHeader } from "@/components/SiteHeader";
@@ -13,29 +14,29 @@ export const dynamic = "force-dynamic";
 
 const STEPS = [
   {
-    icon: "🌍",
+    icon: "globe",
     title: "Pick service + country",
     body: "Choose Match, Zoosk, Gmail, PayPal, Venmo or 30+ other platforms, then select a Nigerian, US, UK, Ghanaian or Indian number pool.",
   },
   {
-    icon: "📲",
+    icon: "phone",
     title: "Get a live number instantly",
     body: "A dedicated number is reserved for you in under a second, held for 15 minutes while you paste it into the signup form.",
   },
   {
-    icon: "🔐",
+    icon: "lock",
     title: "Read the OTP, done",
     body: "The inbound SMS lands in your dashboard automatically. No code inside the window? You get an automatic, full refund.",
   },
 ];
 
 const FEATURES = [
-  { icon: "⚡", title: "8–20 second delivery", body: "Direct carrier routes keep median OTP delivery under 20 seconds, even on Nigerian MTN and Airtel ranges." },
-  { icon: "💸", title: "Pay per code", body: "No subscription. Wallet balance is only charged when a number is issued and instantly refunded when a code never arrives." },
-  { icon: "🇳🇬", title: "Naira friendly", body: "Fund your wallet with local bank transfer, card or USDT. Every price is shown in USD and Naira side by side." },
-  { icon: "🔁", title: "Auto refunds", body: "Cancel a waiting rental in one tap or let it expire — either way the balance returns to your wallet automatically." },
-  { icon: "🛡️", title: "Numbers are never reused", body: "A number is retired from the pool after your verification, so nobody else can request codes on that identity." },
-  { icon: "🧑‍💻", title: "Developer API ready", body: "Everything in the dashboard is backed by clean REST endpoints so you can automate bulk verification flows." },
+  { icon: "bolt", title: "8–20 second delivery", body: "Direct carrier routes keep median OTP delivery under 20 seconds, even on Nigerian MTN and Airtel ranges." },
+  { icon: "wallet", title: "Pay per code", body: "No subscription. Wallet balance is only charged when a number is issued and instantly refunded when a code never arrives." },
+  { icon: "naira", title: "Naira friendly", body: "Fund your wallet with local bank transfer, card or USDT. Every price is shown in USD and Naira side by side." },
+  { icon: "repeat", title: "Auto refunds", body: "Cancel a waiting rental in one tap or let it expire — either way the balance returns to your wallet automatically." },
+  { icon: "shield", title: "Numbers are never reused", body: "A number is retired from the pool after your verification, so nobody else can request codes on that identity." },
+  { icon: "code", title: "Developer API ready", body: "Everything in the dashboard is backed by clean REST endpoints so you can automate bulk verification flows." },
 ];
 
 const FAQS: [string, string][] = [
@@ -229,7 +230,7 @@ export default async function HomePage() {
                   {index + 1}
                 </span>
                 <span className="grid h-12 w-12 place-items-center rounded-2xl bg-gradient-to-br from-emerald-400/20 to-cyan-400/10 text-2xl ring-1 ring-white/10">
-                  {step.icon}
+                  <UiIcon name={step.icon} className="h-5 w-5" />
                 </span>
                 <h3 className="mt-5 text-lg font-bold text-white">{step.title}</h3>
                 <p className="mt-2 text-sm leading-relaxed text-slate-400">{step.body}</p>
@@ -249,7 +250,7 @@ export default async function HomePage() {
             <div className="mt-10 grid gap-5 md:grid-cols-2 lg:grid-cols-3">
               {FEATURES.map((feature) => (
                 <div key={feature.title} className="card p-6">
-                  <span className="text-2xl">{feature.icon}</span>
+                  <span className="text-brand-300"><UiIcon name={feature.icon} className="h-6 w-6" /></span>
                   <h3 className="mt-4 text-base font-bold text-white">{feature.title}</h3>
                   <p className="mt-2 text-sm leading-relaxed text-slate-400">{feature.body}</p>
                 </div>
