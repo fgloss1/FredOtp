@@ -1,0 +1,2118 @@
+﻿====================================================
+NAVA OTP - TELNYX WEBRTC STATE INSPECTION
+Generated: 2026-09-25 08:54:06
+====================================================
+
+===== GIT INFORMATION =====
+REMOTE_ORIGIN=https://github.com/fgloss1/FredOtp.git
+CURRENT_BRANCH=LOCAL-INSPECTION
+HEAD=18f589103cef715c597d220176b3e19eb27ed5a5
+
+===== TELNYX SDK VERSION =====
+PACKAGE_NAME=@telnyx/webrtc
+PACKAGE_VERSION=1.0.9
+
+===== DIALOG.JS ENUM / STATE REFERENCES =====
+34: import Enum from './Enum';
+57: this.lastState = null;
+58: this.state = this.lastState = Enum.state.new;
+66: this.onStateChange = params.onStateChange;
+91: if (this.direction == Enum.direction.inbound) {
+119: if (_this.state == Enum.state.requesting ||
+120: _this.state == Enum.state.answering ||
+121: _this.state == Enum.state.active) {
+126: if (_this.state == Enum.state.active) {
+127: _this.setState(Enum.state.requesting);
+133: _this.setState(Enum.state.requesting);
+141: _this.setState(Enum.state.answering);
+183: if (this.direction == Enum.direction.inbound) {
+265: VertoDialog.prototype.setState = function (state) {
+267: if (this.state == Enum.state.ringing) {
+270: if (this.state == state || !this.checkStateChange(this.state, state)) {
+273: ': INVALID state change from ' +
+274: this.state +
+276: state);
+283: //     ': state change from ' +
+284: //     this.state.name +
+286: //     state.name
+288: this.lastState = this.state;
+289: this.state = state;
+290: if (this.callbacks.onDialogState) {
+291: this.callbacks.onDialogState(this);
+293: if (this.onStateChange) {
+294: this.onStateChange(this.state, this.lastState);
+296: switch (this.state) {
+297: case Enum.state.early:
+298: case Enum.state.active:
+307: case Enum.state.trying:
+309: if (_this.state == Enum.state.trying) {
+310: _this.setState(Enum.state.hangup);
+314: case Enum.state.purge:
+315: this.setState(Enum.state.destroy);
+317: case Enum.state.hangup:
+318: if (this.lastState > Enum.state.requesting &&
+319: this.lastState < Enum.state.hangup) {
+322: this.setState(Enum.state.destroy);
+324: case Enum.state.destroy:
+342: //   'Response: ' + method + ' State:' + this.state.name,
+350: this.setState(Enum.state.active);
+358: this.setState(Enum.state.trying);
+361: this.setState(Enum.state.destroy);
+368: if (e.holdState) {
+369: if (e.holdState == 'held') {
+370: if (this.state != Enum.state.held) {
+371: this.setState(Enum.state.held);
+374: else if (e.holdState == 'active') {
+375: if (this.state != Enum.state.active) {
+376: this.setState(Enum.state.active);
+399: if (this.state >= Enum.state.new && this.state < Enum.state.hangup) {
+400: this.setState(Enum.state.hangup);
+402: else if (this.state < Enum.state.destroy) {
+403: this.setState(Enum.state.destroy);
+420: if (_this.state == Enum.state.ringing) {
+427: this.setState(Enum.state.ringing);
+560: if (this.state >= Enum.state.active) {
+563: if (this.state >= Enum.state.early) {
+564: this.setState(Enum.state.active);
+577: _this.setState(Enum.state.active);
+599: this.sendMessage(Enum.message.info, params);
+608: this.sendMessage(Enum.message.display, {});
+612: if (this.state >= Enum.state.early) {
+618: _this.setState(Enum.state.early);
+621: _this.setState(Enum.state.active);
+629: VertoDialog.prototype.checkStateChange = function (oldS, newS) {
+630: if (newS == Enum.state.purge || Enum.states[oldS][newS]) {
+
+===== WHOLE SDK SEARCH: STATE DEFINITIONS =====
+node_modules\@telnyx\webrtc\lib\bundle.js : 641: VertoLiveArray.prototype.destroy = function () {
+node_modules\@telnyx\webrtc\lib\bundle.js : 799: VertoConfMan.prototype.destroy = function () {
+node_modules\@telnyx\webrtc\lib\bundle.js : 800: this.destroyed = true;
+node_modules\@telnyx\webrtc\lib\bundle.js : 1080: remoteMediaStream.oninactive = function () {
+node_modules\@telnyx\webrtc\lib\bundle.js : 1334: if (this.localStream.active) {
+node_modules\@telnyx\webrtc\lib\bundle.js : 1354: if (this.options.localVideoStream.active) {
+node_modules\@telnyx\webrtc\lib\bundle.js : 1597: if (ringer.active) {
+node_modules\@telnyx\webrtc\lib\bundle.js : 1776: TelnyxRTCCallState[TelnyxRTCCallState["requesting"] = 2] = "requesting";
+node_modules\@telnyx\webrtc\lib\bundle.js : 1777: TelnyxRTCCallState[TelnyxRTCCallState["trying"] = 3] = "trying";
+node_modules\@telnyx\webrtc\lib\bundle.js : 1779: TelnyxRTCCallState[TelnyxRTCCallState["ringing"] = 5] = "ringing";
+node_modules\@telnyx\webrtc\lib\bundle.js : 1780: TelnyxRTCCallState[TelnyxRTCCallState["answering"] = 6] = "answering";
+node_modules\@telnyx\webrtc\lib\bundle.js : 1782: TelnyxRTCCallState[TelnyxRTCCallState["active"] = 8] = "active";
+node_modules\@telnyx\webrtc\lib\bundle.js : 1784: TelnyxRTCCallState[TelnyxRTCCallState["hangup"] = 10] = "hangup";
+node_modules\@telnyx\webrtc\lib\bundle.js : 1785: TelnyxRTCCallState[TelnyxRTCCallState["destroy"] = 11] = "destroy";
+node_modules\@telnyx\webrtc\lib\bundle.js : 1786: TelnyxRTCCallState[TelnyxRTCCallState["purge"] = 12] = "purge";
+node_modules\@telnyx\webrtc\lib\bundle.js : 1787: })(TelnyxRTCCallState || (TelnyxRTCCallState = {}));
+node_modules\@telnyx\webrtc\lib\bundle.js : 1806: var Enum = {
+node_modules\@telnyx\webrtc\lib\bundle.js : 1809: _b[TelnyxRTCCallState.requesting] = 1,
+node_modules\@telnyx\webrtc\lib\bundle.js : 1811: _b[TelnyxRTCCallState.ringing] = 1,
+node_modules\@telnyx\webrtc\lib\bundle.js : 1812: _b[TelnyxRTCCallState.destroy] = 1,
+node_modules\@telnyx\webrtc\lib\bundle.js : 1813: _b[TelnyxRTCCallState.answering] = 1,
+node_modules\@telnyx\webrtc\lib\bundle.js : 1814: _b[TelnyxRTCCallState.hangup] = 1,
+node_modules\@telnyx\webrtc\lib\bundle.js : 1816: _a[TelnyxRTCCallState.requesting] = (_c = {},
+node_modules\@telnyx\webrtc\lib\bundle.js : 1817: _c[TelnyxRTCCallState.trying] = 1,
+node_modules\@telnyx\webrtc\lib\bundle.js : 1818: _c[TelnyxRTCCallState.hangup] = 1,
+node_modules\@telnyx\webrtc\lib\bundle.js : 1821: _d[TelnyxRTCCallState.answering] = 1,
+node_modules\@telnyx\webrtc\lib\bundle.js : 1822: _d[TelnyxRTCCallState.hangup] = 1,
+node_modules\@telnyx\webrtc\lib\bundle.js : 1824: _a[TelnyxRTCCallState.trying] = (_e = {},
+node_modules\@telnyx\webrtc\lib\bundle.js : 1825: _e[TelnyxRTCCallState.active] = 1,
+node_modules\@telnyx\webrtc\lib\bundle.js : 1827: _e[TelnyxRTCCallState.hangup] = 1,
+node_modules\@telnyx\webrtc\lib\bundle.js : 1829: _a[TelnyxRTCCallState.ringing] = (_f = {},
+node_modules\@telnyx\webrtc\lib\bundle.js : 1830: _f[TelnyxRTCCallState.answering] = 1,
+node_modules\@telnyx\webrtc\lib\bundle.js : 1831: _f[TelnyxRTCCallState.hangup] = 1,
+node_modules\@telnyx\webrtc\lib\bundle.js : 1833: _a[TelnyxRTCCallState.answering] = (_g = {},
+node_modules\@telnyx\webrtc\lib\bundle.js : 1834: _g[TelnyxRTCCallState.active] = 1,
+node_modules\@telnyx\webrtc\lib\bundle.js : 1835: _g[TelnyxRTCCallState.hangup] = 1,
+node_modules\@telnyx\webrtc\lib\bundle.js : 1837: _a[TelnyxRTCCallState.active] = (_h = {},
+node_modules\@telnyx\webrtc\lib\bundle.js : 1838: _h[TelnyxRTCCallState.answering] = 1,
+node_modules\@telnyx\webrtc\lib\bundle.js : 1839: _h[TelnyxRTCCallState.requesting] = 1,
+node_modules\@telnyx\webrtc\lib\bundle.js : 1840: _h[TelnyxRTCCallState.hangup] = 1,
+node_modules\@telnyx\webrtc\lib\bundle.js : 1844: _j[TelnyxRTCCallState.hangup] = 1,
+node_modules\@telnyx\webrtc\lib\bundle.js : 1845: _j[TelnyxRTCCallState.active] = 1,
+node_modules\@telnyx\webrtc\lib\bundle.js : 1848: _k[TelnyxRTCCallState.hangup] = 1,
+node_modules\@telnyx\webrtc\lib\bundle.js : 1849: _k[TelnyxRTCCallState.active] = 1,
+node_modules\@telnyx\webrtc\lib\bundle.js : 1851: _a[TelnyxRTCCallState.hangup] = (_l = {},
+node_modules\@telnyx\webrtc\lib\bundle.js : 1852: _l[TelnyxRTCCallState.destroy] = 1,
+node_modules\@telnyx\webrtc\lib\bundle.js : 1854: _a[TelnyxRTCCallState.destroy] = {},
+node_modules\@telnyx\webrtc\lib\bundle.js : 1855: _a[TelnyxRTCCallState.purge] = (_m = {},
+node_modules\@telnyx\webrtc\lib\bundle.js : 1856: _m[TelnyxRTCCallState.destroy] = 1,
+node_modules\@telnyx\webrtc\lib\bundle.js : 1886: this.lastState = null;
+node_modules\@telnyx\webrtc\lib\bundle.js : 1887: this.state = this.lastState = Enum.state.new;
+node_modules\@telnyx\webrtc\lib\bundle.js : 1945: if (_this.state == Enum.state.requesting ||
+node_modules\@telnyx\webrtc\lib\bundle.js : 1946: _this.state == Enum.state.answering ||
+node_modules\@telnyx\webrtc\lib\bundle.js : 1947: _this.state == Enum.state.active) {
+node_modules\@telnyx\webrtc\lib\bundle.js : 1952: if (_this.state == Enum.state.active) {
+node_modules\@telnyx\webrtc\lib\bundle.js : 1953: _this.setState(Enum.state.requesting);
+node_modules\@telnyx\webrtc\lib\bundle.js : 1959: _this.setState(Enum.state.requesting);
+node_modules\@telnyx\webrtc\lib\bundle.js : 1967: _this.setState(Enum.state.answering);
+node_modules\@telnyx\webrtc\lib\bundle.js : 1993: _this.hangup({ cause: 'Device or Permission Error' });
+node_modules\@telnyx\webrtc\lib\bundle.js : 2091: VertoDialog.prototype.setState = function (state) {
+node_modules\@telnyx\webrtc\lib\bundle.js : 2093: if (this.state == Enum.state.ringing) {
+node_modules\@telnyx\webrtc\lib\bundle.js : 2094: this.stopRinging();
+node_modules\@telnyx\webrtc\lib\bundle.js : 2096: if (this.state == state || !this.checkStateChange(this.state, state)) {
+node_modules\@telnyx\webrtc\lib\bundle.js : 2103: this.hangup();
+node_modules\@telnyx\webrtc\lib\bundle.js : 2114: this.lastState = this.state;
+node_modules\@telnyx\webrtc\lib\bundle.js : 2115: this.state = state;
+node_modules\@telnyx\webrtc\lib\bundle.js : 2124: case Enum.state.active:
+node_modules\@telnyx\webrtc\lib\bundle.js : 2133: case Enum.state.trying:
+node_modules\@telnyx\webrtc\lib\bundle.js : 2135: if (_this.state == Enum.state.trying) {
+node_modules\@telnyx\webrtc\lib\bundle.js : 2136: _this.setState(Enum.state.hangup);
+node_modules\@telnyx\webrtc\lib\bundle.js : 2140: case Enum.state.purge:
+node_modules\@telnyx\webrtc\lib\bundle.js : 2141: this.setState(Enum.state.destroy);
+node_modules\@telnyx\webrtc\lib\bundle.js : 2143: case Enum.state.hangup:
+node_modules\@telnyx\webrtc\lib\bundle.js : 2144: if (this.lastState > Enum.state.requesting &&
+node_modules\@telnyx\webrtc\lib\bundle.js : 2145: this.lastState < Enum.state.hangup) {
+node_modules\@telnyx\webrtc\lib\bundle.js : 2148: this.setState(Enum.state.destroy);
+node_modules\@telnyx\webrtc\lib\bundle.js : 2150: case Enum.state.destroy:
+node_modules\@telnyx\webrtc\lib\bundle.js : 2176: this.setState(Enum.state.active);
+node_modules\@telnyx\webrtc\lib\bundle.js : 2179: this.hangup();
+node_modules\@telnyx\webrtc\lib\bundle.js : 2184: this.setState(Enum.state.trying);
+node_modules\@telnyx\webrtc\lib\bundle.js : 2187: this.setState(Enum.state.destroy);
+node_modules\@telnyx\webrtc\lib\bundle.js : 2191: this.hangup();
+node_modules\@telnyx\webrtc\lib\bundle.js : 2195: if (e.holdState == 'held') {
+node_modules\@telnyx\webrtc\lib\bundle.js : 2200: else if (e.holdState == 'active') {
+node_modules\@telnyx\webrtc\lib\bundle.js : 2201: if (this.state != Enum.state.active) {
+node_modules\@telnyx\webrtc\lib\bundle.js : 2202: this.setState(Enum.state.active);
+node_modules\@telnyx\webrtc\lib\bundle.js : 2211: VertoDialog.prototype.hangup = function (params) {
+node_modules\@telnyx\webrtc\lib\bundle.js : 2223: if (this.state >= Enum.state.new && this.state < Enum.state.hangup) {
+node_modules\@telnyx\webrtc\lib\bundle.js : 2224: this.setState(Enum.state.hangup);
+node_modules\@telnyx\webrtc\lib\bundle.js : 2226: else if (this.state < Enum.state.destroy) {
+node_modules\@telnyx\webrtc\lib\bundle.js : 2227: this.setState(Enum.state.destroy);
+node_modules\@telnyx\webrtc\lib\bundle.js : 2230: VertoDialog.prototype.stopRinging = function () {
+node_modules\@telnyx\webrtc\lib\bundle.js : 2248: _this.stopRinging();
+node_modules\@telnyx\webrtc\lib\bundle.js : 2249: if (_this.state == Enum.state.ringing) {
+node_modules\@telnyx\webrtc\lib\bundle.js : 2260: this.setState(Enum.state.ringing);
+node_modules\@telnyx\webrtc\lib\bundle.js : 2393: if (this.state >= Enum.state.active) {
+node_modules\@telnyx\webrtc\lib\bundle.js : 2397: this.setState(Enum.state.active);
+node_modules\@telnyx\webrtc\lib\bundle.js : 2402: // console.log('Dialog ' + this.callID + ' Answering Channel');
+node_modules\@telnyx\webrtc\lib\bundle.js : 2404: _this.setState(Enum.state.active);
+node_modules\@telnyx\webrtc\lib\bundle.js : 2407: _this.hangup();
+node_modules\@telnyx\webrtc\lib\bundle.js : 2447: // console.log('Dialog ' + this.callID + 'Answering Channel');
+node_modules\@telnyx\webrtc\lib\bundle.js : 2448: _this.setState(Enum.state.active);
+node_modules\@telnyx\webrtc\lib\bundle.js : 2452: _this.hangup();
+node_modules\@telnyx\webrtc\lib\bundle.js : 2457: if (newS == Enum.state.purge || Enum.states[oldS][newS]) {
+node_modules\@telnyx\webrtc\lib\bundle.js : 2609: Verto.prototype.purge = function () {
+node_modules\@telnyx\webrtc\lib\bundle.js : 2613: _this.dialogs[dialog].setState(Enum.state.purge);
+node_modules\@telnyx\webrtc\lib\bundle.js : 2796: dialog.hangup(data.params);
+node_modules\@telnyx\webrtc\lib\bundle.js : 2849: this.purge();
+node_modules\@telnyx\webrtc\lib\bundle.js : 3104: this.purge();
+node_modules\@telnyx\webrtc\lib\bundle.js : 3155: Verto.prototype.hangup = function (callID) {
+node_modules\@telnyx\webrtc\lib\bundle.js : 3160: dialog.hangup();
+node_modules\@telnyx\webrtc\lib\bundle.js : 3165: _this.dialogs[dialogKey].hangup();
+node_modules\@telnyx\webrtc\lib\bundle.js : 3466: var state = { fired: false, wrapFn: undefined, target: target, type: type, listener: listener };
+node_modules\@telnyx\webrtc\lib\bundle.js : 3736: case TelnyxRTCCallState.requesting:
+node_modules\@telnyx\webrtc\lib\bundle.js : 3738: case TelnyxRTCCallState.trying:
+node_modules\@telnyx\webrtc\lib\bundle.js : 3741: case TelnyxRTCCallState.active:
+node_modules\@telnyx\webrtc\lib\bundle.js : 3742: return 'active';
+node_modules\@telnyx\webrtc\lib\bundle.js : 3745: case TelnyxRTCCallState.hangup:
+node_modules\@telnyx\webrtc\lib\bundle.js : 3746: case TelnyxRTCCallState.destroy:
+node_modules\@telnyx\webrtc\lib\bundle.js : 3748: case TelnyxRTCCallState.answering:
+node_modules\@telnyx\webrtc\lib\bundle.js : 3749: return 'ringing';
+node_modules\@telnyx\webrtc\lib\bundle.js : 3766: return this.state === 'held';
+node_modules\@telnyx\webrtc\lib\bundle.js : 3771: TelnyxRTCCall.prototype.hangup = function () {
+node_modules\@telnyx\webrtc\lib\bundle.js : 3772: this.call.hangup();
+node_modules\@telnyx\webrtc\lib\bundle.js : 3778: this.call.hangup();
+node_modules\@telnyx\webrtc\lib\Modules\NewVerto\webrtc\BaseCall.js : 64: this.state = State[State.New];
+node_modules\@telnyx\webrtc\lib\Modules\NewVerto\webrtc\BaseCall.js : 65: this.prevState = '';
+node_modules\@telnyx\webrtc\lib\Modules\NewVerto\webrtc\BaseCall.js : 69: this._state = State.New;
+node_modules\@telnyx\webrtc\lib\Modules\NewVerto\webrtc\BaseCall.js : 70: this._prevState = State.New;
+node_modules\@telnyx\webrtc\lib\Modules\NewVerto\webrtc\BaseCall.js : 130: BaseCall.prototype.hangup = function (params, execute) {
+node_modules\@telnyx\webrtc\lib\Modules\NewVerto\webrtc\BaseCall.js : 136: this.setState(State.Hangup);
+node_modules\@telnyx\webrtc\lib\Modules\NewVerto\webrtc\BaseCall.js : 139: _this.setState(State.Destroy);
+node_modules\@telnyx\webrtc\lib\Modules\NewVerto\webrtc\BaseCall.js : 270: BaseCall.prototype.setState = function (state) {
+node_modules\@telnyx\webrtc\lib\Modules\NewVerto\webrtc\BaseCall.js : 272: this._prevState = this._state;
+node_modules\@telnyx\webrtc\lib\Modules\NewVerto\webrtc\BaseCall.js : 273: this._state = state;
+node_modules\@telnyx\webrtc\lib\Modules\NewVerto\webrtc\BaseCall.js : 274: this.state = State[this._state].toLowerCase();
+node_modules\@telnyx\webrtc\lib\Modules\NewVerto\webrtc\BaseCall.js : 275: this.prevState = State[this._prevState].toLowerCase();
+node_modules\@telnyx\webrtc\lib\Modules\NewVerto\webrtc\BaseCall.js : 279: case State.Purge:
+node_modules\@telnyx\webrtc\lib\Modules\NewVerto\webrtc\BaseCall.js : 280: this.hangup({ cause: 'PURGE', causeCode: '01' }, false);
+node_modules\@telnyx\webrtc\lib\Modules\NewVerto\webrtc\BaseCall.js : 282: case State.Active: {
+node_modules\@telnyx\webrtc\lib\Modules\NewVerto\webrtc\BaseCall.js : 291: case State.Destroy:
+node_modules\@telnyx\webrtc\lib\Modules\NewVerto\webrtc\BaseCall.js : 301: if (this._state >= State.Active) {
+node_modules\@telnyx\webrtc\lib\Modules\NewVerto\webrtc\BaseCall.js : 305: this.setState(State.Active);
+node_modules\@telnyx\webrtc\lib\Modules\NewVerto\webrtc\BaseCall.js : 341: this.hangup(params, false);
+node_modules\@telnyx\webrtc\lib\Modules\NewVerto\webrtc\BaseCall.js : 687: response.holdState === 'active' ? this.setState(State.Active) : this.setState(State.Held);
+node_modules\@telnyx\webrtc\lib\Modules\NewVerto\webrtc\BaseCall.js : 707: _this.setState(State.Active);
+node_modules\@telnyx\webrtc\lib\Modules\NewVerto\webrtc\BaseCall.js : 712: _this.hangup();
+node_modules\@telnyx\webrtc\lib\Modules\NewVerto\webrtc\BaseCall.js : 740: this.setState(State.Requesting);
+node_modules\@telnyx\webrtc\lib\Modules\NewVerto\webrtc\BaseCall.js : 744: this.setState(State.Answering);
+node_modules\@telnyx\webrtc\lib\Modules\NewVerto\webrtc\BaseCall.js : 749: return this.hangup({}, false);
+node_modules\@telnyx\webrtc\lib\Modules\NewVerto\webrtc\BaseCall.js : 755: type === PeerType.Offer ? _this.setState(State.Trying) : _this.setState(State.Active);
+node_modules\@telnyx\webrtc\lib\Modules\NewVerto\webrtc\BaseCall.js : 759: _this.hangup();
+node_modules\@telnyx\webrtc\lib\Modules\NewVerto\webrtc\BaseCall.js : 793: this.hangup({}, false);
+node_modules\@telnyx\webrtc\lib\Modules\NewVerto\webrtc\BrowserSession.js : 150: * Disconnect all active calls
+node_modules\@telnyx\webrtc\lib\Modules\NewVerto\webrtc\BrowserSession.js : 158: Object.keys(this.calls).forEach(function (k) { return _this.calls[k].setState(State.Purge); });
+node_modules\@telnyx\webrtc\lib\Modules\NewVerto\webrtc\Call.js : 71: Call.prototype.hangup = function (params, execute) {
+node_modules\@telnyx\webrtc\lib\Modules\NewVerto\webrtc\Call.js : 75: this.screenShare.hangup(params, execute);
+node_modules\@telnyx\webrtc\lib\Modules\NewVerto\webrtc\Call.js : 77: _super.prototype.hangup.call(this, params, execute);
+node_modules\@telnyx\webrtc\lib\Modules\NewVerto\webrtc\Call.js : 91: _this.screenShare.hangup();
+node_modules\@telnyx\webrtc\lib\Modules\NewVerto\webrtc\Call.js : 106: this.screenShare.hangup();
+node_modules\@telnyx\webrtc\lib\Modules\NewVerto\webrtc\Call.native.js : 34: Call.prototype.setState = function (state) {
+node_modules\@telnyx\webrtc\lib\Modules\NewVerto\webrtc\Call.native.js : 36: case State.Active:
+node_modules\@telnyx\webrtc\lib\Modules\NewVerto\webrtc\Call.native.js : 41: case State.Destroy:
+node_modules\@telnyx\webrtc\lib\Modules\NewVerto\webrtc\constants.js : 56: State[State["Requesting"] = 1] = "Requesting";
+node_modules\@telnyx\webrtc\lib\Modules\NewVerto\webrtc\constants.js : 57: State[State["Trying"] = 2] = "Trying";
+node_modules\@telnyx\webrtc\lib\Modules\NewVerto\webrtc\constants.js : 59: State[State["Ringing"] = 4] = "Ringing";
+node_modules\@telnyx\webrtc\lib\Modules\NewVerto\webrtc\constants.js : 60: State[State["Answering"] = 5] = "Answering";
+node_modules\@telnyx\webrtc\lib\Modules\NewVerto\webrtc\constants.js : 62: State[State["Active"] = 7] = "Active";
+node_modules\@telnyx\webrtc\lib\Modules\NewVerto\webrtc\constants.js : 64: State[State["Hangup"] = 9] = "Hangup";
+node_modules\@telnyx\webrtc\lib\Modules\NewVerto\webrtc\constants.js : 65: State[State["Destroy"] = 10] = "Destroy";
+node_modules\@telnyx\webrtc\lib\Modules\NewVerto\webrtc\constants.js : 66: State[State["Purge"] = 11] = "Purge";
+node_modules\@telnyx\webrtc\lib\Modules\NewVerto\webrtc\constants.js : 67: })(State || (State = {}));
+node_modules\@telnyx\webrtc\lib\Modules\NewVerto\webrtc\VertoHandler.js : 68: session.calls[callID].hangup({}, false);
+node_modules\@telnyx\webrtc\lib\Modules\NewVerto\webrtc\VertoHandler.js : 96: call.setState(State.Ringing);
+node_modules\@telnyx\webrtc\lib\Modules\NewVerto\webrtc\services\Connection.js : 10: var WS_STATE = {
+node_modules\@telnyx\webrtc\lib\Modules\NewVerto\webrtc\services\Connection.js : 32: return this._wsClient && this._wsClient.readyState === WS_STATE.OPEN;
+node_modules\@telnyx\webrtc\lib\Modules\NewVerto\webrtc\services\Connection.js : 39: return this._wsClient && this._wsClient.readyState === WS_STATE.CONNECTING;
+node_modules\@telnyx\webrtc\lib\Modules\NewVerto\webrtc\services\Connection.js : 46: return this._wsClient && this._wsClient.readyState === WS_STATE.CLOSING;
+node_modules\@telnyx\webrtc\lib\Modules\NewVerto\webrtc\services\Connection.js : 53: return this._wsClient && this._wsClient.readyState === WS_STATE.CLOSED;
+node_modules\@telnyx\webrtc\lib\Modules\NewVerto\webrtc\utils\webrtc\index.js : 42: var enumerateDevices = function () { return navigator.mediaDevices.enumerateDevices(); };
+node_modules\@telnyx\webrtc\lib\Modules\TelnyxRTC\ConfMan.js : 113: VertoConfMan.prototype.destroy = function () {
+node_modules\@telnyx\webrtc\lib\Modules\TelnyxRTC\ConfMan.js : 114: this.destroyed = true;
+node_modules\@telnyx\webrtc\lib\Modules\TelnyxRTC\Dialog.js : 57: this.lastState = null;
+node_modules\@telnyx\webrtc\lib\Modules\TelnyxRTC\Dialog.js : 58: this.state = this.lastState = Enum.state.new;
+node_modules\@telnyx\webrtc\lib\Modules\TelnyxRTC\Dialog.js : 119: if (_this.state == Enum.state.requesting ||
+node_modules\@telnyx\webrtc\lib\Modules\TelnyxRTC\Dialog.js : 120: _this.state == Enum.state.answering ||
+node_modules\@telnyx\webrtc\lib\Modules\TelnyxRTC\Dialog.js : 121: _this.state == Enum.state.active) {
+node_modules\@telnyx\webrtc\lib\Modules\TelnyxRTC\Dialog.js : 126: if (_this.state == Enum.state.active) {
+node_modules\@telnyx\webrtc\lib\Modules\TelnyxRTC\Dialog.js : 127: _this.setState(Enum.state.requesting);
+node_modules\@telnyx\webrtc\lib\Modules\TelnyxRTC\Dialog.js : 133: _this.setState(Enum.state.requesting);
+node_modules\@telnyx\webrtc\lib\Modules\TelnyxRTC\Dialog.js : 141: _this.setState(Enum.state.answering);
+node_modules\@telnyx\webrtc\lib\Modules\TelnyxRTC\Dialog.js : 167: _this.hangup({ cause: 'Device or Permission Error' });
+node_modules\@telnyx\webrtc\lib\Modules\TelnyxRTC\Dialog.js : 265: VertoDialog.prototype.setState = function (state) {
+node_modules\@telnyx\webrtc\lib\Modules\TelnyxRTC\Dialog.js : 267: if (this.state == Enum.state.ringing) {
+node_modules\@telnyx\webrtc\lib\Modules\TelnyxRTC\Dialog.js : 268: this.stopRinging();
+node_modules\@telnyx\webrtc\lib\Modules\TelnyxRTC\Dialog.js : 270: if (this.state == state || !this.checkStateChange(this.state, state)) {
+node_modules\@telnyx\webrtc\lib\Modules\TelnyxRTC\Dialog.js : 277: this.hangup();
+node_modules\@telnyx\webrtc\lib\Modules\TelnyxRTC\Dialog.js : 288: this.lastState = this.state;
+node_modules\@telnyx\webrtc\lib\Modules\TelnyxRTC\Dialog.js : 289: this.state = state;
+node_modules\@telnyx\webrtc\lib\Modules\TelnyxRTC\Dialog.js : 298: case Enum.state.active:
+node_modules\@telnyx\webrtc\lib\Modules\TelnyxRTC\Dialog.js : 307: case Enum.state.trying:
+node_modules\@telnyx\webrtc\lib\Modules\TelnyxRTC\Dialog.js : 309: if (_this.state == Enum.state.trying) {
+node_modules\@telnyx\webrtc\lib\Modules\TelnyxRTC\Dialog.js : 310: _this.setState(Enum.state.hangup);
+node_modules\@telnyx\webrtc\lib\Modules\TelnyxRTC\Dialog.js : 314: case Enum.state.purge:
+node_modules\@telnyx\webrtc\lib\Modules\TelnyxRTC\Dialog.js : 315: this.setState(Enum.state.destroy);
+node_modules\@telnyx\webrtc\lib\Modules\TelnyxRTC\Dialog.js : 317: case Enum.state.hangup:
+node_modules\@telnyx\webrtc\lib\Modules\TelnyxRTC\Dialog.js : 318: if (this.lastState > Enum.state.requesting &&
+node_modules\@telnyx\webrtc\lib\Modules\TelnyxRTC\Dialog.js : 319: this.lastState < Enum.state.hangup) {
+node_modules\@telnyx\webrtc\lib\Modules\TelnyxRTC\Dialog.js : 322: this.setState(Enum.state.destroy);
+node_modules\@telnyx\webrtc\lib\Modules\TelnyxRTC\Dialog.js : 324: case Enum.state.destroy:
+node_modules\@telnyx\webrtc\lib\Modules\TelnyxRTC\Dialog.js : 350: this.setState(Enum.state.active);
+node_modules\@telnyx\webrtc\lib\Modules\TelnyxRTC\Dialog.js : 353: this.hangup();
+node_modules\@telnyx\webrtc\lib\Modules\TelnyxRTC\Dialog.js : 358: this.setState(Enum.state.trying);
+node_modules\@telnyx\webrtc\lib\Modules\TelnyxRTC\Dialog.js : 361: this.setState(Enum.state.destroy);
+node_modules\@telnyx\webrtc\lib\Modules\TelnyxRTC\Dialog.js : 365: this.hangup();
+node_modules\@telnyx\webrtc\lib\Modules\TelnyxRTC\Dialog.js : 369: if (e.holdState == 'held') {
+node_modules\@telnyx\webrtc\lib\Modules\TelnyxRTC\Dialog.js : 374: else if (e.holdState == 'active') {
+node_modules\@telnyx\webrtc\lib\Modules\TelnyxRTC\Dialog.js : 375: if (this.state != Enum.state.active) {
+node_modules\@telnyx\webrtc\lib\Modules\TelnyxRTC\Dialog.js : 376: this.setState(Enum.state.active);
+node_modules\@telnyx\webrtc\lib\Modules\TelnyxRTC\Dialog.js : 387: VertoDialog.prototype.hangup = function (params) {
+node_modules\@telnyx\webrtc\lib\Modules\TelnyxRTC\Dialog.js : 399: if (this.state >= Enum.state.new && this.state < Enum.state.hangup) {
+node_modules\@telnyx\webrtc\lib\Modules\TelnyxRTC\Dialog.js : 400: this.setState(Enum.state.hangup);
+node_modules\@telnyx\webrtc\lib\Modules\TelnyxRTC\Dialog.js : 402: else if (this.state < Enum.state.destroy) {
+node_modules\@telnyx\webrtc\lib\Modules\TelnyxRTC\Dialog.js : 403: this.setState(Enum.state.destroy);
+node_modules\@telnyx\webrtc\lib\Modules\TelnyxRTC\Dialog.js : 406: VertoDialog.prototype.stopRinging = function () {
+node_modules\@telnyx\webrtc\lib\Modules\TelnyxRTC\Dialog.js : 407: // console.log('stop ringing');
+node_modules\@telnyx\webrtc\lib\Modules\TelnyxRTC\Dialog.js : 419: _this.stopRinging();
+node_modules\@telnyx\webrtc\lib\Modules\TelnyxRTC\Dialog.js : 420: if (_this.state == Enum.state.ringing) {
+node_modules\@telnyx\webrtc\lib\Modules\TelnyxRTC\Dialog.js : 427: this.setState(Enum.state.ringing);
+node_modules\@telnyx\webrtc\lib\Modules\TelnyxRTC\Dialog.js : 560: if (this.state >= Enum.state.active) {
+node_modules\@telnyx\webrtc\lib\Modules\TelnyxRTC\Dialog.js : 564: this.setState(Enum.state.active);
+node_modules\@telnyx\webrtc\lib\Modules\TelnyxRTC\Dialog.js : 575: // console.log('Dialog ' + this.callID + ' Answering Channel');
+node_modules\@telnyx\webrtc\lib\Modules\TelnyxRTC\Dialog.js : 577: _this.setState(Enum.state.active);
+node_modules\@telnyx\webrtc\lib\Modules\TelnyxRTC\Dialog.js : 580: _this.hangup();
+node_modules\@telnyx\webrtc\lib\Modules\TelnyxRTC\Dialog.js : 620: // console.log('Dialog ' + this.callID + 'Answering Channel');
+node_modules\@telnyx\webrtc\lib\Modules\TelnyxRTC\Dialog.js : 621: _this.setState(Enum.state.active);
+node_modules\@telnyx\webrtc\lib\Modules\TelnyxRTC\Dialog.js : 625: _this.hangup();
+node_modules\@telnyx\webrtc\lib\Modules\TelnyxRTC\Dialog.js : 630: if (newS == Enum.state.purge || Enum.states[oldS][newS]) {
+node_modules\@telnyx\webrtc\lib\Modules\TelnyxRTC\Enum.js : 9: TelnyxRTCCallState[TelnyxRTCCallState["requesting"] = 2] = "requesting";
+node_modules\@telnyx\webrtc\lib\Modules\TelnyxRTC\Enum.js : 10: TelnyxRTCCallState[TelnyxRTCCallState["trying"] = 3] = "trying";
+node_modules\@telnyx\webrtc\lib\Modules\TelnyxRTC\Enum.js : 12: TelnyxRTCCallState[TelnyxRTCCallState["ringing"] = 5] = "ringing";
+node_modules\@telnyx\webrtc\lib\Modules\TelnyxRTC\Enum.js : 13: TelnyxRTCCallState[TelnyxRTCCallState["answering"] = 6] = "answering";
+node_modules\@telnyx\webrtc\lib\Modules\TelnyxRTC\Enum.js : 15: TelnyxRTCCallState[TelnyxRTCCallState["active"] = 8] = "active";
+node_modules\@telnyx\webrtc\lib\Modules\TelnyxRTC\Enum.js : 17: TelnyxRTCCallState[TelnyxRTCCallState["hangup"] = 10] = "hangup";
+node_modules\@telnyx\webrtc\lib\Modules\TelnyxRTC\Enum.js : 18: TelnyxRTCCallState[TelnyxRTCCallState["destroy"] = 11] = "destroy";
+node_modules\@telnyx\webrtc\lib\Modules\TelnyxRTC\Enum.js : 19: TelnyxRTCCallState[TelnyxRTCCallState["purge"] = 12] = "purge";
+node_modules\@telnyx\webrtc\lib\Modules\TelnyxRTC\Enum.js : 20: })(TelnyxRTCCallState || (TelnyxRTCCallState = {}));
+node_modules\@telnyx\webrtc\lib\Modules\TelnyxRTC\Enum.js : 42: _b[TelnyxRTCCallState.requesting] = 1,
+node_modules\@telnyx\webrtc\lib\Modules\TelnyxRTC\Enum.js : 44: _b[TelnyxRTCCallState.ringing] = 1,
+node_modules\@telnyx\webrtc\lib\Modules\TelnyxRTC\Enum.js : 45: _b[TelnyxRTCCallState.destroy] = 1,
+node_modules\@telnyx\webrtc\lib\Modules\TelnyxRTC\Enum.js : 46: _b[TelnyxRTCCallState.answering] = 1,
+node_modules\@telnyx\webrtc\lib\Modules\TelnyxRTC\Enum.js : 47: _b[TelnyxRTCCallState.hangup] = 1,
+node_modules\@telnyx\webrtc\lib\Modules\TelnyxRTC\Enum.js : 49: _a[TelnyxRTCCallState.requesting] = (_c = {},
+node_modules\@telnyx\webrtc\lib\Modules\TelnyxRTC\Enum.js : 50: _c[TelnyxRTCCallState.trying] = 1,
+node_modules\@telnyx\webrtc\lib\Modules\TelnyxRTC\Enum.js : 51: _c[TelnyxRTCCallState.hangup] = 1,
+node_modules\@telnyx\webrtc\lib\Modules\TelnyxRTC\Enum.js : 54: _d[TelnyxRTCCallState.answering] = 1,
+node_modules\@telnyx\webrtc\lib\Modules\TelnyxRTC\Enum.js : 55: _d[TelnyxRTCCallState.hangup] = 1,
+node_modules\@telnyx\webrtc\lib\Modules\TelnyxRTC\Enum.js : 57: _a[TelnyxRTCCallState.trying] = (_e = {},
+node_modules\@telnyx\webrtc\lib\Modules\TelnyxRTC\Enum.js : 58: _e[TelnyxRTCCallState.active] = 1,
+node_modules\@telnyx\webrtc\lib\Modules\TelnyxRTC\Enum.js : 60: _e[TelnyxRTCCallState.hangup] = 1,
+node_modules\@telnyx\webrtc\lib\Modules\TelnyxRTC\Enum.js : 62: _a[TelnyxRTCCallState.ringing] = (_f = {},
+node_modules\@telnyx\webrtc\lib\Modules\TelnyxRTC\Enum.js : 63: _f[TelnyxRTCCallState.answering] = 1,
+node_modules\@telnyx\webrtc\lib\Modules\TelnyxRTC\Enum.js : 64: _f[TelnyxRTCCallState.hangup] = 1,
+node_modules\@telnyx\webrtc\lib\Modules\TelnyxRTC\Enum.js : 66: _a[TelnyxRTCCallState.answering] = (_g = {},
+node_modules\@telnyx\webrtc\lib\Modules\TelnyxRTC\Enum.js : 67: _g[TelnyxRTCCallState.active] = 1,
+node_modules\@telnyx\webrtc\lib\Modules\TelnyxRTC\Enum.js : 68: _g[TelnyxRTCCallState.hangup] = 1,
+node_modules\@telnyx\webrtc\lib\Modules\TelnyxRTC\Enum.js : 70: _a[TelnyxRTCCallState.active] = (_h = {},
+node_modules\@telnyx\webrtc\lib\Modules\TelnyxRTC\Enum.js : 71: _h[TelnyxRTCCallState.answering] = 1,
+node_modules\@telnyx\webrtc\lib\Modules\TelnyxRTC\Enum.js : 72: _h[TelnyxRTCCallState.requesting] = 1,
+node_modules\@telnyx\webrtc\lib\Modules\TelnyxRTC\Enum.js : 73: _h[TelnyxRTCCallState.hangup] = 1,
+node_modules\@telnyx\webrtc\lib\Modules\TelnyxRTC\Enum.js : 77: _j[TelnyxRTCCallState.hangup] = 1,
+node_modules\@telnyx\webrtc\lib\Modules\TelnyxRTC\Enum.js : 78: _j[TelnyxRTCCallState.active] = 1,
+node_modules\@telnyx\webrtc\lib\Modules\TelnyxRTC\Enum.js : 81: _k[TelnyxRTCCallState.hangup] = 1,
+node_modules\@telnyx\webrtc\lib\Modules\TelnyxRTC\Enum.js : 82: _k[TelnyxRTCCallState.active] = 1,
+node_modules\@telnyx\webrtc\lib\Modules\TelnyxRTC\Enum.js : 84: _a[TelnyxRTCCallState.hangup] = (_l = {},
+node_modules\@telnyx\webrtc\lib\Modules\TelnyxRTC\Enum.js : 85: _l[TelnyxRTCCallState.destroy] = 1,
+node_modules\@telnyx\webrtc\lib\Modules\TelnyxRTC\Enum.js : 87: _a[TelnyxRTCCallState.destroy] = {},
+node_modules\@telnyx\webrtc\lib\Modules\TelnyxRTC\Enum.js : 88: _a[TelnyxRTCCallState.purge] = (_m = {},
+node_modules\@telnyx\webrtc\lib\Modules\TelnyxRTC\Enum.js : 89: _m[TelnyxRTCCallState.destroy] = 1,
+node_modules\@telnyx\webrtc\lib\Modules\TelnyxRTC\LiveArray.js : 375: VertoLiveArray.prototype.destroy = function () {
+node_modules\@telnyx\webrtc\lib\Modules\TelnyxRTC\RTC.js : 262: remoteMediaStream.oninactive = function () {
+node_modules\@telnyx\webrtc\lib\Modules\TelnyxRTC\RTC.js : 563: if (this.localStream.active) {
+node_modules\@telnyx\webrtc\lib\Modules\TelnyxRTC\RTC.js : 583: if (this.options.localVideo.active) {
+node_modules\@telnyx\webrtc\lib\Modules\TelnyxRTC\RTC.js : 826: if (ringer.active) {
+node_modules\@telnyx\webrtc\lib\Modules\TelnyxRTC\Verto.js : 190: Verto.prototype.purge = function () {
+node_modules\@telnyx\webrtc\lib\Modules\TelnyxRTC\Verto.js : 194: _this.dialogs[dialog].setState(Enum.state.purge);
+node_modules\@telnyx\webrtc\lib\Modules\TelnyxRTC\Verto.js : 377: dialog.hangup(data.params);
+node_modules\@telnyx\webrtc\lib\Modules\TelnyxRTC\Verto.js : 430: this.purge();
+node_modules\@telnyx\webrtc\lib\Modules\TelnyxRTC\Verto.js : 686: this.purge();
+node_modules\@telnyx\webrtc\lib\Modules\TelnyxRTC\Verto.js : 737: Verto.prototype.hangup = function (callID) {
+node_modules\@telnyx\webrtc\lib\Modules\TelnyxRTC\Verto.js : 742: dialog.hangup();
+node_modules\@telnyx\webrtc\lib\Modules\TelnyxRTC\Verto.js : 747: _this.dialogs[dialogKey].hangup();
+node_modules\@telnyx\webrtc\lib\SipClient\SipCall.js : 15: if (this.isIncoming && this.sip.state === C.STATUS_NEW) {
+node_modules\@telnyx\webrtc\lib\SipClient\SipCall.js : 16: return 'ringing';
+node_modules\@telnyx\webrtc\lib\SipClient\SipCall.js : 22: return 'active';
+node_modules\@telnyx\webrtc\lib\SipClient\SipCall.js : 34: SipCall.prototype.hangup = function () {
+node_modules\@telnyx\webrtc\lib\SipClient\SipClient.js : 102: .on('ringing', function (session) { return emitCallUpdate(session, true); })
+node_modules\@telnyx\webrtc\lib\TelnyxRTCClient\TelnyxRTCCall.js : 12: case TelnyxRTCCallState.requesting:
+node_modules\@telnyx\webrtc\lib\TelnyxRTCClient\TelnyxRTCCall.js : 14: case TelnyxRTCCallState.trying:
+node_modules\@telnyx\webrtc\lib\TelnyxRTCClient\TelnyxRTCCall.js : 17: case TelnyxRTCCallState.active:
+node_modules\@telnyx\webrtc\lib\TelnyxRTCClient\TelnyxRTCCall.js : 18: return 'active';
+node_modules\@telnyx\webrtc\lib\TelnyxRTCClient\TelnyxRTCCall.js : 21: case TelnyxRTCCallState.hangup:
+node_modules\@telnyx\webrtc\lib\TelnyxRTCClient\TelnyxRTCCall.js : 22: case TelnyxRTCCallState.destroy:
+node_modules\@telnyx\webrtc\lib\TelnyxRTCClient\TelnyxRTCCall.js : 24: case TelnyxRTCCallState.answering:
+node_modules\@telnyx\webrtc\lib\TelnyxRTCClient\TelnyxRTCCall.js : 25: return 'ringing';
+node_modules\@telnyx\webrtc\lib\TelnyxRTCClient\TelnyxRTCCall.js : 42: return this.state === 'held';
+node_modules\@telnyx\webrtc\lib\TelnyxRTCClient\TelnyxRTCCall.js : 47: TelnyxRTCCall.prototype.hangup = function () {
+node_modules\@telnyx\webrtc\lib\TelnyxRTCClient\TelnyxRTCCall.js : 48: this.call.hangup();
+node_modules\@telnyx\webrtc\lib\TelnyxRTCClient\TelnyxRTCCall.js : 54: this.call.hangup();
+node_modules\@telnyx\webrtc\lib\TelnyxRTCClient\TelnyxRTCClient.test.js : 86: var didHangUp = false;
+node_modules\@telnyx\webrtc\lib\TelnyxRTCClient\TelnyxRTCClient.test.js : 102: if (call.state === 'new' && !didHangUp) {
+node_modules\@telnyx\webrtc\lib\TelnyxRTCClient\TelnyxRTCClient.test.js : 103: didHangUp = true;
+node_modules\@telnyx\webrtc\lib\TelnyxRTCClient\TelnyxRTCClient.test.js : 104: call.hangup();
+node_modules\@telnyx\webrtc\lib\TelnyxRTCClient\TelnyxRTCClient.test.js : 106: if (call.state === 'done') {
+
+===== TARGETED ENUM / TRANSITION SEARCH =====
+
+----- FILE: node_modules\@telnyx\webrtc\lib\bundle.js -----
+MATCH_LINE=1807
+CODE=states: Object.freeze((_a = {},
+CONTEXT_READ_ERROR=Cannot validate argument on parameter 'First'. The -1156 argument is less than the minimum allowed range of 0. Supply an argument that is greater than or equal to 0 and then try the command again.
+
+MATCH_LINE=1859
+CODE=state: TelnyxRTCCallState,
+CONTEXT_READ_ERROR=Cannot validate argument on parameter 'First'. The -1208 argument is less than the minimum allowed range of 0. Supply an argument that is greater than or equal to 0 and then try the command again.
+
+MATCH_LINE=1887
+CODE=this.state = this.lastState = Enum.state.new;
+CONTEXT_READ_ERROR=Cannot validate argument on parameter 'First'. The -1236 argument is less than the minimum allowed range of 0. Supply an argument that is greater than or equal to 0 and then try the command again.
+
+MATCH_LINE=1945
+CODE=if (_this.state == Enum.state.requesting ||
+CONTEXT_READ_ERROR=Cannot validate argument on parameter 'First'. The -1294 argument is less than the minimum allowed range of 0. Supply an argument that is greater than or equal to 0 and then try the command again.
+
+MATCH_LINE=1946
+CODE=_this.state == Enum.state.answering ||
+CONTEXT_READ_ERROR=Cannot validate argument on parameter 'First'. The -1295 argument is less than the minimum allowed range of 0. Supply an argument that is greater than or equal to 0 and then try the command again.
+
+MATCH_LINE=1947
+CODE=_this.state == Enum.state.active) {
+CONTEXT_READ_ERROR=Cannot validate argument on parameter 'First'. The -1296 argument is less than the minimum allowed range of 0. Supply an argument that is greater than or equal to 0 and then try the command again.
+
+MATCH_LINE=1952
+CODE=if (_this.state == Enum.state.active) {
+CONTEXT_READ_ERROR=Cannot validate argument on parameter 'First'. The -1301 argument is less than the minimum allowed range of 0. Supply an argument that is greater than or equal to 0 and then try the command again.
+
+MATCH_LINE=1953
+CODE=_this.setState(Enum.state.requesting);
+CONTEXT_READ_ERROR=Cannot validate argument on parameter 'First'. The -1302 argument is less than the minimum allowed range of 0. Supply an argument that is greater than or equal to 0 and then try the command again.
+
+MATCH_LINE=1959
+CODE=_this.setState(Enum.state.requesting);
+CONTEXT_READ_ERROR=Cannot validate argument on parameter 'First'. The -1308 argument is less than the minimum allowed range of 0. Supply an argument that is greater than or equal to 0 and then try the command again.
+
+MATCH_LINE=1967
+CODE=_this.setState(Enum.state.answering);
+CONTEXT_READ_ERROR=Cannot validate argument on parameter 'First'. The -1316 argument is less than the minimum allowed range of 0. Supply an argument that is greater than or equal to 0 and then try the command again.
+
+MATCH_LINE=2093
+CODE=if (this.state == Enum.state.ringing) {
+CONTEXT_READ_ERROR=Cannot validate argument on parameter 'First'. The -1442 argument is less than the minimum allowed range of 0. Supply an argument that is greater than or equal to 0 and then try the command again.
+
+MATCH_LINE=2096
+CODE=if (this.state == state || !this.checkStateChange(this.state, state)) {
+CONTEXT_READ_ERROR=Cannot validate argument on parameter 'First'. The -1445 argument is less than the minimum allowed range of 0. Supply an argument that is greater than or equal to 0 and then try the command again.
+
+MATCH_LINE=2115
+CODE=this.state = state;
+CONTEXT_READ_ERROR=Cannot validate argument on parameter 'First'. The -1464 argument is less than the minimum allowed range of 0. Supply an argument that is greater than or equal to 0 and then try the command again.
+
+MATCH_LINE=2123
+CODE=case Enum.state.early:
+CONTEXT_READ_ERROR=Cannot validate argument on parameter 'First'. The -1472 argument is less than the minimum allowed range of 0. Supply an argument that is greater than or equal to 0 and then try the command again.
+
+MATCH_LINE=2124
+CODE=case Enum.state.active:
+CONTEXT_READ_ERROR=Cannot validate argument on parameter 'First'. The -1473 argument is less than the minimum allowed range of 0. Supply an argument that is greater than or equal to 0 and then try the command again.
+
+MATCH_LINE=2133
+CODE=case Enum.state.trying:
+CONTEXT_READ_ERROR=Cannot validate argument on parameter 'First'. The -1482 argument is less than the minimum allowed range of 0. Supply an argument that is greater than or equal to 0 and then try the command again.
+
+MATCH_LINE=2135
+CODE=if (_this.state == Enum.state.trying) {
+CONTEXT_READ_ERROR=Cannot validate argument on parameter 'First'. The -1484 argument is less than the minimum allowed range of 0. Supply an argument that is greater than or equal to 0 and then try the command again.
+
+MATCH_LINE=2136
+CODE=_this.setState(Enum.state.hangup);
+CONTEXT_READ_ERROR=Cannot validate argument on parameter 'First'. The -1485 argument is less than the minimum allowed range of 0. Supply an argument that is greater than or equal to 0 and then try the command again.
+
+MATCH_LINE=2140
+CODE=case Enum.state.purge:
+CONTEXT_READ_ERROR=Cannot validate argument on parameter 'First'. The -1489 argument is less than the minimum allowed range of 0. Supply an argument that is greater than or equal to 0 and then try the command again.
+
+MATCH_LINE=2141
+CODE=this.setState(Enum.state.destroy);
+CONTEXT_READ_ERROR=Cannot validate argument on parameter 'First'. The -1490 argument is less than the minimum allowed range of 0. Supply an argument that is greater than or equal to 0 and then try the command again.
+
+MATCH_LINE=2143
+CODE=case Enum.state.hangup:
+CONTEXT_READ_ERROR=Cannot validate argument on parameter 'First'. The -1492 argument is less than the minimum allowed range of 0. Supply an argument that is greater than or equal to 0 and then try the command again.
+
+MATCH_LINE=2144
+CODE=if (this.lastState > Enum.state.requesting &&
+CONTEXT_READ_ERROR=Cannot validate argument on parameter 'First'. The -1493 argument is less than the minimum allowed range of 0. Supply an argument that is greater than or equal to 0 and then try the command again.
+
+MATCH_LINE=2145
+CODE=this.lastState < Enum.state.hangup) {
+CONTEXT_READ_ERROR=Cannot validate argument on parameter 'First'. The -1494 argument is less than the minimum allowed range of 0. Supply an argument that is greater than or equal to 0 and then try the command again.
+
+MATCH_LINE=2148
+CODE=this.setState(Enum.state.destroy);
+CONTEXT_READ_ERROR=Cannot validate argument on parameter 'First'. The -1497 argument is less than the minimum allowed range of 0. Supply an argument that is greater than or equal to 0 and then try the command again.
+
+MATCH_LINE=2150
+CODE=case Enum.state.destroy:
+CONTEXT_READ_ERROR=Cannot validate argument on parameter 'First'. The -1499 argument is less than the minimum allowed range of 0. Supply an argument that is greater than or equal to 0 and then try the command again.
+
+MATCH_LINE=2168
+CODE=//   'Response: ' + method + ' State:' + this.state.name,
+CONTEXT_READ_ERROR=Cannot validate argument on parameter 'First'. The -1517 argument is less than the minimum allowed range of 0. Supply an argument that is greater than or equal to 0 and then try the command again.
+
+MATCH_LINE=2176
+CODE=this.setState(Enum.state.active);
+CONTEXT_READ_ERROR=Cannot validate argument on parameter 'First'. The -1525 argument is less than the minimum allowed range of 0. Supply an argument that is greater than or equal to 0 and then try the command again.
+
+MATCH_LINE=2184
+CODE=this.setState(Enum.state.trying);
+CONTEXT_READ_ERROR=Cannot validate argument on parameter 'First'. The -1533 argument is less than the minimum allowed range of 0. Supply an argument that is greater than or equal to 0 and then try the command again.
+
+MATCH_LINE=2187
+CODE=this.setState(Enum.state.destroy);
+CONTEXT_READ_ERROR=Cannot validate argument on parameter 'First'. The -1536 argument is less than the minimum allowed range of 0. Supply an argument that is greater than or equal to 0 and then try the command again.
+
+MATCH_LINE=2196
+CODE=if (this.state != Enum.state.held) {
+CONTEXT_READ_ERROR=Cannot validate argument on parameter 'First'. The -1545 argument is less than the minimum allowed range of 0. Supply an argument that is greater than or equal to 0 and then try the command again.
+
+MATCH_LINE=2197
+CODE=this.setState(Enum.state.held);
+CONTEXT_READ_ERROR=Cannot validate argument on parameter 'First'. The -1546 argument is less than the minimum allowed range of 0. Supply an argument that is greater than or equal to 0 and then try the command again.
+
+MATCH_LINE=2201
+CODE=if (this.state != Enum.state.active) {
+CONTEXT_READ_ERROR=Cannot validate argument on parameter 'First'. The -1550 argument is less than the minimum allowed range of 0. Supply an argument that is greater than or equal to 0 and then try the command again.
+
+MATCH_LINE=2202
+CODE=this.setState(Enum.state.active);
+CONTEXT_READ_ERROR=Cannot validate argument on parameter 'First'. The -1551 argument is less than the minimum allowed range of 0. Supply an argument that is greater than or equal to 0 and then try the command again.
+
+MATCH_LINE=2223
+CODE=if (this.state >= Enum.state.new && this.state < Enum.state.hangup) {
+CONTEXT_READ_ERROR=Cannot validate argument on parameter 'First'. The -1572 argument is less than the minimum allowed range of 0. Supply an argument that is greater than or equal to 0 and then try the command again.
+
+MATCH_LINE=2224
+CODE=this.setState(Enum.state.hangup);
+CONTEXT_READ_ERROR=Cannot validate argument on parameter 'First'. The -1573 argument is less than the minimum allowed range of 0. Supply an argument that is greater than or equal to 0 and then try the command again.
+
+MATCH_LINE=2226
+CODE=else if (this.state < Enum.state.destroy) {
+CONTEXT_READ_ERROR=Cannot validate argument on parameter 'First'. The -1575 argument is less than the minimum allowed range of 0. Supply an argument that is greater than or equal to 0 and then try the command again.
+
+MATCH_LINE=2227
+CODE=this.setState(Enum.state.destroy);
+CONTEXT_READ_ERROR=Cannot validate argument on parameter 'First'. The -1576 argument is less than the minimum allowed range of 0. Supply an argument that is greater than or equal to 0 and then try the command again.
+
+MATCH_LINE=2249
+CODE=if (_this.state == Enum.state.ringing) {
+CONTEXT_READ_ERROR=Cannot validate argument on parameter 'First'. The -1598 argument is less than the minimum allowed range of 0. Supply an argument that is greater than or equal to 0 and then try the command again.
+
+MATCH_LINE=2260
+CODE=this.setState(Enum.state.ringing);
+CONTEXT_READ_ERROR=Cannot validate argument on parameter 'First'. The -1609 argument is less than the minimum allowed range of 0. Supply an argument that is greater than or equal to 0 and then try the command again.
+
+MATCH_LINE=2393
+CODE=if (this.state >= Enum.state.active) {
+CONTEXT_READ_ERROR=Cannot validate argument on parameter 'First'. The -1742 argument is less than the minimum allowed range of 0. Supply an argument that is greater than or equal to 0 and then try the command again.
+
+MATCH_LINE=2396
+CODE=if (this.state >= Enum.state.early) {
+CONTEXT_READ_ERROR=Cannot validate argument on parameter 'First'. The -1745 argument is less than the minimum allowed range of 0. Supply an argument that is greater than or equal to 0 and then try the command again.
+
+MATCH_LINE=2397
+CODE=this.setState(Enum.state.active);
+CONTEXT_READ_ERROR=Cannot validate argument on parameter 'First'. The -1746 argument is less than the minimum allowed range of 0. Supply an argument that is greater than or equal to 0 and then try the command again.
+
+MATCH_LINE=2404
+CODE=_this.setState(Enum.state.active);
+CONTEXT_READ_ERROR=Cannot validate argument on parameter 'First'. The -1753 argument is less than the minimum allowed range of 0. Supply an argument that is greater than or equal to 0 and then try the command again.
+
+MATCH_LINE=2439
+CODE=if (this.state >= Enum.state.early) {
+CONTEXT_READ_ERROR=Cannot validate argument on parameter 'First'. The -1788 argument is less than the minimum allowed range of 0. Supply an argument that is greater than or equal to 0 and then try the command again.
+
+MATCH_LINE=2445
+CODE=_this.setState(Enum.state.early);
+CONTEXT_READ_ERROR=Cannot validate argument on parameter 'First'. The -1794 argument is less than the minimum allowed range of 0. Supply an argument that is greater than or equal to 0 and then try the command again.
+
+MATCH_LINE=2448
+CODE=_this.setState(Enum.state.active);
+CONTEXT_READ_ERROR=Cannot validate argument on parameter 'First'. The -1797 argument is less than the minimum allowed range of 0. Supply an argument that is greater than or equal to 0 and then try the command again.
+
+MATCH_LINE=2456
+CODE=VertoDialog.prototype.checkStateChange = function (oldS, newS) {
+CONTEXT_READ_ERROR=Cannot validate argument on parameter 'First'. The -1805 argument is less than the minimum allowed range of 0. Supply an argument that is greater than or equal to 0 and then try the command again.
+
+MATCH_LINE=2457
+CODE=if (newS == Enum.state.purge || Enum.states[oldS][newS]) {
+CONTEXT_READ_ERROR=Cannot validate argument on parameter 'First'. The -1806 argument is less than the minimum allowed range of 0. Supply an argument that is greater than or equal to 0 and then try the command again.
+
+MATCH_LINE=2613
+CODE=_this.dialogs[dialog].setState(Enum.state.purge);
+CONTEXT_READ_ERROR=Cannot validate argument on parameter 'First'. The -1962 argument is less than the minimum allowed range of 0. Supply an argument that is greater than or equal to 0 and then try the command again.
+
+MATCH_LINE=2826
+CODE=dialog.setState(Enum.state.recovering);
+CONTEXT_READ_ERROR=Cannot validate argument on parameter 'First'. The -2175 argument is less than the minimum allowed range of 0. Supply an argument that is greater than or equal to 0 and then try the command again.
+
+MATCH_LINE=3466
+CODE=var state = { fired: false, wrapFn: undefined, target: target, type: type, listener: listener };
+CONTEXT_READ_ERROR=Cannot validate argument on parameter 'First'. The -2815 argument is less than the minimum allowed range of 0. Supply an argument that is greater than or equal to 0 and then try the command again.
+
+MATCH_LINE=3766
+CODE=return this.state === 'held';
+CONTEXT_READ_ERROR=Cannot validate argument on parameter 'First'. The -3115 argument is less than the minimum allowed range of 0. Supply an argument that is greater than or equal to 0 and then try the command again.
+
+
+----- FILE: node_modules\@telnyx\webrtc\lib\Modules\NewVerto\webrtc\BaseCall.js -----
+MATCH_LINE=64
+CODE=this.state = State[State.New];
+56: import { objEmpty, mutateLiveArrayData, isFunction } from './utils/helpers';
+57: import { attachMediaStream, detachMediaStream, sdpToJsonHack, stopStream, getUserMedia, setMediaElementSinkId } from './utils/webrtc';
+58: import { MCULayoutEventHandler } from './LayoutHandler';
+59: var BaseCall = /** @class */ (function () {
+60:     function BaseCall(session, opts) {
+61:         var _this = this;
+62:         this.session = session;
+63:         this.id = '';
+64:         this.state = State[State.New];
+65:         this.prevState = '';
+66:         this.channels = [];
+67:         this.role = Role.Participant;
+68:         this.extension = null;
+69:         this._state = State.New;
+70:         this._prevState = State.New;
+71:         this.gotAnswer = false;
+72:         this.gotEarly = false;
+73:         this._lastSerno = 0;
+74:         this._targetNodeId = null;
+75:         this._iceTimeout = null;
+76:         this._iceDone = false;
+
+MATCH_LINE=274
+CODE=this.state = State[this._state].toLowerCase();
+266:     };
+267:     BaseCall.prototype.toggleDeaf = function () {
+268:         toggleAudioTracks(this.options.remoteStream);
+269:     };
+270:     BaseCall.prototype.setState = function (state) {
+271:         var _this = this;
+272:         this._prevState = this._state;
+273:         this._state = state;
+274:         this.state = State[this._state].toLowerCase();
+275:         this.prevState = State[this._prevState].toLowerCase();
+276:         logger.info("Call " + this.id + " state change from " + this.prevState + " to " + this.state);
+277:         this._dispatchNotification({ type: NOTIFICATION_TYPE.callUpdate, call: this });
+278:         switch (state) {
+279:             case State.Purge:
+280:                 this.hangup({ cause: 'PURGE', causeCode: '01' }, false);
+281:                 break;
+282:             case State.Active: {
+283:                 setTimeout(function () {
+284:                     var _a = _this.options, remoteElement = _a.remoteElement, speakerId = _a.speakerId;
+285:                     if (remoteElement && speakerId) {
+286:                         setMediaElementSinkId(remoteElement, speakerId);
+
+
+----- FILE: node_modules\@telnyx\webrtc\lib\Modules\NewVerto\webrtc\constants.js -----
+MATCH_LINE=67
+CODE=})(State || (State = {}));
+59:     State[State["Ringing"] = 4] = "Ringing";
+60:     State[State["Answering"] = 5] = "Answering";
+61:     State[State["Early"] = 6] = "Early";
+62:     State[State["Active"] = 7] = "Active";
+63:     State[State["Held"] = 8] = "Held";
+64:     State[State["Hangup"] = 9] = "Hangup";
+65:     State[State["Destroy"] = 10] = "Destroy";
+66:     State[State["Purge"] = 11] = "Purge";
+67: })(State || (State = {}));
+68: export var Role;
+69: (function (Role) {
+70:     Role["Participant"] = "participant";
+71:     Role["Moderator"] = "moderator";
+72: })(Role || (Role = {}));
+73: export var ConferenceAction;
+74: (function (ConferenceAction) {
+75:     ConferenceAction["Join"] = "join";
+76:     ConferenceAction["Leave"] = "leave";
+77:     ConferenceAction["Bootstrap"] = "bootstrap";
+78:     ConferenceAction["Add"] = "add";
+79:     ConferenceAction["Modify"] = "modify";
+
+
+----- FILE: node_modules\@telnyx\webrtc\lib\Modules\TelnyxRTC\Dialog.js -----
+MATCH_LINE=58
+CODE=this.state = this.lastState = Enum.state.new;
+50:             tag: verto.options.tag,
+51:             localTag: verto.options.localTag,
+52:             login: verto.options.login,
+53:             videoParams: verto.options.videoParams,
+54:         }, params);
+55:         this.verto = verto;
+56:         this.direction = direction;
+57:         this.lastState = null;
+58:         this.state = this.lastState = Enum.state.new;
+59:         this.callbacks = verto.callbacks;
+60:         this.answered = false;
+61:         this.attach = params.attach || false;
+62:         this.screenShare = params.screenShare || false;
+63:         this.useCamera = this.params.useCamera;
+64:         this.useMic = this.params.useMic;
+65:         this.useSpeak = this.params.useSpeak;
+66:         this.onStateChange = params.onStateChange;
+67:         this.rtc = null;
+68:         if (this.params.callID) {
+69:             this.callID = this.params.callID;
+70:         }
+
+MATCH_LINE=119
+CODE=if (_this.state == Enum.state.requesting ||
+111:             };
+112:         }
+113:         else {
+114:             this.params.remote_caller_id_name = 'Outbound Call';
+115:             this.params.remote_caller_id_number = this.params.destination_number;
+116:         }
+117:         RTCcallbacks.onICESDP = function (rtc) {
+118:             // console.log('RECV ' + rtc.type + ' SDP', rtc.mediaData.SDP);
+119:             if (_this.state == Enum.state.requesting ||
+120:                 _this.state == Enum.state.answering ||
+121:                 _this.state == Enum.state.active) {
+122:                 location.reload();
+123:                 return;
+124:             }
+125:             if (rtc.type == 'offer') {
+126:                 if (_this.state == Enum.state.active) {
+127:                     _this.setState(Enum.state.requesting);
+128:                     _this.sendMethod(_this.verto.module + ".attach", {
+129:                         sdp: rtc.mediaData.SDP,
+130:                     });
+131:                 }
+
+MATCH_LINE=120
+CODE=_this.state == Enum.state.answering ||
+112:         }
+113:         else {
+114:             this.params.remote_caller_id_name = 'Outbound Call';
+115:             this.params.remote_caller_id_number = this.params.destination_number;
+116:         }
+117:         RTCcallbacks.onICESDP = function (rtc) {
+118:             // console.log('RECV ' + rtc.type + ' SDP', rtc.mediaData.SDP);
+119:             if (_this.state == Enum.state.requesting ||
+120:                 _this.state == Enum.state.answering ||
+121:                 _this.state == Enum.state.active) {
+122:                 location.reload();
+123:                 return;
+124:             }
+125:             if (rtc.type == 'offer') {
+126:                 if (_this.state == Enum.state.active) {
+127:                     _this.setState(Enum.state.requesting);
+128:                     _this.sendMethod(_this.verto.module + ".attach", {
+129:                         sdp: rtc.mediaData.SDP,
+130:                     });
+131:                 }
+132:                 else {
+
+MATCH_LINE=121
+CODE=_this.state == Enum.state.active) {
+113:         else {
+114:             this.params.remote_caller_id_name = 'Outbound Call';
+115:             this.params.remote_caller_id_number = this.params.destination_number;
+116:         }
+117:         RTCcallbacks.onICESDP = function (rtc) {
+118:             // console.log('RECV ' + rtc.type + ' SDP', rtc.mediaData.SDP);
+119:             if (_this.state == Enum.state.requesting ||
+120:                 _this.state == Enum.state.answering ||
+121:                 _this.state == Enum.state.active) {
+122:                 location.reload();
+123:                 return;
+124:             }
+125:             if (rtc.type == 'offer') {
+126:                 if (_this.state == Enum.state.active) {
+127:                     _this.setState(Enum.state.requesting);
+128:                     _this.sendMethod(_this.verto.module + ".attach", {
+129:                         sdp: rtc.mediaData.SDP,
+130:                     });
+131:                 }
+132:                 else {
+133:                     _this.setState(Enum.state.requesting);
+
+MATCH_LINE=126
+CODE=if (_this.state == Enum.state.active) {
+118:             // console.log('RECV ' + rtc.type + ' SDP', rtc.mediaData.SDP);
+119:             if (_this.state == Enum.state.requesting ||
+120:                 _this.state == Enum.state.answering ||
+121:                 _this.state == Enum.state.active) {
+122:                 location.reload();
+123:                 return;
+124:             }
+125:             if (rtc.type == 'offer') {
+126:                 if (_this.state == Enum.state.active) {
+127:                     _this.setState(Enum.state.requesting);
+128:                     _this.sendMethod(_this.verto.module + ".attach", {
+129:                         sdp: rtc.mediaData.SDP,
+130:                     });
+131:                 }
+132:                 else {
+133:                     _this.setState(Enum.state.requesting);
+134:                     _this.sendMethod(_this.verto.module + ".invite", {
+135:                         sdp: rtc.mediaData.SDP,
+136:                     });
+137:                 }
+138:             }
+
+MATCH_LINE=127
+CODE=_this.setState(Enum.state.requesting);
+119:             if (_this.state == Enum.state.requesting ||
+120:                 _this.state == Enum.state.answering ||
+121:                 _this.state == Enum.state.active) {
+122:                 location.reload();
+123:                 return;
+124:             }
+125:             if (rtc.type == 'offer') {
+126:                 if (_this.state == Enum.state.active) {
+127:                     _this.setState(Enum.state.requesting);
+128:                     _this.sendMethod(_this.verto.module + ".attach", {
+129:                         sdp: rtc.mediaData.SDP,
+130:                     });
+131:                 }
+132:                 else {
+133:                     _this.setState(Enum.state.requesting);
+134:                     _this.sendMethod(_this.verto.module + ".invite", {
+135:                         sdp: rtc.mediaData.SDP,
+136:                     });
+137:                 }
+138:             }
+139:             else {
+
+MATCH_LINE=133
+CODE=_this.setState(Enum.state.requesting);
+125:             if (rtc.type == 'offer') {
+126:                 if (_this.state == Enum.state.active) {
+127:                     _this.setState(Enum.state.requesting);
+128:                     _this.sendMethod(_this.verto.module + ".attach", {
+129:                         sdp: rtc.mediaData.SDP,
+130:                     });
+131:                 }
+132:                 else {
+133:                     _this.setState(Enum.state.requesting);
+134:                     _this.sendMethod(_this.verto.module + ".invite", {
+135:                         sdp: rtc.mediaData.SDP,
+136:                     });
+137:                 }
+138:             }
+139:             else {
+140:                 //answer
+141:                 _this.setState(Enum.state.answering);
+142:                 _this.sendMethod(_this.attach ? _this.verto.module + ".attach" : _this.verto.module + ".answer", {
+143:                     sdp: _this.rtc.mediaData.SDP,
+144:                 });
+145:             }
+
+MATCH_LINE=141
+CODE=_this.setState(Enum.state.answering);
+133:                     _this.setState(Enum.state.requesting);
+134:                     _this.sendMethod(_this.verto.module + ".invite", {
+135:                         sdp: rtc.mediaData.SDP,
+136:                     });
+137:                 }
+138:             }
+139:             else {
+140:                 //answer
+141:                 _this.setState(Enum.state.answering);
+142:                 _this.sendMethod(_this.attach ? _this.verto.module + ".attach" : _this.verto.module + ".answer", {
+143:                     sdp: _this.rtc.mediaData.SDP,
+144:                 });
+145:             }
+146:         };
+147:         RTCcallbacks.onICE = function (rtc) {
+148:             //console.log("cand", rtc.mediaData.candidate);
+149:             if (rtc.type == 'offer') {
+150:                 // console.log('offer', rtc.mediaData.candidate);
+151:                 return;
+152:             }
+153:         };
+
+MATCH_LINE=267
+CODE=if (this.state == Enum.state.ringing) {
+259:             if (callback) {
+260:                 callback(false, null, arg);
+261:             }
+262:             return Promise.reject();
+263:         }
+264:     };
+265:     VertoDialog.prototype.setState = function (state) {
+266:         var _this = this;
+267:         if (this.state == Enum.state.ringing) {
+268:             this.stopRinging();
+269:         }
+270:         if (this.state == state || !this.checkStateChange(this.state, state)) {
+271:             console.error('Dialog ' +
+272:                 this.callID +
+273:                 ': INVALID state change from ' +
+274:                 this.state +
+275:                 ' to ' +
+276:                 state);
+277:             this.hangup();
+278:             return false;
+279:         }
+
+MATCH_LINE=270
+CODE=if (this.state == state || !this.checkStateChange(this.state, state)) {
+262:             return Promise.reject();
+263:         }
+264:     };
+265:     VertoDialog.prototype.setState = function (state) {
+266:         var _this = this;
+267:         if (this.state == Enum.state.ringing) {
+268:             this.stopRinging();
+269:         }
+270:         if (this.state == state || !this.checkStateChange(this.state, state)) {
+271:             console.error('Dialog ' +
+272:                 this.callID +
+273:                 ': INVALID state change from ' +
+274:                 this.state +
+275:                 ' to ' +
+276:                 state);
+277:             this.hangup();
+278:             return false;
+279:         }
+280:         // console.log(
+281:         //   'Dialog ' +
+282:         //     this.callID +
+
+MATCH_LINE=289
+CODE=this.state = state;
+281:         //   'Dialog ' +
+282:         //     this.callID +
+283:         //     ': state change from ' +
+284:         //     this.state.name +
+285:         //     ' to ' +
+286:         //     state.name
+287:         // );
+288:         this.lastState = this.state;
+289:         this.state = state;
+290:         if (this.callbacks.onDialogState) {
+291:             this.callbacks.onDialogState(this);
+292:         }
+293:         if (this.onStateChange) {
+294:             this.onStateChange(this.state, this.lastState);
+295:         }
+296:         switch (this.state) {
+297:             case Enum.state.early:
+298:             case Enum.state.active:
+299:                 var speaker_1 = this.useSpeak;
+300:                 // console.info('Using Speaker: ', speaker);
+301:                 if (speaker_1 && speaker_1 !== 'any' && speaker_1 !== 'none') {
+
+MATCH_LINE=297
+CODE=case Enum.state.early:
+289:         this.state = state;
+290:         if (this.callbacks.onDialogState) {
+291:             this.callbacks.onDialogState(this);
+292:         }
+293:         if (this.onStateChange) {
+294:             this.onStateChange(this.state, this.lastState);
+295:         }
+296:         switch (this.state) {
+297:             case Enum.state.early:
+298:             case Enum.state.active:
+299:                 var speaker_1 = this.useSpeak;
+300:                 // console.info('Using Speaker: ', speaker);
+301:                 if (speaker_1 && speaker_1 !== 'any' && speaker_1 !== 'none') {
+302:                     setTimeout(function () {
+303:                         _this.setAudioPlaybackDevice(speaker_1);
+304:                     }, 500);
+305:                 }
+306:                 break;
+307:             case Enum.state.trying:
+308:                 setTimeout(function () {
+309:                     if (_this.state == Enum.state.trying) {
+
+MATCH_LINE=298
+CODE=case Enum.state.active:
+290:         if (this.callbacks.onDialogState) {
+291:             this.callbacks.onDialogState(this);
+292:         }
+293:         if (this.onStateChange) {
+294:             this.onStateChange(this.state, this.lastState);
+295:         }
+296:         switch (this.state) {
+297:             case Enum.state.early:
+298:             case Enum.state.active:
+299:                 var speaker_1 = this.useSpeak;
+300:                 // console.info('Using Speaker: ', speaker);
+301:                 if (speaker_1 && speaker_1 !== 'any' && speaker_1 !== 'none') {
+302:                     setTimeout(function () {
+303:                         _this.setAudioPlaybackDevice(speaker_1);
+304:                     }, 500);
+305:                 }
+306:                 break;
+307:             case Enum.state.trying:
+308:                 setTimeout(function () {
+309:                     if (_this.state == Enum.state.trying) {
+310:                         _this.setState(Enum.state.hangup);
+
+MATCH_LINE=307
+CODE=case Enum.state.trying:
+299:                 var speaker_1 = this.useSpeak;
+300:                 // console.info('Using Speaker: ', speaker);
+301:                 if (speaker_1 && speaker_1 !== 'any' && speaker_1 !== 'none') {
+302:                     setTimeout(function () {
+303:                         _this.setAudioPlaybackDevice(speaker_1);
+304:                     }, 500);
+305:                 }
+306:                 break;
+307:             case Enum.state.trying:
+308:                 setTimeout(function () {
+309:                     if (_this.state == Enum.state.trying) {
+310:                         _this.setState(Enum.state.hangup);
+311:                     }
+312:                 }, 30000);
+313:                 break;
+314:             case Enum.state.purge:
+315:                 this.setState(Enum.state.destroy);
+316:                 break;
+317:             case Enum.state.hangup:
+318:                 if (this.lastState > Enum.state.requesting &&
+319:                     this.lastState < Enum.state.hangup) {
+
+MATCH_LINE=309
+CODE=if (_this.state == Enum.state.trying) {
+301:                 if (speaker_1 && speaker_1 !== 'any' && speaker_1 !== 'none') {
+302:                     setTimeout(function () {
+303:                         _this.setAudioPlaybackDevice(speaker_1);
+304:                     }, 500);
+305:                 }
+306:                 break;
+307:             case Enum.state.trying:
+308:                 setTimeout(function () {
+309:                     if (_this.state == Enum.state.trying) {
+310:                         _this.setState(Enum.state.hangup);
+311:                     }
+312:                 }, 30000);
+313:                 break;
+314:             case Enum.state.purge:
+315:                 this.setState(Enum.state.destroy);
+316:                 break;
+317:             case Enum.state.hangup:
+318:                 if (this.lastState > Enum.state.requesting &&
+319:                     this.lastState < Enum.state.hangup) {
+320:                     this.sendMethod(this.verto.module + ".bye", {});
+321:                 }
+
+MATCH_LINE=310
+CODE=_this.setState(Enum.state.hangup);
+302:                     setTimeout(function () {
+303:                         _this.setAudioPlaybackDevice(speaker_1);
+304:                     }, 500);
+305:                 }
+306:                 break;
+307:             case Enum.state.trying:
+308:                 setTimeout(function () {
+309:                     if (_this.state == Enum.state.trying) {
+310:                         _this.setState(Enum.state.hangup);
+311:                     }
+312:                 }, 30000);
+313:                 break;
+314:             case Enum.state.purge:
+315:                 this.setState(Enum.state.destroy);
+316:                 break;
+317:             case Enum.state.hangup:
+318:                 if (this.lastState > Enum.state.requesting &&
+319:                     this.lastState < Enum.state.hangup) {
+320:                     this.sendMethod(this.verto.module + ".bye", {});
+321:                 }
+322:                 this.setState(Enum.state.destroy);
+
+MATCH_LINE=314
+CODE=case Enum.state.purge:
+306:                 break;
+307:             case Enum.state.trying:
+308:                 setTimeout(function () {
+309:                     if (_this.state == Enum.state.trying) {
+310:                         _this.setState(Enum.state.hangup);
+311:                     }
+312:                 }, 30000);
+313:                 break;
+314:             case Enum.state.purge:
+315:                 this.setState(Enum.state.destroy);
+316:                 break;
+317:             case Enum.state.hangup:
+318:                 if (this.lastState > Enum.state.requesting &&
+319:                     this.lastState < Enum.state.hangup) {
+320:                     this.sendMethod(this.verto.module + ".bye", {});
+321:                 }
+322:                 this.setState(Enum.state.destroy);
+323:                 break;
+324:             case Enum.state.destroy:
+325:                 // TODO: This should probably only happen when a tag wasn't specified.
+326:                 // if (typeof this.verto.options.tag === 'function') {
+
+MATCH_LINE=315
+CODE=this.setState(Enum.state.destroy);
+307:             case Enum.state.trying:
+308:                 setTimeout(function () {
+309:                     if (_this.state == Enum.state.trying) {
+310:                         _this.setState(Enum.state.hangup);
+311:                     }
+312:                 }, 30000);
+313:                 break;
+314:             case Enum.state.purge:
+315:                 this.setState(Enum.state.destroy);
+316:                 break;
+317:             case Enum.state.hangup:
+318:                 if (this.lastState > Enum.state.requesting &&
+319:                     this.lastState < Enum.state.hangup) {
+320:                     this.sendMethod(this.verto.module + ".bye", {});
+321:                 }
+322:                 this.setState(Enum.state.destroy);
+323:                 break;
+324:             case Enum.state.destroy:
+325:                 // TODO: This should probably only happen when a tag wasn't specified.
+326:                 // if (typeof this.verto.options.tag === 'function') {
+327:                 //   this.verto.options.tag().remove();
+
+MATCH_LINE=317
+CODE=case Enum.state.hangup:
+309:                     if (_this.state == Enum.state.trying) {
+310:                         _this.setState(Enum.state.hangup);
+311:                     }
+312:                 }, 30000);
+313:                 break;
+314:             case Enum.state.purge:
+315:                 this.setState(Enum.state.destroy);
+316:                 break;
+317:             case Enum.state.hangup:
+318:                 if (this.lastState > Enum.state.requesting &&
+319:                     this.lastState < Enum.state.hangup) {
+320:                     this.sendMethod(this.verto.module + ".bye", {});
+321:                 }
+322:                 this.setState(Enum.state.destroy);
+323:                 break;
+324:             case Enum.state.destroy:
+325:                 // TODO: This should probably only happen when a tag wasn't specified.
+326:                 // if (typeof this.verto.options.tag === 'function') {
+327:                 //   this.verto.options.tag().remove();
+328:                 // }
+329:                 delete this.verto.dialogs[this.callID];
+
+MATCH_LINE=318
+CODE=if (this.lastState > Enum.state.requesting &&
+310:                         _this.setState(Enum.state.hangup);
+311:                     }
+312:                 }, 30000);
+313:                 break;
+314:             case Enum.state.purge:
+315:                 this.setState(Enum.state.destroy);
+316:                 break;
+317:             case Enum.state.hangup:
+318:                 if (this.lastState > Enum.state.requesting &&
+319:                     this.lastState < Enum.state.hangup) {
+320:                     this.sendMethod(this.verto.module + ".bye", {});
+321:                 }
+322:                 this.setState(Enum.state.destroy);
+323:                 break;
+324:             case Enum.state.destroy:
+325:                 // TODO: This should probably only happen when a tag wasn't specified.
+326:                 // if (typeof this.verto.options.tag === 'function') {
+327:                 //   this.verto.options.tag().remove();
+328:                 // }
+329:                 delete this.verto.dialogs[this.callID];
+330:                 if (this.params.screenShare) {
+
+MATCH_LINE=319
+CODE=this.lastState < Enum.state.hangup) {
+311:                     }
+312:                 }, 30000);
+313:                 break;
+314:             case Enum.state.purge:
+315:                 this.setState(Enum.state.destroy);
+316:                 break;
+317:             case Enum.state.hangup:
+318:                 if (this.lastState > Enum.state.requesting &&
+319:                     this.lastState < Enum.state.hangup) {
+320:                     this.sendMethod(this.verto.module + ".bye", {});
+321:                 }
+322:                 this.setState(Enum.state.destroy);
+323:                 break;
+324:             case Enum.state.destroy:
+325:                 // TODO: This should probably only happen when a tag wasn't specified.
+326:                 // if (typeof this.verto.options.tag === 'function') {
+327:                 //   this.verto.options.tag().remove();
+328:                 // }
+329:                 delete this.verto.dialogs[this.callID];
+330:                 if (this.params.screenShare) {
+331:                     this.rtc.stopPeer();
+
+MATCH_LINE=322
+CODE=this.setState(Enum.state.destroy);
+314:             case Enum.state.purge:
+315:                 this.setState(Enum.state.destroy);
+316:                 break;
+317:             case Enum.state.hangup:
+318:                 if (this.lastState > Enum.state.requesting &&
+319:                     this.lastState < Enum.state.hangup) {
+320:                     this.sendMethod(this.verto.module + ".bye", {});
+321:                 }
+322:                 this.setState(Enum.state.destroy);
+323:                 break;
+324:             case Enum.state.destroy:
+325:                 // TODO: This should probably only happen when a tag wasn't specified.
+326:                 // if (typeof this.verto.options.tag === 'function') {
+327:                 //   this.verto.options.tag().remove();
+328:                 // }
+329:                 delete this.verto.dialogs[this.callID];
+330:                 if (this.params.screenShare) {
+331:                     this.rtc.stopPeer();
+332:                 }
+333:                 else {
+334:                     this.rtc.stop();
+
+MATCH_LINE=324
+CODE=case Enum.state.destroy:
+316:                 break;
+317:             case Enum.state.hangup:
+318:                 if (this.lastState > Enum.state.requesting &&
+319:                     this.lastState < Enum.state.hangup) {
+320:                     this.sendMethod(this.verto.module + ".bye", {});
+321:                 }
+322:                 this.setState(Enum.state.destroy);
+323:                 break;
+324:             case Enum.state.destroy:
+325:                 // TODO: This should probably only happen when a tag wasn't specified.
+326:                 // if (typeof this.verto.options.tag === 'function') {
+327:                 //   this.verto.options.tag().remove();
+328:                 // }
+329:                 delete this.verto.dialogs[this.callID];
+330:                 if (this.params.screenShare) {
+331:                     this.rtc.stopPeer();
+332:                 }
+333:                 else {
+334:                     this.rtc.stop();
+335:                 }
+336:                 break;
+
+MATCH_LINE=342
+CODE=//   'Response: ' + method + ' State:' + this.state.name,
+334:                     this.rtc.stop();
+335:                 }
+336:                 break;
+337:         }
+338:         return true;
+339:     };
+340:     VertoDialog.prototype.processReply = function (method, success, e) {
+341:         // console.log(
+342:         //   'Response: ' + method + ' State:' + this.state.name,
+343:         //   success,
+344:         //   e
+345:         // );
+346:         switch (method) {
+347:             case this.verto.module + ".answer":
+348:             case this.verto.module + ".attach":
+349:                 if (success) {
+350:                     this.setState(Enum.state.active);
+351:                 }
+352:                 else {
+353:                     this.hangup();
+354:                 }
+
+MATCH_LINE=350
+CODE=this.setState(Enum.state.active);
+342:         //   'Response: ' + method + ' State:' + this.state.name,
+343:         //   success,
+344:         //   e
+345:         // );
+346:         switch (method) {
+347:             case this.verto.module + ".answer":
+348:             case this.verto.module + ".attach":
+349:                 if (success) {
+350:                     this.setState(Enum.state.active);
+351:                 }
+352:                 else {
+353:                     this.hangup();
+354:                 }
+355:                 break;
+356:             case this.verto.module + ".invite":
+357:                 if (success) {
+358:                     this.setState(Enum.state.trying);
+359:                 }
+360:                 else {
+361:                     this.setState(Enum.state.destroy);
+362:                 }
+
+MATCH_LINE=358
+CODE=this.setState(Enum.state.trying);
+350:                     this.setState(Enum.state.active);
+351:                 }
+352:                 else {
+353:                     this.hangup();
+354:                 }
+355:                 break;
+356:             case this.verto.module + ".invite":
+357:                 if (success) {
+358:                     this.setState(Enum.state.trying);
+359:                 }
+360:                 else {
+361:                     this.setState(Enum.state.destroy);
+362:                 }
+363:                 break;
+364:             case this.verto.module + ".bye":
+365:                 this.hangup();
+366:                 break;
+367:             case this.verto.module + ".modify":
+368:                 if (e.holdState) {
+369:                     if (e.holdState == 'held') {
+370:                         if (this.state != Enum.state.held) {
+
+MATCH_LINE=361
+CODE=this.setState(Enum.state.destroy);
+353:                     this.hangup();
+354:                 }
+355:                 break;
+356:             case this.verto.module + ".invite":
+357:                 if (success) {
+358:                     this.setState(Enum.state.trying);
+359:                 }
+360:                 else {
+361:                     this.setState(Enum.state.destroy);
+362:                 }
+363:                 break;
+364:             case this.verto.module + ".bye":
+365:                 this.hangup();
+366:                 break;
+367:             case this.verto.module + ".modify":
+368:                 if (e.holdState) {
+369:                     if (e.holdState == 'held') {
+370:                         if (this.state != Enum.state.held) {
+371:                             this.setState(Enum.state.held);
+372:                         }
+373:                     }
+
+MATCH_LINE=370
+CODE=if (this.state != Enum.state.held) {
+362:                 }
+363:                 break;
+364:             case this.verto.module + ".bye":
+365:                 this.hangup();
+366:                 break;
+367:             case this.verto.module + ".modify":
+368:                 if (e.holdState) {
+369:                     if (e.holdState == 'held') {
+370:                         if (this.state != Enum.state.held) {
+371:                             this.setState(Enum.state.held);
+372:                         }
+373:                     }
+374:                     else if (e.holdState == 'active') {
+375:                         if (this.state != Enum.state.active) {
+376:                             this.setState(Enum.state.active);
+377:                         }
+378:                     }
+379:                 }
+380:                 if (success) {
+381:                 }
+382:                 break;
+
+MATCH_LINE=371
+CODE=this.setState(Enum.state.held);
+363:                 break;
+364:             case this.verto.module + ".bye":
+365:                 this.hangup();
+366:                 break;
+367:             case this.verto.module + ".modify":
+368:                 if (e.holdState) {
+369:                     if (e.holdState == 'held') {
+370:                         if (this.state != Enum.state.held) {
+371:                             this.setState(Enum.state.held);
+372:                         }
+373:                     }
+374:                     else if (e.holdState == 'active') {
+375:                         if (this.state != Enum.state.active) {
+376:                             this.setState(Enum.state.active);
+377:                         }
+378:                     }
+379:                 }
+380:                 if (success) {
+381:                 }
+382:                 break;
+383:             default:
+
+MATCH_LINE=375
+CODE=if (this.state != Enum.state.active) {
+367:             case this.verto.module + ".modify":
+368:                 if (e.holdState) {
+369:                     if (e.holdState == 'held') {
+370:                         if (this.state != Enum.state.held) {
+371:                             this.setState(Enum.state.held);
+372:                         }
+373:                     }
+374:                     else if (e.holdState == 'active') {
+375:                         if (this.state != Enum.state.active) {
+376:                             this.setState(Enum.state.active);
+377:                         }
+378:                     }
+379:                 }
+380:                 if (success) {
+381:                 }
+382:                 break;
+383:             default:
+384:                 break;
+385:         }
+386:     };
+387:     VertoDialog.prototype.hangup = function (params) {
+
+MATCH_LINE=376
+CODE=this.setState(Enum.state.active);
+368:                 if (e.holdState) {
+369:                     if (e.holdState == 'held') {
+370:                         if (this.state != Enum.state.held) {
+371:                             this.setState(Enum.state.held);
+372:                         }
+373:                     }
+374:                     else if (e.holdState == 'active') {
+375:                         if (this.state != Enum.state.active) {
+376:                             this.setState(Enum.state.active);
+377:                         }
+378:                     }
+379:                 }
+380:                 if (success) {
+381:                 }
+382:                 break;
+383:             default:
+384:                 break;
+385:         }
+386:     };
+387:     VertoDialog.prototype.hangup = function (params) {
+388:         if (params) {
+
+MATCH_LINE=399
+CODE=if (this.state >= Enum.state.new && this.state < Enum.state.hangup) {
+391:             }
+392:             if (params.cause) {
+393:                 this.cause = params.cause;
+394:             }
+395:         }
+396:         if (!this.cause && !this.causeCode) {
+397:             this.cause = 'NORMAL_CLEARING';
+398:         }
+399:         if (this.state >= Enum.state.new && this.state < Enum.state.hangup) {
+400:             this.setState(Enum.state.hangup);
+401:         }
+402:         else if (this.state < Enum.state.destroy) {
+403:             this.setState(Enum.state.destroy);
+404:         }
+405:     };
+406:     VertoDialog.prototype.stopRinging = function () {
+407:         // console.log('stop ringing');
+408:         if (this.verto.ringer) {
+409:             this.rtc.stopRinger(this.verto.ringer);
+410:         }
+411:     };
+
+MATCH_LINE=400
+CODE=this.setState(Enum.state.hangup);
+392:             if (params.cause) {
+393:                 this.cause = params.cause;
+394:             }
+395:         }
+396:         if (!this.cause && !this.causeCode) {
+397:             this.cause = 'NORMAL_CLEARING';
+398:         }
+399:         if (this.state >= Enum.state.new && this.state < Enum.state.hangup) {
+400:             this.setState(Enum.state.hangup);
+401:         }
+402:         else if (this.state < Enum.state.destroy) {
+403:             this.setState(Enum.state.destroy);
+404:         }
+405:     };
+406:     VertoDialog.prototype.stopRinging = function () {
+407:         // console.log('stop ringing');
+408:         if (this.verto.ringer) {
+409:             this.rtc.stopRinger(this.verto.ringer);
+410:         }
+411:     };
+412:     VertoDialog.prototype.indicateRing = function () {
+
+MATCH_LINE=402
+CODE=else if (this.state < Enum.state.destroy) {
+394:             }
+395:         }
+396:         if (!this.cause && !this.causeCode) {
+397:             this.cause = 'NORMAL_CLEARING';
+398:         }
+399:         if (this.state >= Enum.state.new && this.state < Enum.state.hangup) {
+400:             this.setState(Enum.state.hangup);
+401:         }
+402:         else if (this.state < Enum.state.destroy) {
+403:             this.setState(Enum.state.destroy);
+404:         }
+405:     };
+406:     VertoDialog.prototype.stopRinging = function () {
+407:         // console.log('stop ringing');
+408:         if (this.verto.ringer) {
+409:             this.rtc.stopRinger(this.verto.ringer);
+410:         }
+411:     };
+412:     VertoDialog.prototype.indicateRing = function () {
+413:         var _this = this;
+414:         if (this.verto.ringer) {
+
+MATCH_LINE=403
+CODE=this.setState(Enum.state.destroy);
+395:         }
+396:         if (!this.cause && !this.causeCode) {
+397:             this.cause = 'NORMAL_CLEARING';
+398:         }
+399:         if (this.state >= Enum.state.new && this.state < Enum.state.hangup) {
+400:             this.setState(Enum.state.hangup);
+401:         }
+402:         else if (this.state < Enum.state.destroy) {
+403:             this.setState(Enum.state.destroy);
+404:         }
+405:     };
+406:     VertoDialog.prototype.stopRinging = function () {
+407:         // console.log('stop ringing');
+408:         if (this.verto.ringer) {
+409:             this.rtc.stopRinger(this.verto.ringer);
+410:         }
+411:     };
+412:     VertoDialog.prototype.indicateRing = function () {
+413:         var _this = this;
+414:         if (this.verto.ringer) {
+415:             this.verto.ringer.src = this.verto.options.ringFile;
+
+MATCH_LINE=420
+CODE=if (_this.state == Enum.state.ringing) {
+412:     VertoDialog.prototype.indicateRing = function () {
+413:         var _this = this;
+414:         if (this.verto.ringer) {
+415:             this.verto.ringer.src = this.verto.options.ringFile;
+416:             this.verto.ringer.play();
+417:             // console.log('playing ringer');
+418:             setTimeout(function () {
+419:                 _this.stopRinging();
+420:                 if (_this.state == Enum.state.ringing) {
+421:                     _this.indicateRing();
+422:                 }
+423:             }, this.verto.options.ringSleep);
+424:         }
+425:     };
+426:     VertoDialog.prototype.ring = function () {
+427:         this.setState(Enum.state.ringing);
+428:         this.indicateRing();
+429:     };
+430:     VertoDialog.prototype.useVideo = function (on) {
+431:         this.params.useVideo = on;
+432:         if (on) {
+
+MATCH_LINE=427
+CODE=this.setState(Enum.state.ringing);
+419:                 _this.stopRinging();
+420:                 if (_this.state == Enum.state.ringing) {
+421:                     _this.indicateRing();
+422:                 }
+423:             }, this.verto.options.ringSleep);
+424:         }
+425:     };
+426:     VertoDialog.prototype.ring = function () {
+427:         this.setState(Enum.state.ringing);
+428:         this.indicateRing();
+429:     };
+430:     VertoDialog.prototype.useVideo = function (on) {
+431:         this.params.useVideo = on;
+432:         if (on) {
+433:             this.videoStream = this.audioStream;
+434:         }
+435:         else {
+436:             this.videoStream = null;
+437:         }
+438:         this.rtc.useVideo(this.videoStream, this.localVideo);
+439:     };
+
+MATCH_LINE=560
+CODE=if (this.state >= Enum.state.active) {
+552:             }
+553:         }
+554:         this.rtc.createAnswer(params);
+555:         this.answered = true;
+556:     };
+557:     VertoDialog.prototype.handleAnswer = function (params) {
+558:         var _this = this;
+559:         this.gotAnswer = true;
+560:         if (this.state >= Enum.state.active) {
+561:             return;
+562:         }
+563:         if (this.state >= Enum.state.early) {
+564:             this.setState(Enum.state.active);
+565:         }
+566:         else {
+567:             if (this.gotEarly) {
+568:                 // console.log(
+569:                 //   'Dialog ' +
+570:                 //     this.callID +
+571:                 //     ' Got answer while still establishing early media, delaying...'
+572:                 // );
+
+MATCH_LINE=563
+CODE=if (this.state >= Enum.state.early) {
+555:         this.answered = true;
+556:     };
+557:     VertoDialog.prototype.handleAnswer = function (params) {
+558:         var _this = this;
+559:         this.gotAnswer = true;
+560:         if (this.state >= Enum.state.active) {
+561:             return;
+562:         }
+563:         if (this.state >= Enum.state.early) {
+564:             this.setState(Enum.state.active);
+565:         }
+566:         else {
+567:             if (this.gotEarly) {
+568:                 // console.log(
+569:                 //   'Dialog ' +
+570:                 //     this.callID +
+571:                 //     ' Got answer while still establishing early media, delaying...'
+572:                 // );
+573:             }
+574:             else {
+575:                 // console.log('Dialog ' + this.callID + ' Answering Channel');
+
+MATCH_LINE=564
+CODE=this.setState(Enum.state.active);
+556:     };
+557:     VertoDialog.prototype.handleAnswer = function (params) {
+558:         var _this = this;
+559:         this.gotAnswer = true;
+560:         if (this.state >= Enum.state.active) {
+561:             return;
+562:         }
+563:         if (this.state >= Enum.state.early) {
+564:             this.setState(Enum.state.active);
+565:         }
+566:         else {
+567:             if (this.gotEarly) {
+568:                 // console.log(
+569:                 //   'Dialog ' +
+570:                 //     this.callID +
+571:                 //     ' Got answer while still establishing early media, delaying...'
+572:                 // );
+573:             }
+574:             else {
+575:                 // console.log('Dialog ' + this.callID + ' Answering Channel');
+576:                 this.rtc.answer(params.sdp, function () {
+
+MATCH_LINE=577
+CODE=_this.setState(Enum.state.active);
+569:                 //   'Dialog ' +
+570:                 //     this.callID +
+571:                 //     ' Got answer while still establishing early media, delaying...'
+572:                 // );
+573:             }
+574:             else {
+575:                 // console.log('Dialog ' + this.callID + ' Answering Channel');
+576:                 this.rtc.answer(params.sdp, function () {
+577:                     _this.setState(Enum.state.active);
+578:                 }, function (e) {
+579:                     console.error(e);
+580:                     _this.hangup();
+581:                 });
+582:                 // console.log('Dialog ' + this.callID + 'ANSWER SDP', params.sdp);
+583:             }
+584:         }
+585:     };
+586:     VertoDialog.prototype.cidString = function (enc) {
+587:         var party = this.params.remote_caller_id_name +
+588:             (enc ? ' &lt;' : ' <') +
+589:             this.params.remote_caller_id_number +
+
+MATCH_LINE=612
+CODE=if (this.state >= Enum.state.early) {
+604:         }
+605:         if (params.display_number) {
+606:             this.params.remote_caller_id_number = params.display_number;
+607:         }
+608:         this.sendMessage(Enum.message.display, {});
+609:     };
+610:     VertoDialog.prototype.handleMedia = function (params) {
+611:         var _this = this;
+612:         if (this.state >= Enum.state.early) {
+613:             return;
+614:         }
+615:         this.gotEarly = true;
+616:         this.rtc.answer(params.sdp, function () {
+617:             // console.log('Dialog ' + this.callID + 'Establishing early media');
+618:             _this.setState(Enum.state.early);
+619:             if (_this.gotAnswer) {
+620:                 // console.log('Dialog ' + this.callID + 'Answering Channel');
+621:                 _this.setState(Enum.state.active);
+622:             }
+623:         }, function (e) {
+624:             console.error(e);
+
+MATCH_LINE=618
+CODE=_this.setState(Enum.state.early);
+610:     VertoDialog.prototype.handleMedia = function (params) {
+611:         var _this = this;
+612:         if (this.state >= Enum.state.early) {
+613:             return;
+614:         }
+615:         this.gotEarly = true;
+616:         this.rtc.answer(params.sdp, function () {
+617:             // console.log('Dialog ' + this.callID + 'Establishing early media');
+618:             _this.setState(Enum.state.early);
+619:             if (_this.gotAnswer) {
+620:                 // console.log('Dialog ' + this.callID + 'Answering Channel');
+621:                 _this.setState(Enum.state.active);
+622:             }
+623:         }, function (e) {
+624:             console.error(e);
+625:             _this.hangup();
+626:         });
+627:         // console.log('Dialog ' + this.callID + 'EARLY SDP', params.sdp);
+628:     };
+629:     VertoDialog.prototype.checkStateChange = function (oldS, newS) {
+630:         if (newS == Enum.state.purge || Enum.states[oldS][newS]) {
+
+MATCH_LINE=621
+CODE=_this.setState(Enum.state.active);
+613:             return;
+614:         }
+615:         this.gotEarly = true;
+616:         this.rtc.answer(params.sdp, function () {
+617:             // console.log('Dialog ' + this.callID + 'Establishing early media');
+618:             _this.setState(Enum.state.early);
+619:             if (_this.gotAnswer) {
+620:                 // console.log('Dialog ' + this.callID + 'Answering Channel');
+621:                 _this.setState(Enum.state.active);
+622:             }
+623:         }, function (e) {
+624:             console.error(e);
+625:             _this.hangup();
+626:         });
+627:         // console.log('Dialog ' + this.callID + 'EARLY SDP', params.sdp);
+628:     };
+629:     VertoDialog.prototype.checkStateChange = function (oldS, newS) {
+630:         if (newS == Enum.state.purge || Enum.states[oldS][newS]) {
+631:             return true;
+632:         }
+633:         return false;
+
+MATCH_LINE=629
+CODE=VertoDialog.prototype.checkStateChange = function (oldS, newS) {
+621:                 _this.setState(Enum.state.active);
+622:             }
+623:         }, function (e) {
+624:             console.error(e);
+625:             _this.hangup();
+626:         });
+627:         // console.log('Dialog ' + this.callID + 'EARLY SDP', params.sdp);
+628:     };
+629:     VertoDialog.prototype.checkStateChange = function (oldS, newS) {
+630:         if (newS == Enum.state.purge || Enum.states[oldS][newS]) {
+631:             return true;
+632:         }
+633:         return false;
+634:     };
+635:     VertoDialog.prototype.find_name = function (id) {
+636:         var sourceMatch = this.verto.audioOutDevices.find(function (source) { return source.id === id; });
+637:         return sourceMatch ? sourceMatch.label : id;
+638:     };
+639:     return VertoDialog;
+640: }());
+641: export default VertoDialog;
+
+MATCH_LINE=630
+CODE=if (newS == Enum.state.purge || Enum.states[oldS][newS]) {
+622:             }
+623:         }, function (e) {
+624:             console.error(e);
+625:             _this.hangup();
+626:         });
+627:         // console.log('Dialog ' + this.callID + 'EARLY SDP', params.sdp);
+628:     };
+629:     VertoDialog.prototype.checkStateChange = function (oldS, newS) {
+630:         if (newS == Enum.state.purge || Enum.states[oldS][newS]) {
+631:             return true;
+632:         }
+633:         return false;
+634:     };
+635:     VertoDialog.prototype.find_name = function (id) {
+636:         var sourceMatch = this.verto.audioOutDevices.find(function (source) { return source.id === id; });
+637:         return sourceMatch ? sourceMatch.label : id;
+638:     };
+639:     return VertoDialog;
+640: }());
+641: export default VertoDialog;
+642: //# sourceMappingURL=Dialog.js.map
+
+
+----- FILE: node_modules\@telnyx\webrtc\lib\Modules\TelnyxRTC\Enum.js -----
+MATCH_LINE=40
+CODE=states: Object.freeze((_a = {},
+32: export var Message;
+33: (function (Message) {
+34:     Message["display"] = "display";
+35:     Message["info"] = "info";
+36:     Message["pvtEvent"] = "pvtEvent";
+37:     Message["clientReady"] = "clientReady";
+38: })(Message || (Message = {}));
+39: export default {
+40:     states: Object.freeze((_a = {},
+41:         _a[TelnyxRTCCallState.new] = (_b = {},
+42:             _b[TelnyxRTCCallState.requesting] = 1,
+43:             _b[TelnyxRTCCallState.recovering] = 1,
+44:             _b[TelnyxRTCCallState.ringing] = 1,
+45:             _b[TelnyxRTCCallState.destroy] = 1,
+46:             _b[TelnyxRTCCallState.answering] = 1,
+47:             _b[TelnyxRTCCallState.hangup] = 1,
+48:             _b),
+49:         _a[TelnyxRTCCallState.requesting] = (_c = {},
+50:             _c[TelnyxRTCCallState.trying] = 1,
+51:             _c[TelnyxRTCCallState.hangup] = 1,
+52:             _c),
+
+MATCH_LINE=92
+CODE=state: TelnyxRTCCallState,
+84:         _a[TelnyxRTCCallState.hangup] = (_l = {},
+85:             _l[TelnyxRTCCallState.destroy] = 1,
+86:             _l),
+87:         _a[TelnyxRTCCallState.destroy] = {},
+88:         _a[TelnyxRTCCallState.purge] = (_m = {},
+89:             _m[TelnyxRTCCallState.destroy] = 1,
+90:             _m),
+91:         _a)),
+92:     state: TelnyxRTCCallState,
+93:     direction: Direction,
+94:     message: Message,
+95: };
+96: //# sourceMappingURL=Enum.js.map
+
+
+----- FILE: node_modules\@telnyx\webrtc\lib\Modules\TelnyxRTC\Verto.js -----
+MATCH_LINE=194
+CODE=_this.dialogs[dialog].setState(Enum.state.purge);
+186:             return false;
+187:         }
+188:         return true;
+189:     };
+190:     Verto.prototype.purge = function () {
+191:         var _this = this;
+192:         // purging dialogs
+193:         Object.keys(this.dialogs).forEach(function (dialog) {
+194:             _this.dialogs[dialog].setState(Enum.state.purge);
+195:         });
+196:         this.eventSUBS = {};
+197:     };
+198:     Verto.prototype.call = function (method, params, success_cb, error_cb) {
+199:         // Construct the JSON-RPC 2.0 request.
+200:         if (!params) {
+201:             params = {};
+202:         }
+203:         if (this.sessid) {
+204:             params.sessid = this.sessid;
+205:         }
+206:         var request = {
+
+MATCH_LINE=407
+CODE=dialog.setState(Enum.state.recovering);
+399:                         data.params.attach = true;
+400:                         if (data.params.sdp && data.params.sdp.indexOf('m=video') > 0) {
+401:                             data.params.useVideo = true;
+402:                         }
+403:                         if (data.params.sdp && data.params.sdp.indexOf('stereo=1') > 0) {
+404:                             data.params.useStereo = true;
+405:                         }
+406:                         dialog = new VertoDialog(Enum.direction.inbound, this, data.params);
+407:                         dialog.setState(Enum.state.recovering);
+408:                         break;
+409:                     case this.module + ".invite":
+410:                         if (data.params.sdp && data.params.sdp.indexOf('m=video') > 0) {
+411:                             data.params.wantVideo = true;
+412:                         }
+413:                         if (data.params.sdp && data.params.sdp.indexOf('stereo=1') > 0) {
+414:                             data.params.useStereo = true;
+415:                         }
+416:                         dialog = new VertoDialog(Enum.direction.inbound, this, data.params);
+417:                         break;
+418:                     default:
+419:                         console.debug('INVALID METHOD OR NON-EXISTANT CALL REFERENCE IGNORED');
+
+
+----- FILE: node_modules\@telnyx\webrtc\lib\SipClient\SipCall.js -----
+MATCH_LINE=15
+CODE=if (this.isIncoming && this.sip.state === C.STATUS_NEW) {
+7:         if (isIncoming === void 0) { isIncoming = false; }
+8:         this.sip = sip;
+9:         this.session = session;
+10:         this.isIncoming = isIncoming;
+11:     }
+12:     Object.defineProperty(SipCall.prototype, "state", {
+13:         get: function () {
+14:             var C = SIP.Web.Simple.C;
+15:             if (this.isIncoming && this.sip.state === C.STATUS_NEW) {
+16:                 return 'ringing';
+17:             }
+18:             switch (this.sip.state) {
+19:                 case C.STATUS_CONNECTING:
+20:                     return 'connecting';
+21:                 case C.STATUS_CONNECTED:
+22:                     return 'active';
+23:                 case C.STATUS_COMPLETED:
+24:                     return 'done';
+25:                 case C.STATUS_NULL:
+26:                 case C.STATUS_NEW:
+27:                 default:
+
+
+----- FILE: node_modules\@telnyx\webrtc\lib\TelnyxRTCClient\TelnyxRTCCall.js -----
+MATCH_LINE=42
+CODE=return this.state === 'held';
+34:         get: function () {
+35:             return this.call.getMute();
+36:         },
+37:         enumerable: true,
+38:         configurable: true
+39:     });
+40:     Object.defineProperty(TelnyxRTCCall.prototype, "isHeld", {
+41:         get: function () {
+42:             return this.state === 'held';
+43:         },
+44:         enumerable: true,
+45:         configurable: true
+46:     });
+47:     TelnyxRTCCall.prototype.hangup = function () {
+48:         this.call.hangup();
+49:     };
+50:     TelnyxRTCCall.prototype.answer = function () {
+51:         this.call.answer();
+52:     };
+53:     TelnyxRTCCall.prototype.reject = function () {
+54:         this.call.hangup();
+
+
+----- FILE: node_modules\@telnyx\webrtc\lib\TelnyxRTCClient\TelnyxRTCClient.test.js -----
+MATCH_LINE=102
+CODE=if (call.state === 'new' && !didHangUp) {
+94:         };
+95:         client
+96:             .on('socket.connect', function () { return console.log("Connect"); })
+97:             .on('registered', function () {
+98:             makeCall();
+99:         })
+100:             .on('callUpdate', function (call) {
+101:             if (countCalls === 0) {
+102:                 if (call.state === 'new' && !didHangUp) {
+103:                     didHangUp = true;
+104:                     call.hangup();
+105:                 }
+106:                 if (call.state === 'done') {
+107:                     client.disconnect();
+108:                 }
+109:             }
+110:         })
+111:             .on('socket.close', function () {
+112:             if (countCalls === 0) {
+113:                 done();
+114:             }
+
+MATCH_LINE=106
+CODE=if (call.state === 'done') {
+98:             makeCall();
+99:         })
+100:             .on('callUpdate', function (call) {
+101:             if (countCalls === 0) {
+102:                 if (call.state === 'new' && !didHangUp) {
+103:                     didHangUp = true;
+104:                     call.hangup();
+105:                 }
+106:                 if (call.state === 'done') {
+107:                     client.disconnect();
+108:                 }
+109:             }
+110:         })
+111:             .on('socket.close', function () {
+112:             if (countCalls === 0) {
+113:                 done();
+114:             }
+115:             countCalls++;
+116:         });
+117:         client.connect();
+118:     }, 10000);
+
+===== NUMERIC STATE LOOKUP =====
+node_modules\@telnyx\webrtc\lib\bundle.js : 71: if (!(t = _.trys, t = t.length > 0 && t[t.length - 1]) && (op[0] === 6 || op[0] === 2)) { _ = 0; continue; }
+node_modules\@telnyx\webrtc\lib\bundle.js : 951: return result && result.length == 2 ? result[1] : null;
+node_modules\@telnyx\webrtc\lib\bundle.js : 1776: TelnyxRTCCallState[TelnyxRTCCallState["requesting"] = 2] = "requesting";
+node_modules\@telnyx\webrtc\lib\bundle.js : 1785: TelnyxRTCCallState[TelnyxRTCCallState["destroy"] = 11] = "destroy";
+node_modules\@telnyx\webrtc\lib\bundle.js : 2253: _a.label = 2;
+node_modules\@telnyx\webrtc\lib\bundle.js : 2254: case 2: return [2 /*return*/];
+node_modules\@telnyx\webrtc\lib\bundle.js : 3830: case 2:
+node_modules\@telnyx\webrtc\lib\Modules\NewVerto\Verto.js : 38: if (!(t = _.trys, t = t.length > 0 && t[t.length - 1]) && (op[0] === 6 || op[0] === 2)) { _ = 0; continue; }
+node_modules\@telnyx\webrtc\lib\Modules\NewVerto\Verto.js : 101: _b.label = 2;
+node_modules\@telnyx\webrtc\lib\Modules\NewVerto\Verto.js : 102: case 2:
+node_modules\@telnyx\webrtc\lib\Modules\NewVerto\webrtc\BaseCall.js : 36: if (!(t = _.trys, t = t.length > 0 && t[t.length - 1]) && (op[0] === 6 || op[0] === 2)) { _ = 0; continue; }
+node_modules\@telnyx\webrtc\lib\Modules\NewVerto\webrtc\BaseCall.js : 217: _a.label = 2;
+node_modules\@telnyx\webrtc\lib\Modules\NewVerto\webrtc\BaseCall.js : 218: case 2: return [2 /*return*/];
+node_modules\@telnyx\webrtc\lib\Modules\NewVerto\webrtc\BaseCall.js : 255: _b.label = 2;
+node_modules\@telnyx\webrtc\lib\Modules\NewVerto\webrtc\BaseCall.js : 256: case 2: return [2 /*return*/];
+node_modules\@telnyx\webrtc\lib\Modules\NewVerto\webrtc\BaseCall.js : 372: case 2:
+node_modules\@telnyx\webrtc\lib\Modules\NewVerto\webrtc\BaseCall.js : 406: case 11:
+node_modules\@telnyx\webrtc\lib\Modules\NewVerto\webrtc\BaseSession.js : 25: if (!(t = _.trys, t = t.length > 0 && t[t.length - 1]) && (op[0] === 6 || op[0] === 2)) { _ = 0; continue; }
+node_modules\@telnyx\webrtc\lib\Modules\NewVerto\webrtc\BaseSession.js : 253: case 2:
+node_modules\@telnyx\webrtc\lib\Modules\NewVerto\webrtc\BaseSession.js : 327: case 2:
+node_modules\@telnyx\webrtc\lib\Modules\NewVerto\webrtc\BrowserSession.js : 38: if (!(t = _.trys, t = t.length > 0 && t[t.length - 1]) && (op[0] === 6 || op[0] === 2)) { _ = 0; continue; }
+node_modules\@telnyx\webrtc\lib\Modules\NewVerto\webrtc\BrowserSession.js : 134: case 2:
+node_modules\@telnyx\webrtc\lib\Modules\NewVerto\webrtc\BrowserSession.js : 293: case 2:
+node_modules\@telnyx\webrtc\lib\Modules\NewVerto\webrtc\Call.js : 49: if (!(t = _.trys, t = t.length > 0 && t[t.length - 1]) && (op[0] === 6 || op[0] === 2)) { _ = 0; continue; }
+node_modules\@telnyx\webrtc\lib\Modules\NewVerto\webrtc\constants.js : 57: State[State["Trying"] = 2] = "Trying";
+node_modules\@telnyx\webrtc\lib\Modules\NewVerto\webrtc\constants.js : 66: State[State["Purge"] = 11] = "Purge";
+node_modules\@telnyx\webrtc\lib\Modules\NewVerto\webrtc\helpers.js : 25: if (!(t = _.trys, t = t.length > 0 && t[t.length - 1]) && (op[0] === 6 || op[0] === 2)) { _ = 0; continue; }
+node_modules\@telnyx\webrtc\lib\Modules\NewVerto\webrtc\helpers.js : 62: case 2: return [2 /*return*/, _a.sent()];
+node_modules\@telnyx\webrtc\lib\Modules\NewVerto\webrtc\helpers.js : 99: case 2:
+node_modules\@telnyx\webrtc\lib\Modules\NewVerto\webrtc\helpers.js : 137: _b.label = 2;
+node_modules\@telnyx\webrtc\lib\Modules\NewVerto\webrtc\helpers.js : 138: case 2:
+node_modules\@telnyx\webrtc\lib\Modules\NewVerto\webrtc\helpers.js : 176: _e.label = 2;
+node_modules\@telnyx\webrtc\lib\Modules\NewVerto\webrtc\helpers.js : 177: case 2:
+node_modules\@telnyx\webrtc\lib\Modules\NewVerto\webrtc\helpers.js : 233: _a.label = 2;
+node_modules\@telnyx\webrtc\lib\Modules\NewVerto\webrtc\helpers.js : 234: case 2: return [2 /*return*/, constraints];
+node_modules\@telnyx\webrtc\lib\Modules\NewVerto\webrtc\helpers.js : 252: return result && result.length == 2 ? result[1] : null;
+node_modules\@telnyx\webrtc\lib\Modules\NewVerto\webrtc\Peer.js : 25: if (!(t = _.trys, t = t.length > 0 && t[t.length - 1]) && (op[0] === 6 || op[0] === 2)) { _ = 0; continue; }
+node_modules\@telnyx\webrtc\lib\Modules\NewVerto\webrtc\VertoHandler.js : 25: if (!(t = _.trys, t = t.length > 0 && t[t.length - 1]) && (op[0] === 6 || op[0] === 2)) { _ = 0; continue; }
+node_modules\@telnyx\webrtc\lib\Modules\NewVerto\webrtc\VertoHandler.js : 203: case 2:
+node_modules\@telnyx\webrtc\lib\Modules\NewVerto\webrtc\messages\blade\Connect.js : 15: var major = 2;
+node_modules\@telnyx\webrtc\lib\Modules\NewVerto\webrtc\services\Connection.js : 13: CLOSING: 2,
+node_modules\@telnyx\webrtc\lib\Modules\NewVerto\webrtc\services\Setup.js : 25: if (!(t = _.trys, t = t.length > 0 && t[t.length - 1]) && (op[0] === 6 || op[0] === 2)) { _ = 0; continue; }
+node_modules\@telnyx\webrtc\lib\Modules\NewVerto\webrtc\services\Setup.js : 54: case 2:
+node_modules\@telnyx\webrtc\lib\Modules\NewVerto\webrtc\utils\storage\index.js : 25: if (!(t = _.trys, t = t.length > 0 && t[t.length - 1]) && (op[0] === 6 || op[0] === 2)) { _ = 0; continue; }
+node_modules\@telnyx\webrtc\lib\Modules\NewVerto\webrtc\utils\storage\index.native.js : 25: if (!(t = _.trys, t = t.length > 0 && t[t.length - 1]) && (op[0] === 6 || op[0] === 2)) { _ = 0; continue; }
+node_modules\@telnyx\webrtc\lib\Modules\NewVerto\webrtc\utils\storage\index.native.js : 50: case 2:
+node_modules\@telnyx\webrtc\lib\Modules\NewVerto\webrtc\utils\webrtc\index.js : 25: if (!(t = _.trys, t = t.length > 0 && t[t.length - 1]) && (op[0] === 6 || op[0] === 2)) { _ = 0; continue; }
+node_modules\@telnyx\webrtc\lib\Modules\NewVerto\webrtc\utils\webrtc\index.js : 96: case 2:
+node_modules\@telnyx\webrtc\lib\Modules\TelnyxRTC\Enum.js : 9: TelnyxRTCCallState[TelnyxRTCCallState["requesting"] = 2] = "requesting";
+node_modules\@telnyx\webrtc\lib\Modules\TelnyxRTC\Enum.js : 18: TelnyxRTCCallState[TelnyxRTCCallState["destroy"] = 11] = "destroy";
+node_modules\@telnyx\webrtc\lib\Modules\TelnyxRTC\RTC.js : 56: if (!(t = _.trys, t = t.length > 0 && t[t.length - 1]) && (op[0] === 6 || op[0] === 2)) { _ = 0; continue; }
+node_modules\@telnyx\webrtc\lib\Modules\TelnyxRTC\RTC.js : 91: return result && result.length == 2 ? result[1] : null;
+node_modules\@telnyx\webrtc\lib\SipClient\SipClient.js : 38: if (!(t = _.trys, t = t.length > 0 && t[t.length - 1]) && (op[0] === 6 || op[0] === 2)) { _ = 0; continue; }
+node_modules\@telnyx\webrtc\lib\TelnyxRTCClient\TelnyxRTCClient.js : 38: if (!(t = _.trys, t = t.length > 0 && t[t.length - 1]) && (op[0] === 6 || op[0] === 2)) { _ = 0; continue; }
+node_modules\@telnyx\webrtc\lib\TelnyxRTCClient\TelnyxRTCClient.js : 87: case 2:
+
+===== RELEVANT SDK FILES =====
+node_modules\@telnyx\webrtc\lib\TelnyxRTC.d.ts
+node_modules\@telnyx\webrtc\lib\TelnyxRTC.js
+node_modules\@telnyx\webrtc\lib\TelnyxRTC.js.map
+node_modules\@telnyx\webrtc\lib\Modules\NewVerto\Verto.d.ts
+node_modules\@telnyx\webrtc\lib\Modules\NewVerto\Verto.js
+node_modules\@telnyx\webrtc\lib\Modules\NewVerto\Verto.js.map
+node_modules\@telnyx\webrtc\lib\Modules\NewVerto\webrtc\BaseCall.d.ts
+node_modules\@telnyx\webrtc\lib\Modules\NewVerto\webrtc\BaseCall.js
+node_modules\@telnyx\webrtc\lib\Modules\NewVerto\webrtc\BaseCall.js.map
+node_modules\@telnyx\webrtc\lib\Modules\NewVerto\webrtc\Call.d.ts
+node_modules\@telnyx\webrtc\lib\Modules\NewVerto\webrtc\Call.js
+node_modules\@telnyx\webrtc\lib\Modules\NewVerto\webrtc\Call.js.map
+node_modules\@telnyx\webrtc\lib\Modules\NewVerto\webrtc\Call.native.d.ts
+node_modules\@telnyx\webrtc\lib\Modules\NewVerto\webrtc\Call.native.js
+node_modules\@telnyx\webrtc\lib\Modules\NewVerto\webrtc\Call.native.js.map
+node_modules\@telnyx\webrtc\lib\Modules\NewVerto\webrtc\VertoHandler.d.ts
+node_modules\@telnyx\webrtc\lib\Modules\NewVerto\webrtc\VertoHandler.js
+node_modules\@telnyx\webrtc\lib\Modules\NewVerto\webrtc\VertoHandler.js.map
+node_modules\@telnyx\webrtc\lib\Modules\NewVerto\webrtc\messages\Verto.d.ts
+node_modules\@telnyx\webrtc\lib\Modules\NewVerto\webrtc\messages\Verto.js
+node_modules\@telnyx\webrtc\lib\Modules\NewVerto\webrtc\messages\Verto.js.map
+node_modules\@telnyx\webrtc\lib\Modules\TelnyxRTC\Dialog.d.ts
+node_modules\@telnyx\webrtc\lib\Modules\TelnyxRTC\Dialog.js
+node_modules\@telnyx\webrtc\lib\Modules\TelnyxRTC\Dialog.js.map
+node_modules\@telnyx\webrtc\lib\Modules\TelnyxRTC\Enum.d.ts
+node_modules\@telnyx\webrtc\lib\Modules\TelnyxRTC\Enum.js
+node_modules\@telnyx\webrtc\lib\Modules\TelnyxRTC\Enum.js.map
+node_modules\@telnyx\webrtc\lib\Modules\TelnyxRTC\RTC.d.ts
+node_modules\@telnyx\webrtc\lib\Modules\TelnyxRTC\RTC.js
+node_modules\@telnyx\webrtc\lib\Modules\TelnyxRTC\RTC.js.map
+node_modules\@telnyx\webrtc\lib\Modules\TelnyxRTC\TelnyxRTC.d.ts
+node_modules\@telnyx\webrtc\lib\Modules\TelnyxRTC\Verto.d.ts
+node_modules\@telnyx\webrtc\lib\Modules\TelnyxRTC\Verto.js
+node_modules\@telnyx\webrtc\lib\Modules\TelnyxRTC\Verto.js.map
+node_modules\@telnyx\webrtc\lib\Modules\Verto\messages\Verto.d.ts
+node_modules\@telnyx\webrtc\lib\Modules\Verto\webrtc\BaseCall.d.ts
+node_modules\@telnyx\webrtc\lib\Modules\Verto\webrtc\Call.d.ts
+node_modules\@telnyx\webrtc\lib\Modules\Verto\webrtc\VertoHandler.d.ts
+node_modules\@telnyx\webrtc\lib\SipClient\SipCall.d.ts
+node_modules\@telnyx\webrtc\lib\SipClient\SipCall.js
+node_modules\@telnyx\webrtc\lib\SipClient\SipCall.js.map
+node_modules\@telnyx\webrtc\lib\TelnyxRTC\Dialog.d.ts
+node_modules\@telnyx\webrtc\lib\TelnyxRTC\Enum.d.ts
+node_modules\@telnyx\webrtc\lib\TelnyxRTC\RTC.d.ts
+node_modules\@telnyx\webrtc\lib\TelnyxRTC\Verto.d.ts
+node_modules\@telnyx\webrtc\lib\TelnyxRTCClient\ITelnyxRTCDialog.d.ts
+node_modules\@telnyx\webrtc\lib\TelnyxRTCClient\ITelnyxRTCDialog.js
+node_modules\@telnyx\webrtc\lib\TelnyxRTCClient\ITelnyxRTCDialog.js.map
+node_modules\@telnyx\webrtc\lib\TelnyxRTCClient\TelnyxRTCCall.d.ts
+node_modules\@telnyx\webrtc\lib\TelnyxRTCClient\TelnyxRTCCall.js
+node_modules\@telnyx\webrtc\lib\TelnyxRTCClient\TelnyxRTCCall.js.map
+node_modules\@telnyx\webrtc\lib\TelnyxRTCClient\TelnyxRTCClient.d.ts
+node_modules\@telnyx\webrtc\lib\TelnyxRTCClient\TelnyxRTCClient.js
+node_modules\@telnyx\webrtc\lib\TelnyxRTCClient\TelnyxRTCClient.js.map
+node_modules\@telnyx\webrtc\lib\TelnyxRTCClient\TelnyxRTCClient.test.d.ts
+node_modules\@telnyx\webrtc\lib\TelnyxRTCClient\TelnyxRTCClient.test.js
+node_modules\@telnyx\webrtc\lib\TelnyxRTCClient\TelnyxRTCClient.test.js.map
+node_modules\@telnyx\webrtc\lib\TelnyxRTCClient\Verto.d.ts
+node_modules\@telnyx\webrtc\lib\TelnyxRTCClient2\TelnyxRTCClient2.d.ts
+node_modules\@telnyx\webrtc\lib\TelnyxRTCClient2\TelnyxRTCClient2.js
+node_modules\@telnyx\webrtc\lib\TelnyxRTCClient2\TelnyxRTCClient2.js.map
+node_modules\@telnyx\webrtc\lib\Verto\Dialog.d.ts
+node_modules\@telnyx\webrtc\lib\Verto\Enum.d.ts
+node_modules\@telnyx\webrtc\lib\Verto\RTC.d.ts
+node_modules\@telnyx\webrtc\lib\Verto\Verto.d.ts
+node_modules\@telnyx\webrtc\lib\VertoClient\IVertoDialog.d.ts
+node_modules\@telnyx\webrtc\lib\VertoClient\VertoCall.d.ts
+node_modules\@telnyx\webrtc\lib\VertoClient\VertoClient.d.ts
+
+====================================================
+END INSPECTION
+====================================================
