@@ -1,15 +1,15 @@
 ﻿====================================================
-NAVA OTP - DIALER CHANGE FAILED
+NAVA OTP - DIALER CHANGE SUCCESS
 ====================================================
+
+BUILD
+PASSED
 
 BUILD EXIT CODE
 -1
 
-EDITED HASH
+PHONE SHA256
 802B1F012F5BE3ABE862C8FDE22A69537D23FD04E064580F54805697B10FE039
-
-RESTORED HASH
-2F4BD0F9CF2667018CEF3A5B94A39B68A8371E463FC150AE7BC62520237E4944
 
 ====================================================
 BUILD OUTPUT
@@ -17,7 +17,7 @@ BUILD OUTPUT
 
 
 ====================================================
-DIFF
+EXACT PHONE DIFF
 ====================================================
 diff --git a/src/components/voice/NavaPhone.tsx b/src/components/voice/NavaPhone.tsx
 index f65d053..e07673f 100644
