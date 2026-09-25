@@ -1,0 +1,106 @@
+I'll inspect the project structure read-only, starting with the root directory and key config files.
+
+I inspected the working copy read-only (no files created, modified, or deleted; no env/secrets files read — only the presence of data/DEPOSIT_WALLET_PUBLIC.json was noted, contents not printed).
+
+Navasocks — Project Inspection Report
+1. Framework and language(s)
+Next.js 16 (App Router) — next@^16.3.5 (lockfile resolves 16.3.5), React 19.2.6, TypeScript 5.9.3 (strict mode).
+Tailwind CSS v4 (tailwindcss@4.1.17 + @tailwindcss/postcss), PostCSS config in postcss.config.mjs.
+All application code is TS/TSX; next.config.ts is empty (const nextConfig: NextConfig = {}).
+No public/ directory, no next/font usage.
+2. Package manager
+npm — package-lock.json with lockfileVersion: 3. No yarn/pnpm/bun lockfiles.
+node_modules/ is not installed in this copy.
+3. Main application entry points
+Root layout: src/app/layout.tsx (metadata, inline theme-bootstrap <Script strategy="beforeInteractive">, SitePreferencesProvider, flag-emoji polyfill).
+Root page: src/app/page.tsx ("use client" landing page).
+Dashboard layout/guard: src/app/dashboard/layout.tsx (server-side getSessionUser() → redirect to /auth/login).
+Server bootstrap: src/db/init.ts initDb() — DDL executed lazily from GET /api/health, POST /api/auth/signup, GET /api/listings/details (not from a startup hook).
+No middleware.ts, no vercel.json, no custom server.
+4. Major src/app pages and routes
+Route	File	Notes
+/	src/app/page.tsx	Landing: pricing calculator, live-test, code snippets, checkout modal
+/auth/login	src/app/auth/login/page.tsx	Client, inline 13-language copy, 2FA step
+/auth/signup	src/app/auth/signup/page.tsx	Client
+/auth/forgot-password	src/app/auth/forgot-password/page.tsx	Client
+/dashboard	src/app/dashboard/page.tsx (~100 KB)	Tab-based: proxy, inventory, history, payments, tools, support
+/dashboard/history	src/app/dashboard/history/page.tsx	Separate history route (tab link at dashboard/page.tsx:779)
+/admin	does not exist	login/page.tsx:311-315 redirects role === "admin" to /admin → would 404
+dashboard/page.tsx tab→URL mapping: proxy → /dashboard, history → /dashboard/history, others → /dashboard?tab=<id> (Navbar also links /dashboard?tab=payments).
+
+5. API routes (23 route.ts files, 28 handlers)
+Auth: POST /api/auth/signup, POST /api/auth/login, POST /api/auth/logout, GET /api/auth/me, POST /api/auth/forgot-password, POST /api/auth/toggle-2fa
+Health/system: GET /api/health
+Listings: GET /api/listings, GET /api/listings/details, POST /api/listings/buy, POST /api/listings/reveal, GET|POST|PUT /api/listings/owned
+Payments: POST /api/payments/crypto, GET /api/payments/crypto/status, POST /api/internal/crypto/payment-cycle (header x-crypto-watcher-secret, timing-safe compare)
+Account/data: GET /api/subscriptions, GET /api/history, GET|POST|DELETE /api/user/keys, POST /api/user/whitelist
+Proxies: POST /api/proxies/test, POST /api/proxies/generate
+Support: GET|POST /api/support/create, POST /api/support/tickets
+Observations (no in-repo caller found): /api/user/keys, /api/user/whitelist, /api/proxies/generate, /api/auth/toggle-2fa. Mismatch: dashboard/page.tsx:615 issues GET /api/support/tickets?scope=refunds, but that route only exports POST; the POST itself always returns 410 "Refund requests are currently disabled.".
+
+6. Authentication / session
+src/lib/auth.ts: session cookie nsocks_session containing the raw numeric user id (not signed/tokenized), httpOnly, sameSite: lax, secure in production, 7-day expiry; getSessionUser() loads the user from DB and rejects banned/suspended.
+Passwords: bcryptjs, cost 10 (hashPassword/verifyPassword).
+Guarding: only src/app/dashboard/layout.tsx redirects unauthenticated users; individual API routes call getSessionUser() ad hoc. No middleware-level protection.
+2FA is demo-grade: toggle-2fa stores a fixed secret JBSWY3DPEHPK3PXP and accepts any 6-digit code; login only checks code length — no TOTP verification.
+forgot-password returns a mockToken and, if newPassword is supplied, resets the password with no token/verification step.
+7. Database / ORM
+PostgreSQL via pg Pool + Drizzle ORM (drizzle-orm/node-postgres); singleton in src/db/index.ts (throws if DATABASE_URL unset).
+Schema: src/db/schema.ts — 14 tables: users, proxy_plans, user_subscriptions, crypto_deposits (legacy), crypto_deposit_addresses, crypto_payment_intents, crypto_payment_transactions, transactions, proxy_nodes, api_keys, bandwidth_logs, proxy_listings, owned_proxies, support_tickets.
+Two DDL sources coexist:
+src/db/init.ts — raw CREATE TABLE IF NOT EXISTS run at request time + dev-only seedDatabase().
+drizzle.config.ts (dialect postgresql, schema ./src/db/schema.ts) for drizzle-kit.
+Drift: schema.ts declares provider/transport_*/access_*/public_access_* columns on users, user_subscriptions, transactions, api_keys, proxy_listings, owned_proxies that init.ts does not create; conversely dashboard_support_tickets / dashboard_support_messages are created ad-hoc by raw pool.query in api/support/create/route.ts and exist in neither file.
+Seed data (src/db/seed.ts): demo users user@nsocks.io / admin@nsocks.io with hardcoded demo passwords, plans, nodes, ~60 proxy listings.
+8. Payment / deposit areas
+src/app/api/payments/crypto/route.ts (~32 KB): create_deposit (USD $1–$10,000), price quoting, signed quotes (signCryptoQuote/verifyCryptoQuote, TTL 15 min, keyed by PROXY_ACCESS_SECRET), and on-chain verification for BTC (Blockstream), LTC (litecoinspace), USDT TRC-20 (TronGrid).
+src/lib/crypto/: payment-intents.ts (HD address inventory, BIP32/BIP39/@noble/@scure derivation from data/DEPOSIT_WALLET_PUBLIC.json, override via DEPOSIT_WALLET_PUBLIC_PATH), payment-watcher.ts (blockchain scan + retry/backoff), payment-crediting.ts (credits users.balance), payment-cycle.ts (runPaymentCycle).
+Trigger: POST /api/internal/crypto/payment-cycle only; no cron/scheduler config exists in the repo.
+UI: src/components/PaymentModal.tsx (creates deposit, polls /api/payments/crypto/status), dashboard "payments" tab, Navbar "TOP UP".
+Spending: api/listings/buy decrements users.balance in a transaction and inserts transactions (paymentMethod: "balance"); api/listings/reveal charges $0.05.
+Tables: legacy crypto_deposits retained alongside crypto_deposit_addresses / crypto_payment_intents / crypto_payment_transactions (comment: "remains untouched for rollback/legacy compatibility").
+9. Localization / language
+13 site languages — SITE_LANGUAGES in src/components/SitePreferences.tsx (en, de, es, fr, ja, ko, it, pl, pt, ru, zh, es-ar, tr), stored in localStorage key navasocks-language, exposed via useSitePreferences().t() against SITE_TRANSLATIONS (typed TranslationKey union).
+Second, separate system: src/lib/supportTranslations.ts — SUPPORT_COPY with 12 languages (no es-ar), used only by SupportDashboard.
+Third/fourth/fifth, duplicated per-page dictionaries: LOGIN_TEXT, SIGNUP_TEXT, FORGOT_TEXT — each a local Record<string, Record<string,string>> with ~13 languages; auth pages do not use SitePreferences translations.
+Supporting pieces: Navbar.tsx LANGUAGE_COUNTRY_CODES, Flag.tsx COLORS, country-flag-emoji-polyfill invoked in root layout.
+dashboard/page.tsx casts the shared translator: const dashboardT = translate as unknown as (key: any) => string.
+10. Theme / light-dark implementation
+Pre-hydration bootstrap THEME_BOOTSTRAP inline script in src/app/layout.tsx (beforeInteractive): scans localStorage keys matching /theme|appearance|preference|dark/i, prefers navasocks-theme, falls back to prefers-color-scheme, then sets html[data-theme], .dark class, colorScheme, --page-bg (#080d19 dark / #f1f5f9 light).
+Runtime state: SitePreferencesProvider (dark default true, applyThemeToDocument()), toggled from Navbar; persisted in navasocks-theme.
+CSS: src/app/globals.css — Tailwind v4 @custom-variant dark, plus large html:not([data-theme="light"]) … !important override blocks targeting navbar/form/input elements.
+Duplicated bootstraps: the same THEME_BOOTSTRAP string is copy-pasted into auth/login/page.tsx and auth/forgot-password/page.tsx, and dashboard/history/page.tsx injects a separate DARK_THEME_OVERRIDE <style>.
+Three backup/checkpoint folders hold earlier theme iterations (see §12).
+11. Build, lint, and test commands
+From package.json:
+
+npm run dev → next dev
+npm run build → next build
+npm run start → next start
+npm run lint → eslint . (flat config eslint.config.mjs, eslint-config-next/core-web-vitals)
+npm run typecheck → tsc --noEmit
+No test script and no test framework/test files anywhere (no jest/vitest/playwright config, no *.test.*/*.spec.*).
+No db scripts (drizzle-kit@0.31.10 installed but no db:push/db:generate/db:migrate).
+package.json also carries a non-standard allowScripts block (esbuild/sharp/unrs-resolver).
+12. Obvious duplicate / generated / stray files
+Backup folders (root): _THEME_BOOTSTRAP_CHECKPOINT_20260922_225205/ (layout.tsx, history_page.tsx), _THEME_BOOTSTRAP_CHECKPOINT_20260922_230321/ (SitePreferences.tsx), _THEME_FLASH_BACKUPS/layout_BEFORE_FLASH_FIX_20260922_203223.tsx. All hash-differ from current files (older versions). These names are not in .gitignore, .vercelignore, tsconfig excludes, or the ESLint ignores (which reference non-existent _NAVASOCKS_BACKUPS/), so they fall inside tsconfig's **/*.ts(x) include and are linted/type-checked.
+In src/app/dashboard/history/: page.tsx.bak (10 KB) and a stray extension-less file literally named ( (718 bytes, partial JSX) — both build artifacts/garbage.
+Unused source files (no importer found): src/components/AppHeader.tsx, src/components/ArchitectureModal.tsx, src/gateway/decodo-relay.ts, src/lib/proxy-supply/{csv,decodo,importer,types}.ts.
+Duplicate features: history UI exists both as a /dashboard tab and as /dashboard/history; two parallel support systems (support_tickets table + /api/support/tickets (disabled 410) vs dashboard_support_* tables + /api/support/create); three/four independent translation dictionaries; three copies of the theme bootstrap.
+Leftovers: package.json name is still nextjs-postgresql-template.
+13. Missing dependencies / configuration to run locally
+node_modules/ not installed → npm install required.
+No .env.local and no .env.example (.gitignore/.vercelignore reference !.env.example, but the file doesn't exist).
+Hard-required env (throws at import/use):
+DATABASE_URL — src/db/index.ts and drizzle.config.ts.
+PROXY_ACCESS_SECRET — src/lib/proxy-access.ts (AES-256-GCM proxy credential encryption); also the crypto-quote signing key, defaulted to "" in the payments route.
+NAVA_PUBLIC_PROXY_HOST — src/lib/public-proxy.ts.
+Required for features: CRYPTO_WATCHER_SECRET (internal payment-cycle route 401s without it), CRYPTO_BTC_ADDRESS / CRYPTO_LTC_ADDRESS / CRYPTO_USDT_TRC20_ADDRESS, TRONGRID_API_KEY (+ optional TRONGRID_BASE_URL, CRYPTO_USDT_TRC20_CONTRACT, confirmation thresholds), IPINFO_TOKEN, DECODO_USERNAME/DECODO_PASSWORD/NAVA_GATEWAY_HOST, optional DEPOSIT_WALLET_PUBLIC_PATH.
+A running PostgreSQL instance is required (nothing provisions one).
+data/DEPOSIT_WALLET_PUBLIC.json must be present (it is, and holds only public HD keys — contents not inspected/published).
+No payment-cycle scheduler is configured in-repo; the internal endpoint needs an external caller or deposits never confirm/credit.
+No Node version pin (no engines, no .nvmrc), no README, no tests.
+Dependency skew: next@16.3.5 vs eslint-config-next@16.2.6.
+Missing route: /admin (target of admin login redirect) has no page.
+Missing handler: GET /api/support/tickets (called by the dashboard) doesn't exist.
+Working copy is not a git repository.
