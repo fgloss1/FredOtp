@@ -53,14 +53,18 @@ export default function NavaPhone() {
         setStatus("Ready to call");
       });
 
-      client.on("telnyx.error", (error: unknown) => {
-        console.error("Telnyx WebRTC error:", error);
+      client.on("telnyx.error", (event: any) => {
+        console.error("Telnyx WebRTC error:", event);
 
-        if (error instanceof Error) {
-          setStatus(`Telnyx error: ${error.message}`);
-        } else {
-          setStatus("Telnyx error");
-        }
+        const error = event?.error ?? event;
+
+        const code = error?.code ? ` [${error.code}]` : "";
+        const message =
+          error?.message ||
+          event?.errorMessage ||
+          "Telnyx WebRTC error";
+
+        setStatus(`Telnyx error${code}: ${message}`);
       });
 
       client.on("telnyx.notification", (notification: any) => {
@@ -100,15 +104,38 @@ export default function NavaPhone() {
             break;
 
           case "hangup":
-            setStatus("Call ended");
-            callRef.current = null;
-            break;
-
           case "destroy":
           case "purge":
+          case "done": {
+            const cause = call.cause || "unknown";
+            const causeCode =
+              call.causeCode !== undefined
+                ? String(call.causeCode)
+                : "n/a";
+            const sipCode =
+              call.sipCode !== undefined
+                ? String(call.sipCode)
+                : "n/a";
+            const sipReason = call.sipReason || "n/a";
+
+            console.error("NAVA CALL TERMINATION", {
+              state: call.state,
+              cause,
+              causeCode,
+              sipCode,
+              sipReason,
+              callId: call.id,
+              destinationNumber: call.options?.destinationNumber,
+              callerNumber: call.options?.callerNumber,
+            });
+
+            setStatus(
+              `DONE | ${cause} | causeCode=${causeCode} | SIP=${sipCode} | ${sipReason}`
+            );
+
             callRef.current = null;
-            setStatus("Call ended");
             break;
+          }
 
           default:
             setStatus(`Call: ${call.state}`);
@@ -254,3 +281,4 @@ export default function NavaPhone() {
     </div>
   );
 }
+
