@@ -1,0 +1,85 @@
+﻿====================================================
+NAVA OTP - DIALER FIX VERIFICATION
+====================================================
+
+TIMESTAMP
+2026-09-25 11:30:17
+
+BRANCH
+LOCAL-DIALER-FIX-20260925_112949
+
+RESULT
+BUILD PASSED
+
+BUILD EXIT CODE
+0
+
+PHONE PAGE SHA256
+2F4BD0F9CF2667018CEF3A5B94A39B68A8371E463FC150AE7BC62520237E4944
+
+====================================================
+BUILD STDOUT
+====================================================
+â–² Next.js 16.3.6 (Turbopack)
+- Environments: .env.local
+âœ“ Running next.config.ts took 75ms
+
+  Creating an optimized production build ...
+âœ“ Compiled successfully in 6.2s
+  Running TypeScript ...
+  Finished TypeScript in 7.9s ...
+  Collecting page data using 3 workers ...
+  Generating static pages using 3 workers (0/4) ...
+  Generating static pages using 3 workers (1/4) 
+  Generating static pages using 3 workers (2/4) 
+  Generating static pages using 3 workers (3/4) 
+âœ“ Generating static pages using 3 workers (4/4) in 775ms
+  Finalizing page optimization ...
+
+Route (app)
+â”Œ Æ’ /
+â”œ â—‹ /_not-found
+â”œ Æ’ /api/auth/login
+â”œ Æ’ /api/auth/logout
+â”œ Æ’ /api/auth/register
+â”œ Æ’ /api/catalog
+â”œ Æ’ /api/health
+â”œ Æ’ /api/payments/paystack/initialize
+â”œ Æ’ /api/payments/paystack/verify
+â”œ Æ’ /api/payments/paystack/webhook
+â”œ Æ’ /api/rentals
+â”œ Æ’ /api/rentals/[id]
+â”œ Æ’ /api/sms/messages
+â”œ Æ’ /api/voice/token
+â”œ Æ’ /api/wallet/topup
+â”œ Æ’ /api/webhooks/telnyx
+â”œ Æ’ /dashboard
+â”œ Æ’ /dashboard/orders
+â”œ Æ’ /dashboard/phone
+â”œ Æ’ /dashboard/wallet
+â”œ Æ’ /login
+â”œ â—‹ /payment/callback
+â”œ Æ’ /pricing
+â”” Æ’ /register
+
+
+â—‹  (Static)   prerendered as static content
+Æ’  (Dynamic)  server-rendered on demand
+
+
+
+====================================================
+BUILD STDERR
+====================================================
+npm notice run build
+npm notice run next build
+
+
+====================================================
+DIALER DIFF
+====================================================
+
+
+====================================================
+END REPORT
+====================================================
