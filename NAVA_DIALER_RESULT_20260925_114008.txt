@@ -3,16 +3,16 @@ NAVA OTP - DIALER RESULT
 ====================================================
 
 RESULT
-BUILD FAILED - SOURCE RESTORED
+BUILD PASSED
 
 BUILD EXIT CODE
 -1
 
-EDITED SHA256
+PHONE SHA256
 802B1F012F5BE3ABE862C8FDE22A69537D23FD04E064580F54805697B10FE039
 
-RESTORED SHA256
-2F4BD0F9CF2667018CEF3A5B94A39B68A8371E463FC150AE7BC62520237E4944
+BRANCH
+LOCAL-DIALER-20260925_114008-1408
 
 ====================================================
 BUILD OUTPUT
@@ -143,3 +143,7 @@ index f65d053..e07673f 100644
 +}
 \ No newline at end of file
 
+
+====================================================
+END REPORT
+====================================================
