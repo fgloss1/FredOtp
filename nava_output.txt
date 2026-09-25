@@ -1,0 +1,95 @@
+﻿====================================================
+ NAVA PHONE LOCAL INSPECTION REPORT
+====================================================
+Date: 2026-09-25 11:15:05
+Branch: LOCAL-INSPECTION
+
+SOURCE:
+src/components/voice/NavaPhone.tsx
+
+SOURCE SHA256:
+2F4BD0F9CF2667018CEF3A5B94A39B68A8371E463FC150AE7BC62520237E4944
+
+DIALER CHECKS:
+dialKey: False
+Dial 1 button: False
+CLEAR: False
+BACKSPACE: False
+CALL: True
+CONNECT: True
+HANG UP: True
+DISCONNECT: True
+Existing makeCall(): True
+
+LOCAL BUILD:
+SUCCESS
+Exit Code: 0
+
+===== EXACT BUILD OUTPUT =====
+npm notice run build
+npm notice run next build
+â–² Next.js 16.3.6 (Turbopack)
+- Environments: .env.local
+âœ“ Running next.config.ts took 75ms
+
+  Creating an optimized production build ...
+âœ“ Compiled successfully in 4.7s
+  Running TypeScript ...
+  Finished TypeScript in 6.2s ...
+  Collecting page data using 3 workers ...
+  Generating static pages using 3 workers (0/4) ...
+  Generating static pages using 3 workers (1/4) 
+  Generating static pages using 3 workers (2/4) 
+  Generating static pages using 3 workers (3/4) 
+âœ“ Generating static pages using 3 workers (4/4) in 346ms
+  Finalizing page optimization ...
+
+Route (app)
+â”Œ Æ’ /
+â”œ â—‹ /_not-found
+â”œ Æ’ /api/auth/login
+â”œ Æ’ /api/auth/logout
+â”œ Æ’ /api/auth/register
+â”œ Æ’ /api/catalog
+â”œ Æ’ /api/health
+â”œ Æ’ /api/payments/paystack/initialize
+â”œ Æ’ /api/payments/paystack/verify
+â”œ Æ’ /api/payments/paystack/webhook
+â”œ Æ’ /api/rentals
+â”œ Æ’ /api/rentals/[id]
+â”œ Æ’ /api/sms/messages
+â”œ Æ’ /api/voice/token
+â”œ Æ’ /api/wallet/topup
+â”œ Æ’ /api/webhooks/telnyx
+â”œ Æ’ /dashboard
+â”œ Æ’ /dashboard/orders
+â”œ Æ’ /dashboard/phone
+â”œ Æ’ /dashboard/wallet
+â”œ Æ’ /login
+â”œ â—‹ /payment/callback
+â”œ Æ’ /pricing
+â”” Æ’ /register
+
+
+â—‹  (Static)   prerendered as static content
+Æ’  (Dynamic)  server-rendered on demand
+
+
+
+===== LOCAL GIT STATUS BEFORE REPORT COMMIT =====
+A  nava_output.txt
+ M next-env.d.ts
+ M src/app/dashboard/phone/page.tsx
+ M src/components/LogoutButton.tsx
+ M src/components/voice/NavaPhone.tsx
+?? backups/
+?? nava_build_output.tmp.txt
+?? src/app/dashboard/phone/page.tsx.before-local-phone-panel.bak
+?? src/components/voice/NavaPhone.tsx.before-dialer.bak
+?? src/components/voice/NavaPhone.tsx.before_972_test_20260925_100225.bak
+
+====================================================
+ IMPORTANT:
+ SOURCE FILE WAS NOT COMMITTED BY THIS SCRIPT.
+ ONLY nava_output.txt WILL BE COMMITTED/PUSHED.
+====================================================
