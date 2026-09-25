@@ -3,7 +3,7 @@
 import { useEffect, useRef, useState } from "react";
 import { TelnyxRTC } from "@telnyx/webrtc";
 
-const DEFAULT_DESTINATION = "+18052464223";
+const DEFAULT_DESTINATION = "+19727835097";
 
 export default function NavaPhone() {
   const clientRef = useRef<TelnyxRTC | null>(null);
