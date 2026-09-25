@@ -1,47 +1,75 @@
 ﻿====================================================
- NAVA PHONE LOCAL INSPECTION REPORT
+NAVA PHONE DIAGNOSTIC REPORT
 ====================================================
-Date: 2026-09-25 11:15:05
-Branch: LOCAL-INSPECTION
+
+DATE:
+2026-09-25 11:16:11
+
+BRANCH:
+LOCAL-INSPECTION
+
+REMOTE:
+https://github.com/fgloss1/FredOtp.git
 
 SOURCE:
-src/components/voice/NavaPhone.tsx
+.\src\components\voice\NavaPhone.tsx
 
 SOURCE SHA256:
 2F4BD0F9CF2667018CEF3A5B94A39B68A8371E463FC150AE7BC62520237E4944
 
-DIALER CHECKS:
-dialKey: False
-Dial 1 button: False
-CLEAR: False
-BACKSPACE: False
-CALL: True
-CONNECT: True
-HANG UP: True
-DISCONNECT: True
-Existing makeCall(): True
+===== DIALER SOURCE CHECKS =====
 
-LOCAL BUILD:
+Name                           Value           
+----                           -----           
+Branch                         LOCAL-INSPECTION
+DialKey                        False           
+Dial1                          False           
+Clear                          False           
+Backspace                      False           
+Call                           True            
+Connect                        True            
+HangUp                         True            
+Disconnect                     True            
+ExistingMakeCall               True            
+
+
+
+
+===== GIT BEFORE BUILD =====
+ M next-env.d.ts
+ M src/app/dashboard/phone/page.tsx
+ M src/components/LogoutButton.tsx
+ M src/components/voice/NavaPhone.tsx
+?? backups/
+?? src/app/dashboard/phone/page.tsx.before-local-phone-panel.bak
+?? src/components/voice/NavaPhone.tsx.before-dialer.bak
+?? src/components/voice/NavaPhone.tsx.before_972_test_20260925_100225.bak
+
+
+====================================================
+BUILD START
+====================================================
+
+===== BUILD RESULT =====
 SUCCESS
-Exit Code: 0
 
 ===== EXACT BUILD OUTPUT =====
 npm notice run build
 npm notice run next build
 â–² Next.js 16.3.6 (Turbopack)
 - Environments: .env.local
-âœ“ Running next.config.ts took 75ms
+âœ“ Running next.config.ts took 83ms
 
   Creating an optimized production build ...
-âœ“ Compiled successfully in 4.7s
+âœ“ Compiled successfully in 6.2s
   Running TypeScript ...
-  Finished TypeScript in 6.2s ...
+  Finished TypeScript in 7.6s ...
   Collecting page data using 3 workers ...
   Generating static pages using 3 workers (0/4) ...
   Generating static pages using 3 workers (1/4) 
   Generating static pages using 3 workers (2/4) 
   Generating static pages using 3 workers (3/4) 
-âœ“ Generating static pages using 3 workers (4/4) in 346ms
+âœ“ Generating static pages using 3 workers (4/4) in 405ms
   Finalizing page optimization ...
 
 Route (app)
@@ -76,8 +104,8 @@ Route (app)
 
 
 
-===== LOCAL GIT STATUS BEFORE REPORT COMMIT =====
-A  nava_output.txt
+===== GIT BEFORE REPORT COMMIT =====
+ M nava_output.txt
  M next-env.d.ts
  M src/app/dashboard/phone/page.tsx
  M src/components/LogoutButton.tsx
@@ -88,8 +116,13 @@ A  nava_output.txt
 ?? src/components/voice/NavaPhone.tsx.before-dialer.bak
 ?? src/components/voice/NavaPhone.tsx.before_972_test_20260925_100225.bak
 
-====================================================
- IMPORTANT:
- SOURCE FILE WAS NOT COMMITTED BY THIS SCRIPT.
- ONLY nava_output.txt WILL BE COMMITTED/PUSHED.
-====================================================
+
+
+===== STAGED FILE VERIFICATION =====
+nava_output.txt
+
+===== STAGED DIFF STAT =====
+ nava_output.txt | 80 +++++++++++++++++++++++++++++++++++++--------------------
+ 1 file changed, 52 insertions(+), 28 deletions(-)
+
+
