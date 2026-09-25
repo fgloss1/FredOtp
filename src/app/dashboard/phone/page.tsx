@@ -1,4 +1,4 @@
-import NavaPhone from "@/components/voice/NavaPhone";
+﻿import NavaPhone from "@/components/voice/NavaPhone";
 import NavaSmsInbox from "@/components/voice/NavaSmsInbox";
 
 export default function PhonePage() {
@@ -11,8 +11,8 @@ export default function PhonePage() {
         </p>
       </div>
 
-      <div className="grid grid-cols-1 gap-6 lg:grid-cols-3 lg:items-start">
-        <div className="card p-6 lg:col-span-2">
+      <div className="grid gap-6 lg:grid-cols-[minmax(0,2fr)_minmax(320px,1fr)] lg:items-start">
+        <div className="card p-6">
           <NavaPhone />
         </div>
 
