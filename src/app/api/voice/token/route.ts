@@ -3,34 +3,29 @@
 export const dynamic = "force-dynamic";
 
 export async function GET() {
-  try {
-    const apiKey = process.env.TELNYX_API_KEY;
-    const connectionId = process.env.TELNYX_CONNECTION_ID;
-
-    if (!apiKey || !connectionId) {
-      return NextResponse.json(
-        {
-          error: "Missing Telnyx configuration",
-        },
-        {
-          status: 500,
-        }
-      );
-    }
-
-    return NextResponse.json({
-      status: "ready",
-      connectionId,
-      message: "Telnyx WebRTC route is connected",
-    });
-  } catch (error) {
+  if (process.env.NODE_ENV === "production") {
     return NextResponse.json(
-      {
-        error: "Voice token route failed",
-      },
-      {
-        status: 500,
-      }
+      { error: "Direct WebRTC credentials are disabled in production." },
+      { status: 404 }
     );
   }
+
+  const username = process.env.TELNYX_WEBRTC_USERNAME;
+  const password = process.env.TELNYX_WEBRTC_PASSWORD;
+
+  if (!username || !password) {
+    return NextResponse.json(
+      { error: "Missing Telnyx WebRTC credentials." },
+      { status: 500 }
+    );
+  }
+
+  return NextResponse.json(
+    { username, password },
+    {
+      headers: {
+        "Cache-Control": "no-store",
+      },
+    }
+  );
 }
