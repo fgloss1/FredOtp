@@ -2116,3 +2116,151 @@ node_modules\@telnyx\webrtc\lib\VertoClient\VertoClient.d.ts
 ====================================================
 END INSPECTION
 ====================================================
+
+
+====================================================
+TARGETED DIALOG.JS CONTEXT - CALL STATE FAILURE
+Generated: 2026-09-25 08:55:52
+====================================================
+
+===== DIALOG.JS LINES 260-330 =====
+260:                 callback(false, null, arg);
+261:             }
+262:             return Promise.reject();
+263:         }
+264:     };
+265:     VertoDialog.prototype.setState = function (state) {
+266:         var _this = this;
+267:         if (this.state == Enum.state.ringing) {
+268:             this.stopRinging();
+269:         }
+270:         if (this.state == state || !this.checkStateChange(this.state, state)) {
+271:             console.error('Dialog ' +
+272:                 this.callID +
+273:                 ': INVALID state change from ' +
+274:                 this.state +
+275:                 ' to ' +
+276:                 state);
+277:             this.hangup();
+278:             return false;
+279:         }
+280:         // console.log(
+281:         //   'Dialog ' +
+282:         //     this.callID +
+283:         //     ': state change from ' +
+284:         //     this.state.name +
+285:         //     ' to ' +
+286:         //     state.name
+287:         // );
+288:         this.lastState = this.state;
+289:         this.state = state;
+290:         if (this.callbacks.onDialogState) {
+291:             this.callbacks.onDialogState(this);
+292:         }
+293:         if (this.onStateChange) {
+294:             this.onStateChange(this.state, this.lastState);
+295:         }
+296:         switch (this.state) {
+297:             case Enum.state.early:
+298:             case Enum.state.active:
+299:                 var speaker_1 = this.useSpeak;
+300:                 // console.info('Using Speaker: ', speaker);
+301:                 if (speaker_1 && speaker_1 !== 'any' && speaker_1 !== 'none') {
+302:                     setTimeout(function () {
+303:                         _this.setAudioPlaybackDevice(speaker_1);
+304:                     }, 500);
+305:                 }
+306:                 break;
+307:             case Enum.state.trying:
+308:                 setTimeout(function () {
+309:                     if (_this.state == Enum.state.trying) {
+310:                         _this.setState(Enum.state.hangup);
+311:                     }
+312:                 }, 30000);
+313:                 break;
+314:             case Enum.state.purge:
+315:                 this.setState(Enum.state.destroy);
+316:                 break;
+317:             case Enum.state.hangup:
+318:                 if (this.lastState > Enum.state.requesting &&
+319:                     this.lastState < Enum.state.hangup) {
+320:                     this.sendMethod(this.verto.module + ".bye", {});
+321:                 }
+322:                 this.setState(Enum.state.destroy);
+323:                 break;
+324:             case Enum.state.destroy:
+325:                 // TODO: This should probably only happen when a tag wasn't specified.
+326:                 // if (typeof this.verto.options.tag === 'function') {
+327:                 //   this.verto.options.tag().remove();
+328:                 // }
+329:                 delete this.verto.dialogs[this.callID];
+330:                 if (this.params.screenShare) {
+
+===== DIALOG.JS LINES 340-370 =====
+340:     VertoDialog.prototype.processReply = function (method, success, e) {
+341:         // console.log(
+342:         //   'Response: ' + method + ' State:' + this.state.name,
+343:         //   success,
+344:         //   e
+345:         // );
+346:         switch (method) {
+347:             case this.verto.module + ".answer":
+348:             case this.verto.module + ".attach":
+349:                 if (success) {
+350:                     this.setState(Enum.state.active);
+351:                 }
+352:                 else {
+353:                     this.hangup();
+354:                 }
+355:                 break;
+356:             case this.verto.module + ".invite":
+357:                 if (success) {
+358:                     this.setState(Enum.state.trying);
+359:                 }
+360:                 else {
+361:                     this.setState(Enum.state.destroy);
+362:                 }
+363:                 break;
+364:             case this.verto.module + ".bye":
+365:                 this.hangup();
+366:                 break;
+367:             case this.verto.module + ".modify":
+368:                 if (e.holdState) {
+369:                     if (e.holdState == 'held') {
+370:                         if (this.state != Enum.state.held) {
+
+===== DIALOG.JS LINES 387-410 =====
+387:     VertoDialog.prototype.hangup = function (params) {
+388:         if (params) {
+389:             if (params.causeCode) {
+390:                 this.causeCode = params.causeCode;
+391:             }
+392:             if (params.cause) {
+393:                 this.cause = params.cause;
+394:             }
+395:         }
+396:         if (!this.cause && !this.causeCode) {
+397:             this.cause = 'NORMAL_CLEARING';
+398:         }
+399:         if (this.state >= Enum.state.new && this.state < Enum.state.hangup) {
+400:             this.setState(Enum.state.hangup);
+401:         }
+402:         else if (this.state < Enum.state.destroy) {
+403:             this.setState(Enum.state.destroy);
+404:         }
+405:     };
+406:     VertoDialog.prototype.stopRinging = function () {
+407:         // console.log('stop ringing');
+408:         if (this.verto.ringer) {
+409:             this.rtc.stopRinger(this.verto.ringer);
+410:         }
+
+===== EXACT DESTROY TRANSITIONS =====
+LINE 315: this.setState(Enum.state.destroy);
+LINE 322: this.setState(Enum.state.destroy);
+LINE 361: this.setState(Enum.state.destroy);
+LINE 403: this.setState(Enum.state.destroy);
+
+====================================================
+END TARGETED DIALOG.JS INSPECTION
+====================================================
