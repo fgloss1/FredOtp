@@ -9,6 +9,8 @@ export default function NavaPhone() {
   const clientRef = useRef<TelnyxRTC | null>(null);
   const callRef = useRef<any>(null);
   const callerNumberRef = useRef<string>("");
+  const micStreamRef = useRef<MediaStream | null>(null);
+  const statsTimerRef = useRef<ReturnType<typeof setInterval> | null>(null);
 
   const [destination, setDestination] = useState(DEFAULT_DESTINATION);
   const [status, setStatus] = useState("Ready");
@@ -99,9 +101,78 @@ export default function NavaPhone() {
             setStatus("Ringing...");
             break;
 
-          case "active":
-            setStatus("Call active");
+          case "active": {
+            try {
+              call.unmuteAudio();
+            } catch (error) {
+              console.warn("NAVA unmuteAudio warning:", error);
+            }
+
+            const localTracks =
+              call.localStream?.getAudioTracks?.() ||
+              micStreamRef.current?.getAudioTracks?.() ||
+              [];
+
+            localTracks.forEach((track: MediaStreamTrack) => {
+              track.enabled = true;
+            });
+
+            console.log("NAVA ACTIVE MICROPHONE", {
+              tracks: localTracks.map((track: MediaStreamTrack) => ({
+                label: track.label,
+                enabled: track.enabled,
+                muted: track.muted,
+                readyState: track.readyState,
+              })),
+              isAudioMuted: call.isAudioMuted,
+            });
+
+            if (statsTimerRef.current) {
+              clearInterval(statsTimerRef.current);
+            }
+
+            statsTimerRef.current = setInterval(async () => {
+              try {
+                const pc = call.peer?.instance;
+
+                if (!pc) {
+                  return;
+                }
+
+                const stats = await pc.getStats();
+                const outboundAudio: any[] = [];
+
+                stats.forEach((report: any) => {
+                  if (
+                    report.type === "outbound-rtp" &&
+                    report.kind === "audio"
+                  ) {
+                    outboundAudio.push({
+                      bytesSent: report.bytesSent,
+                      packetsSent: report.packetsSent,
+                      ssrc: report.ssrc,
+                    });
+                  }
+                });
+
+                console.log("NAVA OUTBOUND AUDIO RTP", outboundAudio);
+
+                if (outboundAudio.length > 0) {
+                  const totalBytes = outboundAudio.reduce(
+                    (sum, item) => sum + (item.bytesSent || 0),
+                    0
+                  );
+
+                  setStatus(`Call active | audio sent ${totalBytes} bytes`);
+                }
+              } catch (error) {
+                console.warn("NAVA RTP stats warning:", error);
+              }
+            }, 2000);
+
+            setStatus("Call active | microphone ON");
             break;
+          }
 
           case "hangup":
           case "destroy":
@@ -118,7 +189,7 @@ export default function NavaPhone() {
                 : "n/a";
             const sipReason = call.sipReason || "n/a";
 
-            console.error("NAVA CALL TERMINATION", {
+            console.info("NAVA CALL TERMINATION", {
               state: call.state,
               cause,
               causeCode,
@@ -132,6 +203,11 @@ export default function NavaPhone() {
             setStatus(
               `DONE | ${cause} | causeCode=${causeCode} | SIP=${sipCode} | ${sipReason}`
             );
+
+            if (statsTimerRef.current) {
+              clearInterval(statsTimerRef.current);
+              statsTimerRef.current = null;
+            }
 
             callRef.current = null;
             break;
@@ -158,7 +234,7 @@ export default function NavaPhone() {
     }
   }
 
-  function makeCall() {
+  async function makeCall() {
     const client = clientRef.current;
 
     if (!client) {
@@ -179,11 +255,47 @@ export default function NavaPhone() {
     }
 
     try {
+      setStatus("Preparing microphone...");
+
+      if (!micStreamRef.current) {
+        micStreamRef.current =
+          await navigator.mediaDevices.getUserMedia({
+            audio: {
+              echoCancellation: true,
+              noiseSuppression: true,
+              autoGainControl: true,
+            },
+            video: false,
+          });
+      }
+
+      const micTracks = micStreamRef.current.getAudioTracks();
+
+      if (micTracks.length === 0) {
+        throw new Error("No microphone audio track was created.");
+      }
+
+      micTracks.forEach((track) => {
+        track.enabled = true;
+      });
+
+      console.log("NAVA MICROPHONE READY", {
+        trackCount: micTracks.length,
+        tracks: micTracks.map((track) => ({
+          label: track.label,
+          enabled: track.enabled,
+          muted: track.muted,
+          readyState: track.readyState,
+        })),
+      });
+
       setStatus("Starting call...");
 
       const call = client.newCall({
         destinationNumber: number,
         callerNumber: callerNumberRef.current,
+        audio: true,
+        localStream: micStreamRef.current,
       });
 
       callRef.current = call;
@@ -226,6 +338,14 @@ export default function NavaPhone() {
     try {
       client.disconnect();
     } finally {
+      if (statsTimerRef.current) {
+        clearInterval(statsTimerRef.current);
+        statsTimerRef.current = null;
+      }
+
+      micStreamRef.current?.getTracks().forEach((track) => track.stop());
+      micStreamRef.current = null;
+
       callRef.current = null;
       clientRef.current = null;
       setStatus("Disconnected");
@@ -234,6 +354,14 @@ export default function NavaPhone() {
 
   useEffect(() => {
     return () => {
+      if (statsTimerRef.current) {
+        clearInterval(statsTimerRef.current);
+        statsTimerRef.current = null;
+      }
+
+      micStreamRef.current?.getTracks().forEach((track) => track.stop());
+      micStreamRef.current = null;
+
       const client = clientRef.current;
 
       if (client) {
@@ -281,4 +409,5 @@ export default function NavaPhone() {
     </div>
   );
 }
+
 
