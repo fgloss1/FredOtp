@@ -1,0 +1,530 @@
+﻿====================================================
+NAVA OTP - READ ONLY LOCAL DIALER INSPECTION
+====================================================
+
+TIMESTAMP
+2026-09-25 11:38:53
+
+LOCAL BRANCH
+LOCAL-DIALER-FIX-20260925_113735-2010
+
+LOCAL HEAD
+3300a5a090c6739027f6fc11d74bebf3a1726a7d
+
+====================================================
+GIT STATUS
+====================================================
+ M nava_output.txt
+ M next-env.d.ts
+ M src/components/LogoutButton.tsx
+?? NavaPhone.tsx.before-dialer-20260925_112837.bak
+?? NavaPhone.tsx.before-dialer-20260925_112949.bak
+?? NavaPhone.tsx.before-dialer-20260925_113238.bak
+?? NavaPhone.tsx.before-dialer-20260925_113735.bak
+?? backups/
+?? nava_push_error.txt
+?? src/app/dashboard/phone/page.tsx.before-local-phone-panel.bak
+?? src/app/dashboard/phone/page.tsx.before-panel-fix.bak
+?? src/components/voice/NavaPhone.tsx.before-dialer.bak
+?? src/components/voice/NavaPhone.tsx.before_972_test_20260925_100225.bak
+
+
+====================================================
+NAVA PHONE SHA256
+====================================================
+2F4BD0F9CF2667018CEF3A5B94A39B68A8371E463FC150AE7BC62520237E4944
+
+====================================================
+STRUCTURE CHECKS
+====================================================
+
+RETURN BLOCK MATCHES
+2
+
+DIALER DECLARATION EXISTS
+False
+
+CALL HANDLER EXISTS
+True
+
+HANGUP HANDLER EXISTS
+True
+
+REMOTE AUDIO EXISTS
+True
+
+TELNYXRTC EXISTS
+True
+
+DEFAULT DESTINATION
+const DEFAULT_DESTINATION = "+19727835097";
+
+====================================================
+GIT DIFF FOR NAVA PHONE
+====================================================
+
+
+====================================================
+EXACT LOCAL NAVA PHONE SOURCE
+====================================================
+   1: "use client";
+   2: 
+   3: import { useEffect, useRef, useState } from "react";
+   4: import { TelnyxRTC } from "@telnyx/webrtc";
+   5: 
+   6: const DEFAULT_DESTINATION = "+19727835097";
+   7: 
+   8: export default function NavaPhone() {
+   9:   const clientRef = useRef<TelnyxRTC | null>(null);
+  10:   const callRef = useRef<any>(null);
+  11:   const callerNumberRef = useRef<string>("");
+  12:   const micStreamRef = useRef<MediaStream | null>(null);
+  13:   const statsTimerRef = useRef<ReturnType<typeof setInterval> | null>(null);
+  14: 
+  15:   const [destination, setDestination] = useState(DEFAULT_DESTINATION);
+  16:   const [status, setStatus] = useState("Ready");
+  17: 
+  18:   async function connectPhone() {
+  19:     if (clientRef.current) {
+  20:       setStatus("Already connected");
+  21:       return;
+  22:     }
+  23: 
+  24:     try {
+  25:       setStatus("Getting WebRTC credentials...");
+  26: 
+  27:       const response = await fetch("/api/voice/token", {
+  28:         cache: "no-store",
+  29:       });
+  30: 
+  31:       const data = await response.json();
+  32: 
+  33:       if (!response.ok) {
+  34:         throw new Error(
+  35:           data.error || "Unable to get WebRTC credentials."
+  36:         );
+  37:       }
+  38: 
+  39:       if (!data.username || !data.password) {
+  40:         throw new Error("WebRTC credentials were not returned.");
+  41:       }
+  42: 
+  43:       callerNumberRef.current = data.callerNumber || "";
+  44: 
+  45:       setStatus("Connecting to Telnyx...");
+  46: 
+  47:       const client = new TelnyxRTC({
+  48:         login: data.username,
+  49:         password: data.password,
+  50:       });
+  51: 
+  52:       client.remoteElement = "remoteMedia";
+  53: 
+  54:       client.on("telnyx.ready", () => {
+  55:         setStatus("Ready to call");
+  56:       });
+  57: 
+  58:       client.on("telnyx.error", (event: any) => {
+  59:         console.error("Telnyx WebRTC error:", event);
+  60: 
+  61:         const error = event?.error ?? event;
+  62: 
+  63:         const code = error?.code ? ` [${error.code}]` : "";
+  64:         const message =
+  65:           error?.message ||
+  66:           event?.errorMessage ||
+  67:           "Telnyx WebRTC error";
+  68: 
+  69:         setStatus(`Telnyx error${code}: ${message}`);
+  70:       });
+  71: 
+  72:       client.on("telnyx.notification", (notification: any) => {
+  73:         console.log("Telnyx notification:", notification);
+  74: 
+  75:         if (notification?.type !== "callUpdate") {
+  76:           return;
+  77:         }
+  78: 
+  79:         const call = notification.call;
+  80: 
+  81:         if (!call) {
+  82:           return;
+  83:         }
+  84: 
+  85:         callRef.current = call;
+  86: 
+  87:         switch (call.state) {
+  88:           case "new":
+  89:             setStatus("Calling...");
+  90:             break;
+  91: 
+  92:           case "requesting":
+  93:             setStatus("Sending call...");
+  94:             break;
+  95: 
+  96:           case "trying":
+  97:             setStatus("Trying...");
+  98:             break;
+  99: 
+ 100:           case "ringing":
+ 101:             setStatus("Ringing...");
+ 102:             break;
+ 103: 
+ 104:           case "active": {
+ 105:             try {
+ 106:               call.unmuteAudio();
+ 107:             } catch (error) {
+ 108:               console.warn("NAVA unmuteAudio warning:", error);
+ 109:             }
+ 110: 
+ 111:             const micTrack =
+ 112:               call.localStream?.getAudioTracks?.()[0] || null;
+ 113: 
+ 114:             const audioSender = call.peer?.instance
+ 115:               ?.getSenders?.()
+ 116:               .find(
+ 117:                 (sender: RTCRtpSender) => sender.track?.kind === "audio"
+ 118:               );
+ 119: 
+ 120:             if (audioSender && micTrack && audioSender.track !== micTrack) {
+ 121:               void audioSender
+ 122:                 .replaceTrack(micTrack)
+ 123:                 .then(() => {
+ 124:                   console.log("NAVA AUDIO SENDER REBOUND", {
+ 125:                     senderTrackId: audioSender.track?.id,
+ 126:                     micTrackId: micTrack.id,
+ 127:                   });
+ 128:                 })
+ 129:                 .catch((error: unknown) => {
+ 130:                   console.warn("NAVA AUDIO SENDER REBIND WARNING:", error);
+ 131:                 });
+ 132:             }
+ 133: 
+ 134:             const localTracks =
+ 135:               call.localStream?.getAudioTracks?.() ||
+ 136:               micStreamRef.current?.getAudioTracks?.() ||
+ 137:               [];
+ 138: 
+ 139:             localTracks.forEach((track: MediaStreamTrack) => {
+ 140:               track.enabled = true;
+ 141:             });
+ 142: 
+ 143:             console.log("NAVA ACTIVE MICROPHONE", {
+ 144:               tracks: localTracks.map((track: MediaStreamTrack) => ({
+ 145:                 id: track.id,
+ 146:                 label: track.label,
+ 147:                 enabled: track.enabled,
+ 148:                 muted: track.muted,
+ 149:                 readyState: track.readyState,
+ 150:               })),
+ 151:               micTrackId: micTrack?.id || null,
+ 152:               senderTrackId: audioSender?.track?.id || null,
+ 153:               isAudioMuted: call.isAudioMuted,
+ 154:             });
+ 155: 
+ 156:             if (statsTimerRef.current) {
+ 157:               clearInterval(statsTimerRef.current);
+ 158:             }
+ 159: 
+ 160:             statsTimerRef.current = setInterval(async () => {
+ 161:               try {
+ 162:                 const pc = call.peer?.instance;
+ 163: 
+ 164:                 if (!pc) {
+ 165:                   return;
+ 166:                 }
+ 167: 
+ 168:                 const stats = await pc.getStats();
+ 169:                 const outboundAudio: any[] = [];
+ 170:                 const localAudioSource: any[] = [];
+ 171:                 const remoteInboundAudio: any[] = [];
+ 172: 
+ 173:                 stats.forEach((report: any) => {
+ 174:                   if (
+ 175:                     report.type === "outbound-rtp" &&
+ 176:                     report.kind === "audio"
+ 177:                   ) {
+ 178:                     outboundAudio.push({
+ 179:                       bytesSent: report.bytesSent,
+ 180:                       packetsSent: report.packetsSent,
+ 181:                       ssrc: report.ssrc,
+ 182:                       totalAudioEnergy: report.totalAudioEnergy,
+ 183:                       totalSamplesSent: report.totalSamplesSent,
+ 184:                       codecId: report.codecId,
+ 185:                     });
+ 186:                   }
+ 187: 
+ 188:                   if (
+ 189:                     report.type === "media-source" &&
+ 190:                     report.kind === "audio"
+ 191:                   ) {
+ 192:                     localAudioSource.push({
+ 193:                       id: report.id,
+ 194:                       trackIdentifier: report.trackIdentifier,
+ 195:                       audioLevel: report.audioLevel,
+ 196:                       totalAudioEnergy: report.totalAudioEnergy,
+ 197:                       totalSamplesDuration: report.totalSamplesDuration,
+ 198:                     });
+ 199:                   }
+ 200: 
+ 201:                   if (
+ 202:                     report.type === "remote-inbound-rtp" &&
+ 203:                     report.kind === "audio"
+ 204:                   ) {
+ 205:                     remoteInboundAudio.push({
+ 206:                       ssrc: report.ssrc,
+ 207:                       packetsLost: report.packetsLost,
+ 208:                       fractionLost: report.fractionLost,
+ 209:                       roundTripTime: report.roundTripTime,
+ 210:                     });
+ 211:                   }
+ 212:                 });
+ 213: 
+ 214:                 const micSource = localAudioSource[0] || {};
+ 215:                 const outbound = outboundAudio[0] || {};
+ 216:                 const remoteInbound = remoteInboundAudio[0] || {};
+ 217: 
+ 218:                 console.log("NAVA AUDIO DIAGNOSTIC", {
+ 219:                   micAudioLevel: micSource.audioLevel ?? null,
+ 220:                   micTotalAudioEnergy: micSource.totalAudioEnergy ?? null,
+ 221:                   micSamplesDuration: micSource.totalSamplesDuration ?? null,
+ 222:                   senderBytesSent: outbound.bytesSent ?? null,
+ 223:                   senderPacketsSent: outbound.packetsSent ?? null,
+ 224:                   senderTotalAudioEnergy: outbound.totalAudioEnergy ?? null,
+ 225:                   remotePacketsReceived: remoteInbound.packetsReceived ?? null,
+ 226:                   remotePacketsLost: remoteInbound.packetsLost ?? null,
+ 227:                   remoteFractionLost: remoteInbound.fractionLost ?? null,
+ 228:                   remoteRoundTripTime: remoteInbound.roundTripTime ?? null,
+ 229:                   senderTrackId: audioSender?.track?.id || null,
+ 230:                   senderEnabled: audioSender?.track?.enabled ?? null,
+ 231:                   senderReadyState: audioSender?.track?.readyState ?? null,
+ 232:                 });
+ 233: 
+ 234:                 if (outboundAudio.length > 0) {
+ 235:                   const totalBytes = outboundAudio.reduce(
+ 236:                     (sum, item) => sum + (item.bytesSent || 0),
+ 237:                     0
+ 238:                   );
+ 239: 
+ 240:                   setStatus(`Call active | audio sent ${totalBytes} bytes`);
+ 241:                 }
+ 242:               } catch (error) {
+ 243:                 console.warn("NAVA RTP stats warning:", error);
+ 244:               }
+ 245:             }, 2000);
+ 246: 
+ 247:             setStatus("Call active | microphone ON");
+ 248:             break;
+ 249:           }
+ 250: 
+ 251:           case "hangup":
+ 252:           case "destroy":
+ 253:           case "purge":
+ 254:           case "done": {
+ 255:             const cause = call.cause || "unknown";
+ 256:             const causeCode =
+ 257:               call.causeCode !== undefined
+ 258:                 ? String(call.causeCode)
+ 259:                 : "n/a";
+ 260:             const sipCode =
+ 261:               call.sipCode !== undefined
+ 262:                 ? String(call.sipCode)
+ 263:                 : "n/a";
+ 264:             const sipReason = call.sipReason || "n/a";
+ 265: 
+ 266:             console.info("NAVA CALL TERMINATION", {
+ 267:               state: call.state,
+ 268:               cause,
+ 269:               causeCode,
+ 270:               sipCode,
+ 271:               sipReason,
+ 272:               callId: call.id,
+ 273:               destinationNumber: call.options?.destinationNumber,
+ 274:               callerNumber: call.options?.callerNumber,
+ 275:             });
+ 276: 
+ 277:             setStatus(
+ 278:               `DONE | ${cause} | causeCode=${causeCode} | SIP=${sipCode} | ${sipReason}`
+ 279:             );
+ 280: 
+ 281:             if (statsTimerRef.current) {
+ 282:               clearInterval(statsTimerRef.current);
+ 283:               statsTimerRef.current = null;
+ 284:             }
+ 285: 
+ 286:             callRef.current = null;
+ 287:             break;
+ 288:           }
+ 289: 
+ 290:           default:
+ 291:             setStatus(`Call: ${call.state}`);
+ 292:         }
+ 293:       });
+ 294: 
+ 295:       clientRef.current = client;
+ 296: 
+ 297:       await client.connect();
+ 298:     } catch (error) {
+ 299:       console.error("NAVA WebRTC connection failed:", error);
+ 300: 
+ 301:       clientRef.current = null;
+ 302: 
+ 303:       setStatus(
+ 304:         error instanceof Error
+ 305:           ? error.message
+ 306:           : "Connection failed"
+ 307:       );
+ 308:     }
+ 309:   }
+ 310: 
+ 311:   async function makeCall() {
+ 312:     const client = clientRef.current;
+ 313: 
+ 314:     if (!client) {
+ 315:       setStatus("Connect the phone first");
+ 316:       return;
+ 317:     }
+ 318: 
+ 319:     const number = destination.trim();
+ 320: 
+ 321:     if (!number) {
+ 322:       setStatus("Enter a destination number");
+ 323:       return;
+ 324:     }
+ 325: 
+ 326:     if (!callerNumberRef.current) {
+ 327:       setStatus("Caller number is missing");
+ 328:       return;
+ 329:     }
+ 330: 
+ 331:     try {
+ 332:       setStatus("Starting call...");
+ 333: 
+ 334:       const call = client.newCall({
+ 335:         destinationNumber: number,
+ 336:         callerNumber: callerNumberRef.current,
+ 337:         audio: {
+ 338:           echoCancellation: true,
+ 339:           noiseSuppression: true,
+ 340:           autoGainControl: true,
+ 341:         },
+ 342:       });
+ 343: 
+ 344:       callRef.current = call;
+ 345:     } catch (error) {
+ 346:       console.error("NAVA call failed:", error);
+ 347: 
+ 348:       setStatus(
+ 349:         error instanceof Error
+ 350:           ? error.message
+ 351:           : "Unable to start call"
+ 352:       );
+ 353:     }
+ 354:   }
+ 355: 
+ 356:   function hangUp() {
+ 357:     const call = callRef.current;
+ 358: 
+ 359:     if (!call) {
+ 360:       setStatus("No active call");
+ 361:       return;
+ 362:     }
+ 363: 
+ 364:     try {
+ 365:       call.hangup();
+ 366:       setStatus("Ending call...");
+ 367:     } catch (error) {
+ 368:       console.error("NAVA hangup failed:", error);
+ 369:       setStatus("Unable to end call");
+ 370:     }
+ 371:   }
+ 372: 
+ 373:   function disconnectPhone() {
+ 374:     const client = clientRef.current;
+ 375: 
+ 376:     if (!client) {
+ 377:       setStatus("Already disconnected");
+ 378:       return;
+ 379:     }
+ 380: 
+ 381:     try {
+ 382:       client.disconnect();
+ 383:     } finally {
+ 384:       if (statsTimerRef.current) {
+ 385:         clearInterval(statsTimerRef.current);
+ 386:         statsTimerRef.current = null;
+ 387:       }
+ 388: 
+ 389:       micStreamRef.current?.getTracks().forEach((track) => track.stop());
+ 390:       micStreamRef.current = null;
+ 391: 
+ 392:       callRef.current = null;
+ 393:       clientRef.current = null;
+ 394:       setStatus("Disconnected");
+ 395:     }
+ 396:   }
+ 397: 
+ 398:   useEffect(() => {
+ 399:     return () => {
+ 400:       if (statsTimerRef.current) {
+ 401:         clearInterval(statsTimerRef.current);
+ 402:         statsTimerRef.current = null;
+ 403:       }
+ 404: 
+ 405:       micStreamRef.current?.getTracks().forEach((track) => track.stop());
+ 406:       micStreamRef.current = null;
+ 407: 
+ 408:       const client = clientRef.current;
+ 409: 
+ 410:       if (client) {
+ 411:         try {
+ 412:           client.disconnect();
+ 413:         } catch {
+ 414:           // Ignore cleanup errors.
+ 415:         }
+ 416:       }
+ 417:     };
+ 418:   }, []);
+ 419: 
+ 420:   return (
+ 421:     <div className="space-y-4">
+ 422:       <h2>NAVA Phone</h2>
+ 423: 
+ 424:       <p>Status: {status}</p>
+ 425: 
+ 426:       <input
+ 427:         value={destination}
+ 428:         onChange={(event) => setDestination(event.target.value)}
+ 429:         placeholder="+1..."
+ 430:         inputMode="tel"
+ 431:       />
+ 432: 
+ 433:       <div className="flex gap-2">
+ 434:         <button type="button" onClick={connectPhone}>
+ 435:           Connect Phone
+ 436:         </button>
+ 437: 
+ 438:         <button type="button" onClick={makeCall}>
+ 439:           CALL
+ 440:         </button>
+ 441: 
+ 442:         <button type="button" onClick={hangUp}>
+ 443:           HANG UP
+ 444:         </button>
+ 445: 
+ 446:         <button type="button" onClick={disconnectPhone}>
+ 447:           Disconnect
+ 448:         </button>
+ 449:       </div>
+ 450: 
+ 451:       <audio id="remoteMedia" autoPlay />
+ 452:     </div>
+ 453:   );
+ 454: }
+ 455: 
+ 456: 
+ 457: 
+
+====================================================
+END READ ONLY INSPECTION
+====================================================
