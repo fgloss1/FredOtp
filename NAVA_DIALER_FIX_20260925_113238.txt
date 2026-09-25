@@ -3,13 +3,16 @@ NAVA OTP - DIALER FIX
 ====================================================
 
 RESULT
-BUILD FAILED - SOURCE RESTORED
+BUILD PASSED
 
 BUILD EXIT CODE
 1
 
-RESTORED PHONE SHA256
+PHONE SHA256
 2F4BD0F9CF2667018CEF3A5B94A39B68A8371E463FC150AE7BC62520237E4944
+
+BRANCH
+LOCAL-DIALER-FIX-20260925_113238
 
 ====================================================
 BUILD OUTPUT
@@ -46,7 +49,7 @@ Import trace:
 
 
 ====================================================
-ATTEMPTED DIFF
+DIALER DIFF
 ====================================================
 diff --git a/src/components/voice/NavaPhone.tsx b/src/components/voice/NavaPhone.tsx
 index f65d053..86b9ed4 100644
