@@ -1,0 +1,21 @@
+﻿NAVA OTP WORKING TELEPHONY CHECKPOINT
+Generated: 2026-09-25 09:20:04
+
+Branch:
+LOCAL-INSPECTION
+
+Commit:
+693073eeda463f3b6321650b2bd56d93f1f7c1e5
+
+Verified:
+- Telnyx WebRTC registration works
+- Outbound call reaches physical phone
+- Physical phone rings
+- Carrier voicemail is reached when unanswered
+- Normal call termination observed:
+  NORMAL_CLEARING
+  causeCode=16
+
+Next verification:
+- Answered call
+- Two-way audio
