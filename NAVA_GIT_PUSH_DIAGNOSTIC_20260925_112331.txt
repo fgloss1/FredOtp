@@ -1,0 +1,91 @@
+﻿====================================================
+NAVA OTP - GIT PUSH DIAGNOSTIC
+====================================================
+
+TIMESTAMP
+2026-09-25 11:23:31
+
+ORIGINAL LOCAL BRANCH
+LOCAL-INSPECTION
+
+INSPECTION BRANCH
+LOCAL-INSPECTION-LOCAL-20260925_112330
+
+LOCAL HEAD BEFORE INSPECTION
+8e2f5d671057c00e18abe89953c92d0e7d431b53
+
+REMOTE LOCAL-INSPECTION HEAD
+origin/LOCAL-INSPECTION
+
+====================================================
+LOCAL STATUS
+====================================================
+ M nava_output.txt
+ M next-env.d.ts
+ M src/app/dashboard/phone/page.tsx
+ M src/components/LogoutButton.tsx
+ M src/components/voice/NavaPhone.tsx
+?? backups/
+?? nava_push_error.txt
+?? src/app/dashboard/phone/page.tsx.before-local-phone-panel.bak
+?? src/components/voice/NavaPhone.tsx.before-dialer.bak
+?? src/components/voice/NavaPhone.tsx.before_972_test_20260925_100225.bak
+
+
+====================================================
+LOCAL LOG
+====================================================
+8e2f5d6 (HEAD -> LOCAL-INSPECTION-LOCAL-20260925_112330, LOCAL-INSPECTION) Inspect local NAVA phone layout
+3bd367d Record NAVA Phone inspection report
+515ad4f Record NAVA Git push diagnostic
+792d6d0 Finalize NAVA Phone diagnostic verification
+2c883a3 Record NAVA Phone diagnostic report
+0598d86 Record NAVA Phone local inspection
+cafb6cf Add SMS messages database migration
+0210c1c Record actual SMS verification failure
+169bad6 Update SMS build verification report
+53e02d3 Load local env for Drizzle migrations
+2d8bd99 Exclude local backup sources from TypeScript
+d0eb7ba Restrict NAVA SMS inbox to current user
+
+
+====================================================
+REMOTE LOCAL-INSPECTION LOG
+====================================================
+
+
+====================================================
+PHONE PAGE SHA256
+====================================================
+8B3D675B028F2CD92EBE03BC51B6A44760202F433B8625DCF139212C7A40973F
+
+====================================================
+LOCAL PHONE PAGE CONTENT
+====================================================
+import NavaPhone from "@/components/voice/NavaPhone";
+import NavaSmsInbox from "@/components/voice/NavaSmsInbox";
+
+export default function PhonePage() {
+  return (
+    <div className="space-y-6">
+      <div>
+        <h1 className="text-2xl font-black text-white">NAVA Phone Test</h1>
+        <p className="text-sm text-slate-500">
+          Local WebRTC connection test.
+        </p>
+      </div>
+
+      <div className="grid grid-cols-1 gap-6 lg:grid-cols-3 lg:items-start">
+        <div className="card p-6 lg:col-span-2">
+          <NavaPhone />
+        </div>
+
+        <NavaSmsInbox />
+      </div>
+    </div>
+  );
+}
+
+====================================================
+END REPORT
+====================================================
