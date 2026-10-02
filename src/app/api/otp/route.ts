@@ -44,7 +44,8 @@ export async function POST(req: Request) {
     // 2. Dual Supplier Routing (Hidden from Client Payload)
     const isUS = countryUpper === "US";
     const smspoolApiKey = process.env.SMSPOOL_API_KEY;
-    const fivesimApiKey = process.env.FIVESIM_API_KEY;
+    // Canonical variable is FIVESIM_API_TOKEN, with FIVESIM_API_KEY as fallback
+    const fivesimApiKey = process.env.FIVESIM_API_TOKEN || process.env.FIVESIM_API_KEY;
 
     let assignedPhone = "";
     let supplierOrderId = "";
