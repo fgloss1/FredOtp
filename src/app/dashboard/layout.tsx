@@ -52,7 +52,7 @@ export default function AntiFlashLayout({ children }: { children: React.ReactNod
     window.addEventListener("nava-theme-change", checkTheme);
 
     import("@/lib/supabase").then(({ supabase }) => {
-      supabase.auth.getUser().then(({ data, error }) => {
+      supabase.auth.getUser().then(async ({ data, error }) => {
         const user = data?.user;
 
         if (error || !user) {
@@ -65,19 +65,22 @@ export default function AntiFlashLayout({ children }: { children: React.ReactNod
           setFullEmail(user.email);
           setUserEmail(user.email.split("@")[0]);
 
-          supabase
-            .from("profiles")
-            .select("balance, role")
-            .eq("id", user.id)
-            .single()
-            .then(({ data: profile }) => {
-              if (profile) {
-                if (profile.balance !== undefined) setUserBalance(Number(profile.balance));
-                if (profile.role) setUserRole(profile.role);
-              }
-              setAuthChecking(false);
-            })
-            .catch(() => setAuthChecking(false));
+          try {
+            const { data: profile } = await supabase
+              .from("profiles")
+              .select("balance, role")
+              .eq("id", user.id)
+              .single();
+
+            if (profile) {
+              if (profile.balance !== undefined) setUserBalance(Number(profile.balance));
+              if (profile.role) setUserRole(profile.role);
+            }
+          } catch (e) {
+            console.error("Profile load error:", e);
+          } finally {
+            setAuthChecking(false);
+          }
         } else {
           setAuthChecking(false);
         }
@@ -138,7 +141,6 @@ export default function AntiFlashLayout({ children }: { children: React.ReactNod
     { href: "/dashboard/otp", label: "Prices", icon: "🏷️" },
   ];
 
-  // Sidebar link classes: strong contrast in light mode, same emerald active in both
   const sidebarLinkClass = (href: string) => {
     const active = pathname === href;
     if (active) {
@@ -298,7 +300,6 @@ export default function AntiFlashLayout({ children }: { children: React.ReactNod
       </header>
 
       <div className="max-w-7xl mx-auto px-3 sm:px-4 py-6 md:py-8 flex gap-8">
-        {/* Desktop sidebar — fixed contrast */}
         <aside className="hidden md:block w-56 shrink-0 space-y-6">
           <nav className="space-y-1 sticky top-24">
             {navItems.map((item) => (
@@ -328,7 +329,6 @@ export default function AntiFlashLayout({ children }: { children: React.ReactNod
         />
       )}
 
-      {/* Mobile drawer stays dark for contrast on small screens */}
       <aside
         className={`md:hidden fixed top-0 right-0 bottom-0 w-72 bg-[#0d1526] border-l border-slate-800 z-50 p-5 flex flex-col justify-between transition-transform duration-300 ease-in-out shadow-2xl text-white ${
           isMobileDrawerOpen ? "translate-x-0" : "translate-x-full"
