@@ -1,0 +1,86 @@
+@tailwind base;
+@tailwind components;
+@tailwind utilities;
+
+/* =========================================
+   ROOT THEME DEFAULTS
+   Applied instantly by the layout <script>
+   before React hydrates — kills the dark flash
+   ========================================= */
+html.dark {
+  background-color: #030712;
+  color: #ffffff;
+  color-scheme: dark;
+}
+
+html.light {
+  background-color: #f8fafc;
+  color: #0f172a;
+  color-scheme: light;
+}
+
+/* Force body to inherit the html background immediately */
+html.dark body {
+  background-color: #030712 !important;
+  color: #ffffff;
+}
+
+html.light body {
+  background-color: #f8fafc !important;
+  color: #0f172a;
+}
+
+body {
+  min-height: 100vh;
+  transition: background-color 0.2s ease, color 0.2s ease;
+}
+
+/* If you are on Tailwind v4, this makes dark: utilities follow the .dark class */
+@custom-variant dark (&:where(.dark, .dark *));
+
+/* =========================================
+   HIDE SCROLLBAR UTILITY
+   ========================================= */
+.no-scrollbar::-webkit-scrollbar {
+  display: none;
+}
+.no-scrollbar {
+  -ms-overflow-style: none;
+  scrollbar-width: none;
+}
+
+/* =========================================
+   DARK MODE SCROLLBARS
+   ========================================= */
+html.dark ::-webkit-scrollbar {
+  width: 6px;
+  height: 6px;
+}
+html.dark ::-webkit-scrollbar-track {
+  background: #070d19;
+}
+html.dark ::-webkit-scrollbar-thumb {
+  background: #1e293b;
+  border-radius: 8px;
+}
+html.dark ::-webkit-scrollbar-thumb:hover {
+  background: #10b981;
+}
+
+/* =========================================
+   LIGHT MODE SCROLLBARS
+   ========================================= */
+html.light ::-webkit-scrollbar {
+  width: 6px;
+  height: 6px;
+}
+html.light ::-webkit-scrollbar-track {
+  background: #e2e8f0;
+}
+html.light ::-webkit-scrollbar-thumb {
+  background: #94a3b8;
+  border-radius: 8px;
+}
+html.light ::-webkit-scrollbar-thumb:hover {
+  background: #059669;
+}

@@ -1,0 +1,518 @@
+"use client";
+
+import { useEffect, useState } from "react";
+import Link from "next/link";
+
+interface ActiveRental {
+  id: string;
+  number: string | null; // null if pending provisioning
+  countryName: string;
+  countryCode: string;
+  flagUrl: string;
+  carrier: string;
+  networkType: string;
+  startDate: string;
+  endDate: string;
+  daysLeft: number;
+  monthlyPriceFormatted: string;
+  autoRenew: boolean;
+  status: "active" | "provisioning" | "expiring_soon";
+  unreadMessages: number;
+  esimDetails?: {
+    qrUrl: string;
+    smdpAddress: string;
+    activationCode: string;
+  };
+}
+
+export default function CustomerRentalsPage() {
+  const [darkMode, setDarkMode] = useState(true);
+  const [activeTab, setActiveTab] = useState<"my-numbers" | "browse">("my-numbers");
+
+  // Sync Nava Theme
+  useEffect(() => {
+    const checkTheme = () => {
+      const savedTheme = localStorage.getItem("nava-theme");
+      setDarkMode(savedTheme !== "light");
+    };
+    checkTheme();
+    window.addEventListener("nava-theme-change", checkTheme);
+    return () => window.removeEventListener("nava-theme-change", checkTheme);
+  }, []);
+
+  const [balance, setBalance] = useState(100.0);
+  const [selectedEsim, setSelectedEsim] = useState<ActiveRental | null>(null);
+  const [copiedKey, setCopiedKey] = useState<string | null>(null);
+  const [showCompatibility, setShowCompatibility] = useState(false);
+  const [isOrdering, setIsOrdering] = useState(false);
+
+  // Customer Active Rentals Data
+  const [myRentals, setMyRentals] = useState<ActiveRental[]>([
+    {
+      id: "ord-8812",
+      number: "+1 (415) 890-2194",
+      countryName: "United States",
+      countryCode: "us",
+      flagUrl: "https://flagcdn.com/w40/us.png",
+      carrier: "T-Mobile USA (eSIM)",
+      networkType: "Real Cellular (Non-VoIP)",
+      startDate: "2025-02-01",
+      endDate: "2025-03-03",
+      daysLeft: 24,
+      monthlyPriceFormatted: "$25.00/mo",
+      autoRenew: true,
+      status: "active",
+      unreadMessages: 1,
+      esimDetails: {
+        qrUrl: "https://api.qrserver.com/v1/create-qr-code/?size=250x250&data=LPA:1$t-mobile.com$TMOBILE-US-99120491-PROV",
+        smdpAddress: "cust-tmobile.prod.ondemandconnectivity.com",
+        activationCode: "TMOBILE-US-99120491-PROV",
+      },
+    },
+    {
+      id: "ord-8813",
+      number: null,
+      countryName: "United States",
+      countryCode: "us",
+      flagUrl: "https://flagcdn.com/w40/us.png",
+      carrier: "T-Mobile USA (eSIM)",
+      networkType: "Real Cellular (Non-VoIP)",
+      startDate: "2025-02-14",
+      endDate: "2025-03-16",
+      daysLeft: 30,
+      monthlyPriceFormatted: "$25.00/mo",
+      autoRenew: true,
+      status: "provisioning",
+      unreadMessages: 0,
+    },
+  ]);
+
+  const copyToClipboard = (text: string, key: string) => {
+    navigator.clipboard.writeText(text);
+    setCopiedKey(key);
+    setTimeout(() => setCopiedKey(null), 2000);
+  };
+
+  const handleOrderEsim = () => {
+    if (balance < 25.0) {
+      alert("Insufficient wallet balance. Please top up your wallet.");
+      return;
+    }
+
+    setIsOrdering(true);
+
+    setTimeout(() => {
+      const newOrder: ActiveRental = {
+        id: `ord-${Math.floor(1000 + Math.random() * 9000)}`,
+        number: null,
+        countryName: "United States",
+        countryCode: "us",
+        flagUrl: "https://flagcdn.com/w40/us.png",
+        carrier: "T-Mobile USA (eSIM)",
+        networkType: "Real Cellular (Non-VoIP)",
+        startDate: new Date().toISOString().split("T")[0],
+        endDate: new Date(Date.now() + 30 * 24 * 60 * 60 * 1000).toISOString().split("T")[0],
+        daysLeft: 30,
+        monthlyPriceFormatted: "$25.00/mo",
+        autoRenew: true,
+        status: "provisioning",
+        unreadMessages: 0,
+      };
+
+      setBalance((prev) => prev - 25.0);
+      setMyRentals((prev) => [newOrder, ...prev]);
+      setIsOrdering(false);
+      setActiveTab("my-numbers");
+    }, 1000);
+  };
+
+  const theme = darkMode
+    ? {
+        card: "bg-[#0b1120] border border-slate-800/80 shadow-md",
+        cardMuted: "bg-[#0f172a]/60 border border-slate-800",
+        innerCard: "bg-[#070d19] border border-slate-800/80",
+        text: "text-white",
+        textMuted: "text-gray-400",
+        textSubtle: "text-gray-500",
+        tabActive: "bg-emerald-500 text-black font-bold shadow-sm",
+        tabInactive: "bg-[#0f172a] text-gray-400 hover:text-white hover:bg-slate-800",
+        modalBg: "bg-[#0d1527] border border-slate-700 shadow-2xl",
+      }
+    : {
+        card: "bg-white border-2 border-slate-300 shadow-sm",
+        cardMuted: "bg-white border-2 border-slate-300 shadow-sm",
+        innerCard: "bg-slate-50 border-2 border-slate-200",
+        text: "text-slate-900",
+        textMuted: "text-slate-600 font-medium",
+        textSubtle: "text-slate-500",
+        tabActive: "bg-emerald-500 text-white font-bold shadow-sm",
+        tabInactive: "bg-slate-200 text-slate-700 hover:bg-slate-300 hover:text-slate-900 font-semibold",
+        modalBg: "bg-white border-2 border-slate-300 shadow-2xl",
+      };
+
+  return (
+    <div className={`space-y-6 ${theme.text} font-sans`}>
+      {/* Top Header */}
+      <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-4">
+        <div>
+          <h1 className={`text-2xl font-bold ${theme.text}`}>T-Mobile US eSIM Rentals</h1>
+          <p className={`${theme.textMuted} text-xs mt-0.5`}>
+            Dedicated, genuine US mobile cellular lines with Unlimited SMS & Global Wi-Fi Calling.
+          </p>
+        </div>
+
+        {/* Tab switcher */}
+        <div className={`flex items-center ${theme.cardMuted} rounded-xl p-1`}>
+          <button
+            onClick={() => setActiveTab("my-numbers")}
+            className={`px-4 py-2 rounded-lg text-xs font-bold transition-all cursor-pointer ${
+              activeTab === "my-numbers" ? theme.tabActive : theme.tabInactive
+            }`}
+          >
+            📱 My Lines ({myRentals.length})
+          </button>
+          <button
+            onClick={() => setActiveTab("browse")}
+            className={`px-4 py-2 rounded-lg text-xs font-bold transition-all cursor-pointer ${
+              activeTab === "browse" ? theme.tabActive : theme.tabInactive
+            }`}
+          >
+            ➕ Rent T-Mobile eSIM
+          </button>
+        </div>
+      </div>
+
+      {/* TAB 1: MY ACTIVE / PROVISIONING NUMBERS */}
+      {activeTab === "my-numbers" && (
+        <div className="space-y-4">
+          {myRentals.length === 0 ? (
+            <div className={`${theme.card} rounded-2xl p-10 text-center space-y-3`}>
+              <p className="text-4xl">📱</p>
+              <h3 className={`text-base font-bold ${theme.text}`}>No active eSIM lines</h3>
+              <p className={`text-xs ${theme.textMuted} max-w-sm mx-auto`}>
+                Rent a genuine T-Mobile US cellular line to scan directly onto your iPhone or Android.
+              </p>
+              <button
+                onClick={() => setActiveTab("browse")}
+                className="mt-2 bg-emerald-500 hover:bg-emerald-400 text-black font-black px-6 py-2.5 rounded-xl text-xs"
+              >
+                Rent T-Mobile eSIM ($25/mo) →
+              </button>
+            </div>
+          ) : (
+            <div className="space-y-3">
+              {myRentals.map((rental) => {
+                const isProvisioning = rental.status === "provisioning";
+
+                return (
+                  <div
+                    key={rental.id}
+                    className={`${theme.card} rounded-2xl p-5 flex flex-col md:flex-row md:items-center justify-between gap-5 transition-all`}
+                  >
+                    {/* Left: Number & Badges */}
+                    <div className="space-y-2">
+                      <div className="flex items-center gap-3">
+                        <img src={rental.flagUrl} alt="US" className="w-5 h-3.5 object-cover rounded-sm shadow-sm" />
+                        {isProvisioning ? (
+                          <div className="flex items-center gap-2">
+                            <span className="text-lg font-mono font-black text-amber-400 animate-pulse">
+                              Provisioning T-Mobile Line...
+                            </span>
+                            <span className="text-[10px] bg-amber-500/10 text-amber-400 px-2 py-0.5 rounded border border-amber-500/30 font-bold">
+                              🕒 10-25 mins
+                            </span>
+                          </div>
+                        ) : (
+                          <div className="flex items-center gap-2">
+                            <span className={`text-xl font-mono font-black ${theme.text}`}>{rental.number}</span>
+                            <button
+                              onClick={() => copyToClipboard(rental.number!, rental.id)}
+                              className="text-[10px] bg-emerald-500/10 hover:bg-emerald-500/20 text-emerald-500 font-bold px-2 py-0.5 rounded border border-emerald-500/30"
+                            >
+                              {copiedKey === rental.id ? "Copied! ✓" : "Copy"}
+                            </button>
+                          </div>
+                        )}
+                      </div>
+
+                      <div className="flex flex-wrap items-center gap-2 text-xs">
+                        <span className="bg-pink-950/40 text-pink-400 font-bold px-2 py-0.5 rounded border border-pink-500/30 text-[10px]">
+                          📶 {rental.carrier}
+                        </span>
+                        <span className="text-emerald-500 text-[10px] font-bold bg-emerald-500/10 px-2 py-0.5 rounded border border-emerald-500/30">
+                          {rental.networkType}
+                        </span>
+                        <span className="text-gray-500">•</span>
+                        <span className="text-emerald-500 font-bold">{rental.monthlyPriceFormatted}</span>
+                        <span className="text-gray-500">•</span>
+                        <span className={`text-[11px] font-bold ${rental.daysLeft <= 5 ? "text-amber-500" : theme.textMuted}`}>
+                          ⏳ {rental.daysLeft} days left
+                        </span>
+                      </div>
+                    </div>
+
+                    {/* Right: Actions */}
+                    <div className="flex flex-wrap items-center gap-2.5 border-t md:border-t-0 pt-3 md:pt-0 border-slate-800/40">
+                      {isProvisioning ? (
+                        <div className="text-xs text-amber-400 bg-amber-500/10 px-4 py-2 rounded-xl border border-amber-500/30 font-bold">
+                          Admin preparing your eSIM QR...
+                        </div>
+                      ) : (
+                        <>
+                          <button
+                            onClick={() => setSelectedEsim(rental)}
+                            className="bg-emerald-500 hover:bg-emerald-400 text-black font-black text-xs px-4 py-2 rounded-xl shadow-md shadow-emerald-500/20 flex items-center gap-1.5 cursor-pointer"
+                          >
+                            <span>📲</span> View / Scan eSIM
+                          </button>
+
+                          <Link
+                            href="/dashboard/sms"
+                            className="bg-slate-800/30 hover:bg-slate-800/50 border border-slate-700 text-xs font-bold px-3.5 py-2 rounded-xl flex items-center gap-1.5"
+                          >
+                            ✉️ Send SMS
+                          </Link>
+                        </>
+                      )}
+                    </div>
+                  </div>
+                );
+              })}
+            </div>
+          )}
+        </div>
+      )}
+
+      {/* TAB 2: BROWSE / ORDER T-MOBILE ESIM */}
+      {activeTab === "browse" && (
+        <div className="grid grid-cols-1 lg:grid-cols-12 gap-6 items-start">
+          {/* Left 8 Cols: Product Card */}
+          <div className={`lg:col-span-8 ${theme.card} rounded-2xl p-6 space-y-5`}>
+            <div className="flex items-center justify-between">
+              <div className="flex items-center gap-3">
+                <img src="https://flagcdn.com/w40/us.png" alt="US" className="w-8 h-5 object-cover rounded shadow" />
+                <div>
+                  <h3 className={`text-lg font-bold ${theme.text}`}>United States T-Mobile eSIM</h3>
+                  <p className={`text-xs ${theme.textMuted}`}>Genuine Cellular Non-VoIP SIM running on US Towers</p>
+                </div>
+              </div>
+              <span className="text-sm font-black text-emerald-500 bg-emerald-500/10 px-3 py-1 rounded-xl border border-emerald-500/30">
+                $25.00 / mo
+              </span>
+            </div>
+
+            {/* Feature Checklist */}
+            <div className="grid grid-cols-1 sm:grid-cols-2 gap-3 pt-2">
+              <div className={`${theme.innerCard} p-3 rounded-xl flex items-center gap-2.5`}>
+                <span className="text-emerald-500 font-bold">✓</span>
+                <div>
+                  <p className={`text-xs font-bold ${theme.text}`}>Unlimited SMS Texting</p>
+                  <p className={`text-[10px] ${theme.textSubtle}`}>Incoming & outgoing texts included</p>
+                </div>
+              </div>
+
+              <div className={`${theme.innerCard} p-3 rounded-xl flex items-center gap-2.5`}>
+                <span className="text-emerald-500 font-bold">✓</span>
+                <div>
+                  <p className={`text-xs font-bold ${theme.text}`}>Global Wi-Fi Calling</p>
+                  <p className={`text-[10px] ${theme.textSubtle}`}>Works in Nigeria, Ghana, UK, UAE & worldwide</p>
+                </div>
+              </div>
+
+              <div className={`${theme.innerCard} p-3 rounded-xl flex items-center gap-2.5`}>
+                <span className="text-emerald-500 font-bold">✓</span>
+                <div>
+                  <p className={`text-xs font-bold ${theme.text}`}>iMessage & FaceTime (Blue Bubbles)</p>
+                  <p className={`text-[10px] ${theme.textSubtle}`}>Activates natively on your iPhone</p>
+                </div>
+              </div>
+
+              <div className={`${theme.innerCard} p-3 rounded-xl flex items-center gap-2.5`}>
+                <span className="text-emerald-500 font-bold">✓</span>
+                <div>
+                  <p className={`text-xs font-bold ${theme.text}`}>100% Non-VoIP Guaranteed</p>
+                  <p className={`text-[10px] ${theme.textSubtle}`}>Bypasses Chase, WhatsApp, Tinder, Cash App</p>
+                </div>
+              </div>
+            </div>
+
+            {/* Compatibility Banner */}
+            <div className="bg-amber-500/10 border border-amber-500/30 p-3.5 rounded-xl flex items-center justify-between text-xs">
+              <div className="space-y-0.5">
+                <p className="font-bold text-amber-400">📱 Please ensure your phone is eSIM compatible & Carrier Unlocked</p>
+                <p className={`text-[11px] ${theme.textSubtle}`}>iPhone XS+, Samsung S20+, or Pixel 3a+ without carrier lock.</p>
+              </div>
+              <button
+                onClick={() => setShowCompatibility(true)}
+                className="text-xs text-amber-400 font-bold underline hover:text-amber-300 whitespace-nowrap ml-2"
+              >
+                Check List
+              </button>
+            </div>
+
+            {/* Action Checkout */}
+            <div className="pt-4 border-t border-slate-800/40 flex items-center justify-between">
+              <div>
+                <p className={`text-[10px] uppercase font-bold ${theme.textMuted}`}>Wallet Deduction</p>
+                <p className="text-lg font-black text-emerald-500">$25.00 USD</p>
+              </div>
+
+              <button
+                onClick={handleOrderEsim}
+                disabled={isOrdering}
+                className="bg-emerald-500 hover:bg-emerald-400 text-black font-black text-xs px-8 py-3.5 rounded-xl shadow-md shadow-emerald-500/20 disabled:opacity-50 cursor-pointer"
+              >
+                {isOrdering ? "Placing Order..." : "Rent 30-Day eSIM Line ($25)"}
+              </button>
+            </div>
+          </div>
+
+          {/* Right 4 Cols: Fulfillment Steps */}
+          <div className={`lg:col-span-4 ${theme.card} rounded-2xl p-5 space-y-4`}>
+            <h3 className={`text-xs font-bold uppercase tracking-wider ${theme.textMuted}`}>
+              How eSIM Delivery Works
+            </h3>
+
+            <div className="space-y-3 text-xs">
+              <div className="flex gap-3">
+                <span className="w-5 h-5 rounded-full bg-emerald-500/20 text-emerald-500 flex items-center justify-center font-bold text-[11px] shrink-0">
+                  1
+                </span>
+                <p className={theme.textSubtle}>
+                  Place your order. Our team provisions your clean T-Mobile line.
+                </p>
+              </div>
+
+              <div className="flex gap-3">
+                <span className="w-5 h-5 rounded-full bg-emerald-500/20 text-emerald-500 flex items-center justify-center font-bold text-[11px] shrink-0">
+                  2
+                </span>
+                <p className={theme.textSubtle}>
+                  In 10–25 minutes, your scannable **eSIM QR Code** arrives in your "My Lines" tab.
+                </p>
+              </div>
+
+              <div className="flex gap-3">
+                <span className="w-5 h-5 rounded-full bg-emerald-500/20 text-emerald-500 flex items-center justify-center font-bold text-[11px] shrink-0">
+                  3
+                </span>
+                <p className={theme.textSubtle}>
+                  Scan the QR in your iPhone/Android settings and turn on **Wi-Fi Calling** to start texting!
+                </p>
+              </div>
+            </div>
+          </div>
+        </div>
+      )}
+
+      {/* MODAL 1: VIEW & SCAN ESIM DETAILS */}
+      {selectedEsim && (
+        <div className="fixed inset-0 z-50 bg-black/80 backdrop-blur-sm flex items-center justify-center p-4">
+          <div className={`${theme.modalBg} rounded-3xl max-w-md w-full p-6 space-y-5 animate-fadeIn`}>
+            <div className="flex justify-between items-center border-b border-slate-700/60 pb-3">
+              <div>
+                <h3 className={`text-base font-bold ${theme.text}`}>Your T-Mobile eSIM</h3>
+                <p className="text-xs font-mono text-emerald-400 font-bold">{selectedEsim.number}</p>
+              </div>
+              <button
+                onClick={() => setSelectedEsim(null)}
+                className="w-7 h-7 rounded-full bg-slate-800 text-gray-400 hover:text-white flex items-center justify-center text-xs cursor-pointer"
+              >
+                ✕
+              </button>
+            </div>
+
+            {/* QR Code Canvas Frame */}
+            <div className="bg-white p-4 rounded-2xl w-fit mx-auto shadow-md">
+              <img
+                src={selectedEsim.esimDetails?.qrUrl}
+                alt="eSIM QR Code"
+                className="w-48 h-48 object-contain"
+              />
+            </div>
+            <p className="text-center text-[10px] text-gray-400">
+              Scan via: <strong>Settings > Cellular > Add eSIM</strong> on your phone.
+            </p>
+
+            {/* Manual LPA Code */}
+            <div className={`${theme.innerCard} rounded-xl p-3.5 space-y-2`}>
+              <div className="flex justify-between items-center">
+                <span className={`text-[10px] font-bold uppercase tracking-wider ${theme.textMuted}`}>
+                  Manual Activation Details
+                </span>
+                <button
+                  onClick={() =>
+                    copyToClipboard(
+                      `LPA:1$${selectedEsim.esimDetails?.smdpAddress}$${selectedEsim.esimDetails?.activationCode}`,
+                      "lpa"
+                    )
+                  }
+                  className="text-[10px] text-emerald-400 hover:underline font-bold"
+                >
+                  {copiedKey === "lpa" ? "Copied! ✓" : "Copy full LPA code"}
+                </button>
+              </div>
+
+              <div className="text-[11px] font-mono text-gray-300 break-all bg-black/40 p-2 rounded-lg">
+                <strong>SM-DP+:</strong> {selectedEsim.esimDetails?.smdpAddress}
+                <br />
+                <strong>Code:</strong> {selectedEsim.esimDetails?.activationCode}
+              </div>
+            </div>
+
+            {/* Wi-Fi Calling Notice */}
+            <div className="p-3 bg-emerald-500/10 border border-emerald-500/30 rounded-xl text-xs space-y-1">
+              <p className="font-bold text-emerald-400">⚡ Overseas Wi-Fi Calling Setup:</p>
+              <p className={`text-[10px] ${theme.textSubtle}`}>
+                Enable <strong>Wi-Fi Calling</strong> in your phone settings to receive SMS globally over your Wi-Fi connection.
+              </p>
+            </div>
+          </div>
+        </div>
+      )}
+
+      {/* MODAL 2: COMPATIBILITY CHECKER */}
+      {showCompatibility && (
+        <div className="fixed inset-0 z-50 bg-black/80 backdrop-blur-sm flex items-center justify-center p-4">
+          <div className={`${theme.modalBg} rounded-3xl max-w-md w-full p-6 space-y-4 animate-fadeIn`}>
+            <div className="flex justify-between items-center border-b border-slate-700/60 pb-3">
+              <h3 className={`text-base font-bold ${theme.text}`}>Supported eSIM Devices</h3>
+              <button
+                onClick={() => setShowCompatibility(false)}
+                className="w-7 h-7 rounded-full bg-slate-800 text-gray-400 hover:text-white flex items-center justify-center text-xs cursor-pointer"
+              >
+                ✕
+              </button>
+            </div>
+
+            <div className="space-y-3 text-xs max-h-80 overflow-y-auto pr-1">
+              <div>
+                <p className="font-bold text-emerald-400 mb-1">🍏 Apple iPhones (Carrier Unlocked)</p>
+                <p className={theme.textSubtle}>iPhone XS, XS Max, XR, 11, 12, 13, 14, 15, 16 series, iPhone SE (2020/2022).</p>
+              </div>
+              <div>
+                <p className="font-bold text-emerald-400 mb-1">📱 Samsung Galaxy</p>
+                <p className={theme.textSubtle}>Galaxy S20, S21, S22, S23, S24 series, Z Flip, Z Fold, Note 20.</p>
+              </div>
+              <div>
+                <p className="font-bold text-emerald-400 mb-1">🤖 Google Pixel</p>
+                <p className={theme.textSubtle}>Pixel 3a, 4, 5, 6, 7, 8, 9 and newer.</p>
+              </div>
+              <div className="p-3 bg-amber-500/10 border border-amber-500/30 rounded-xl">
+                <p className="font-bold text-amber-400">Important:</p>
+                <p className={`text-[10px] ${theme.textSubtle}`}>Check iPhone: Settings > General > About > Carrier Lock (Must say: No SIM restrictions).</p>
+              </div>
+            </div>
+
+            <button
+              onClick={() => setShowCompatibility(false)}
+              className="w-full bg-emerald-500 text-black font-black text-xs py-2.5 rounded-xl cursor-pointer"
+            >
+              Got it, ready to order
+            </button>
+          </div>
+        </div>
+      )}
+    </div>
+  );
+}
