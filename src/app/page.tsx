@@ -3,6 +3,9 @@
 import Link from "next/link";
 import { useEffect, useState } from "react";
 import ThemeToggle from "@/components/ThemeToggle";
+import Footer from "@/components/Footer";
+import NotificationFeed from "@/components/NotificationFeed";
+import HeroConsole from "@/components/HeroConsole";
 
 const featuredServices = [
   { name: "WhatsApp", priceUsd: 0.9, stock: "820 left", color: "#25D366", logo: "https://api.iconify.design/simple-icons:whatsapp.svg?color=%2325D366", fallback: "💬", category: "Messaging" },
@@ -206,7 +209,8 @@ export default function HomePage() {
       <section className="relative pt-16 pb-12 overflow-hidden">
         <div className="absolute inset-0 bg-[radial-gradient(circle_at_top,_rgba(16,185,129,0.12),_transparent_55%)]" />
         <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 relative z-10">
-          <div className="grid grid-cols-1 lg:grid-cols-2 gap-10 items-center">
+          {/* Changed items-center to items-start here for top alignment */}
+          <div className="grid grid-cols-1 lg:grid-cols-2 gap-10 items-start">
             <div>
               <div className={`inline-flex items-center gap-2 px-3 py-1 rounded-full ${theme.heroBadge} border text-xs font-bold mb-5`}>
                 <span className="w-2 h-2 rounded-full bg-emerald-500 animate-pulse" />
@@ -260,74 +264,10 @@ export default function HomePage() {
               </div>
             </div>
 
-            {/* Live preview card - FIXED CONTRAST */}
-            <div className={`${theme.card} border rounded-2xl p-5 shadow-2xl`}>
-              <div className={`flex items-center justify-between pb-4 mb-4 border-b ${theme.section}`}>
-                <div className="flex items-center gap-2">
-                  <div className="w-2.5 h-2.5 rounded-full bg-red-500/80" />
-                  <div className="w-2.5 h-2.5 rounded-full bg-yellow-500/80" />
-                  <div className="w-2.5 h-2.5 rounded-full bg-emerald-500/80" />
-                  <span className={`text-[11px] font-mono ${darkMode ? "text-gray-400" : "text-slate-600 font-bold"} ml-2`}>
-                    nava.console // live
-                  </span>
-                </div>
-                <span className="text-[10px] bg-emerald-500/20 text-emerald-600 dark:text-emerald-400 border border-emerald-500/30 px-2 py-1 rounded font-mono font-bold">
-                  ONLINE
-                </span>
-              </div>
-
-              <div className="space-y-3">
-                <div className={`${theme.cardInner} border rounded-xl p-4 flex items-center justify-between`}>
-                  <div className="flex items-center gap-3">
-                    {renderLogo(featuredServices[0], "w-5 h-5")}
-                    <div>
-                      <p className={`text-sm font-bold ${darkMode ? "text-white" : "text-slate-900"}`}>WhatsApp</p>
-                      <p className={`text-[11px] ${theme.textMuted} flex items-center gap-1.5`}>
-                        <img src="https://flagcdn.com/w40/us.png" alt="US" className="w-3.5 h-2.5 object-cover rounded-sm" />
-                        United States • +1
-                      </p>
-                    </div>
-                  </div>
-                  <span className="text-emerald-500 font-black text-sm">{formatPrice(0.9)}</span>
-                </div>
-
-                <div className={`${theme.cardInner} border border-emerald-500/40 rounded-xl p-4`}>
-                  <div className="flex items-center justify-between mb-2">
-                    <span className="text-[10px] text-emerald-600 dark:text-emerald-400 font-black uppercase tracking-wider">
-                      Active rental
-                    </span>
-                    <span className={`text-[10px] ${theme.textMuted}`}>09:42 left</span>
-                  </div>
-                  <p className={`text-xl font-mono font-black tracking-wide ${darkMode ? "text-white" : "text-slate-900"}`}>
-                    +1 (202) 555-0148
-                  </p>
-                  <p className={`text-xs ${theme.textMuted} mt-1`}>Waiting for SMS code…</p>
-                  
-                  {/* Incoming Code Container with High Contrast */}
-                  <div className={`mt-3 rounded-xl p-3 text-center transition-all ${theme.previewCodeBox}`}>
-                    <p className={`text-[10px] mb-1 ${theme.previewCodeText}`}>INCOMING CODE</p>
-                    <p className={`text-2xl font-mono font-black tracking-[0.3em] ${theme.previewDigits}`}>
-                      928 - 104
-                    </p>
-                  </div>
-                </div>
-
-                {/* Bottom Stats Row with High Contrast Labels */}
-                <div className="grid grid-cols-3 gap-2">
-                  <div className={`${theme.cardInner} border rounded-xl p-3 text-center`}>
-                    <p className={`text-[10px] ${theme.textMuted} uppercase`}>Wallet</p>
-                    <p className="text-sm font-black text-emerald-500">{formatPrice(2.0)}</p>
-                  </div>
-                  <div className={`${theme.cardInner} border rounded-xl p-3 text-center`}>
-                    <p className={`text-[10px] ${theme.textMuted} uppercase`}>Codes</p>
-                    <p className={`text-sm font-black ${darkMode ? "text-white" : "text-slate-900"}`}>12</p>
-                  </div>
-                  <div className={`${theme.cardInner} border rounded-xl p-3 text-center`}>
-                    <p className={`text-[10px] ${theme.textMuted} uppercase`}>Success</p>
-                    <p className={`text-sm font-black ${darkMode ? "text-white" : "text-slate-900"}`}>98%</p>
-                  </div>
-                </div>
-              </div>
+            {/* Right Column: 3D Elevator Alert Feed & Live Console */}
+            <div className="space-y-6">
+              <NotificationFeed />
+              <HeroConsole />
             </div>
           </div>
         </div>
@@ -553,30 +493,8 @@ export default function HomePage() {
         </div>
       </section>
 
-      {/* FOOTER */}
-      <footer className={`border-t ${theme.section} ${darkMode ? "bg-black" : "bg-slate-100"} py-10`}>
-        <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 flex flex-col md:flex-row items-center justify-between gap-4">
-          <div className="flex items-center gap-2">
-            <span className="w-7 h-7 rounded-md bg-emerald-500 text-black font-black flex items-center justify-center text-sm">N</span>
-            <span className="font-black text-emerald-500">NAVA</span>
-            <span className={`${theme.textSubtle} text-sm`}>© {new Date().getFullYear()}</span>
-          </div>
-          <div className={`flex flex-wrap justify-center gap-6 text-sm ${theme.textMuted}`}>
-            <Link href="/dashboard" className="hover:text-emerald-500 transition-colors font-bold">
-              Console
-            </Link>
-            <Link href="/signup" className="hover:text-emerald-500 transition-colors font-bold">
-              Register
-            </Link>
-            <Link href="/login" className="hover:text-emerald-500 transition-colors font-bold">
-              Login
-            </Link>
-            <a href="#payments" className="hover:text-emerald-500 transition-colors font-bold">
-              Payments
-            </a>
-          </div>
-        </div>
-      </footer>
+      {/* OFFICIAL FOOTER COMPONENT */}
+      <Footer />
     </div>
   );
 }
