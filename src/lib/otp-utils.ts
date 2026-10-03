@@ -1,0 +1,2 @@
+export function isActivationProduct(item:{category?:unknown}):boolean { return String(item?.category||'').toLowerCase()==='activation'; }
+export function hasInventory(item:{qty?:unknown}):boolean { return Number(item?.qty||0)>0; }
