@@ -2,6 +2,7 @@
 
 import React, { useState, useEffect, useLayoutEffect, useMemo, useCallback } from "react";
 import OtpModal from "@/components/OtpModal";
+import OtpCatalog from "@/components/OtpCatalog";
 
 const CURRENCIES: Record<string, { symbol: string; rate: number; name: string }> = {
   USD: { symbol: "$", rate: 1.0, name: "US Dollar" },
@@ -527,6 +528,15 @@ export default function DashboardPage() {
           />
         </div>
       </div>
+
+      {/* Isolated live catalog implementation under test */}
+      <section className="space-y-3">
+        <div>
+          <h2 className={`text-base font-bold ${theme.textTitle}`}>NAVA Live OTP Catalog — Test</h2>
+          <p className={`text-xs mt-1 ${theme.textSubtle}`}>This catalog is isolated on the test branch and does not replace the existing ordering flow yet.</p>
+        </div>
+        <OtpCatalog userId={currentUserId} userBalance={userBalance} onBalanceRefresh={() => currentUserId && loadRentalsAndExpireStale(currentUserId)} />
+      </section>
 
       {/* Main Service Grid & Order Panel */}
       <div className="grid grid-cols-1 lg:grid-cols-3 gap-8">
