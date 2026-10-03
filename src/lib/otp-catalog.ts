@@ -186,7 +186,7 @@ export async function getCountriesForService(serviceSlug: string): Promise<Servi
       const totalQty = validOps.reduce((sum, o) => sum + o.qty, 0);
       const bestWholesale = Math.min(...validOps.map((o) => o.price));
 
-      const pricing = calculateNavaPrice(bestWholesale, countrySlug, serviceSlug);
+      const pricing = calculateNavaPrice(bestWholesale, serviceSlug, countrySlug);
       const isViable = typeof pricing === 'object' && pricing !== null ? pricing.isViable : false;
       const navaPrice = typeof pricing === 'object' && pricing !== null ? pricing.retailPriceUSD : 0;
 
