@@ -1,80 +1,102 @@
-import { calculateNavaPrice, CalculatePriceResult } from "./pricing";
-
-export interface FiveSimPriceItem {
-  operator: string;
-  cost: number;
-  available: number;
-}
-
-export interface FiveSimPricesResponse {
-  country: string;
-  product: string;
-  prices: FiveSimPriceItem[];
-  lowestCost?: number;
-  navaPricing?: CalculatePriceResult;
-}
-
-export function get5SimToken(): string | null {
-  const token = process.env.FIVESIM_API_TOKEN || process.env.FIVESIM_API_KEY;
-  if (!token || token === "your_5sim_key_here") return null;
-  return token;
-}
-
 /**
- * READ-ONLY: Fetches live wholesale prices from 5SIM guest endpoint.
- * Zero cost, zero balance deduction, no purchases.
+ * 5SIM API Client — Server-Side Only
+ * Official v1 REST API Integration
  */
-export async function getLive5SimPrice(
-  countryCode: string = "usa",
-  serviceSlug: string = "whatsapp"
-): Promise<FiveSimPricesResponse | null> {
+
+const FIVESIM_BASE = 'https://5sim.net/v1';
+
+export function get5SimToken(): string {
+  return process.env.FIVESIM_API_TOKEN || process.env.FIVESIM_API_KEY || '';
+}
+
+function guestHeaders(): Record<string, string> {
+  return { Accept: 'application/json' };
+}
+
+function authHeaders(): Record<string, string> {
+  const token = get5SimToken();
+  return {
+    Accept: 'application/json',
+    Authorization: `Bearer ${token}`,
+  };
+}
+
+async function fetchJson<T>(url: string, headers: Record<string, string>): Promise<T> {
+  const res = await fetch(url, { headers, cache: 'no-store' });
+  if (!res.ok) {
+    const text = await res.text().catch(() => '');
+    throw new Error(`5SIM API ${res.status}: ${text.slice(0, 200)}`);
+  }
+  return res.json() as Promise<T>;
+}
+
+export interface FiveSimProductEntry {
+  category?: string;
+  qty?: number;
+  count?: number;
+  price?: number;
+  cost?: number;
+}
+
+export type FiveSimAllPrices = Record<
+  string,
+  Record<string, FiveSimProductEntry | Record<string, FiveSimProductEntry>>
+>;
+
+export interface FiveSimOrder {
+  id: number;
+  phone: string;
+  operator: string;
+  product: string;
+  price: number;
+  status: string;
+  expires: string;
+  code: string | null;
+  sms: Array<{ code: string | null; text: string; created_at: string }>;
+  created_at: string;
+  country: string;
+}
+
+export async function getAllPrices(): Promise<FiveSimAllPrices> {
+  return fetchJson<FiveSimAllPrices>(`${FIVESIM_BASE}/guest/prices`, guestHeaders());
+}
+
+export async function getPricesForCountryProduct(
+  country: string,
+  product: string
+): Promise<FiveSimAllPrices> {
+  const params = new URLSearchParams({ country: country.toLowerCase(), product: product.toLowerCase() });
+  return fetchJson<FiveSimAllPrices>(`${FIVESIM_BASE}/guest/prices?${params}`, guestHeaders());
+}
+
+export async function getLive5SimPrice(country: string, product: string) {
   try {
-    const token = get5SimToken();
-    const countrySlug = countryCode.toLowerCase();
-    const serviceQuery = serviceSlug.toLowerCase().includes("chatgpt") ? "openai" : serviceSlug.toLowerCase();
-
-    const url = `https://5sim.net/v1/guest/prices?country=${countrySlug}&product=${serviceQuery}`;
-    const res = await fetch(url, {
-      headers: {
-        ...(token ? { Authorization: `Bearer ${token}` } : {}),
-        Accept: "application/json",
-      },
-      cache: "no-store",
-    });
-
-    if (!res.ok) return null;
-
-    const data = await res.json();
-    const countryData = data[countrySlug] || data[countryCode] || data;
-    const productData = countryData[serviceQuery] || countryData;
-
-    const priceItems: FiveSimPriceItem[] = [];
-    if (typeof productData === "object" && productData !== null) {
-      for (const [operator, details] of Object.entries(productData)) {
-        if (typeof details === "object" && details !== null && "cost" in details) {
-          priceItems.push({
-            operator,
-            cost: Number((details as any).cost),
-            available: Number((details as any).count || (details as any).available || 0),
-          });
-        }
-      }
-    }
-
-    if (priceItems.length === 0) return null;
-
-    const lowestCost = Math.min(...priceItems.map((p) => p.cost));
-    const navaPricing = calculateNavaPrice(lowestCost, serviceQuery, countrySlug);
-
-    return {
-      country: countrySlug,
-      product: serviceQuery,
-      prices: priceItems,
-      lowestCost,
-      navaPricing,
-    };
-  } catch (err) {
-    console.error("Error fetching live 5SIM prices:", err);
+    return await getPricesForCountryProduct(country, product);
+  } catch (error) {
+    console.warn(`[5SIM] getLive5SimPrice failed for ${country}/${product}:`, error);
     return null;
   }
+}
+
+export async function buyActivation(
+  country: string,
+  operator: string,
+  product: string
+): Promise<FiveSimOrder> {
+  return fetchJson<FiveSimOrder>(
+    `${FIVESIM_BASE}/user/buy/activation/${encodeURIComponent(country)}/${encodeURIComponent(operator)}/${encodeURIComponent(product)}`,
+    authHeaders()
+  );
+}
+
+export async function checkOrder(id: number): Promise<FiveSimOrder> {
+  return fetchJson<FiveSimOrder>(`${FIVESIM_BASE}/user/check/${id}`, authHeaders());
+}
+
+export async function cancelOrder(id: number): Promise<FiveSimOrder> {
+  return fetchJson<FiveSimOrder>(`${FIVESIM_BASE}/user/cancel/${id}`, authHeaders());
+}
+
+export async function finishOrder(id: number): Promise<FiveSimOrder> {
+  return fetchJson<FiveSimOrder>(`${FIVESIM_BASE}/user/finish/${id}`, authHeaders());
 }
