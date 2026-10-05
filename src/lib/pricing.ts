@@ -1,8 +1,7 @@
 /**
- * NAVA Tiered OTP Pricing Engine
+ * NAVA Dynamic OTP Pricing Engine
  *
- * Flow: Live Provider Cost -> Tiered Markup Rule -> Round UP to $0.05 -> Final Customer Retail Price
- * Optional Market Benchmark (SMSBulk / TextVerified) can be supplied for reference comparison.
+ * Flow: Live Provider Cost -> App & Region Rules -> Tiered Markup Rule -> Round UP to $0.05 -> Customer Retail Price
  */
 
 export interface MarketBenchmark {
@@ -30,9 +29,26 @@ export const DEFAULT_TIERED_CONFIG: TieredPricingConfig = {
     { maxCostUSD: 2.00, markupPercent: 0.40 }, // $1.01 - $2.00 -> 40%
     { maxCostUSD: Infinity, markupPercent: 0.30 }, // > $2.00 -> 30%
   ],
-  minRetailFloorUSD: 0.50,
+  minRetailFloorUSD: 0.40, // Base floor lowered to $0.40 for cheap apps
   roundToStepUSD: 0.05,
 };
+
+// High Demand Service Slugs
+const WHATSAPP_SLUGS = ['whatsapp', 'wa'];
+const TOP_APP_SLUGS = [
+  'telegram', 'tg',
+  'openai', 'oa', 'chatgpt',
+  'googlevoice',
+  'tinder', 'ts',
+  'cashapp', 'cash.app', 'cash'
+];
+
+// Country Tiers for High Demand Pricing
+const TOP_TIER_COUNTRIES = ['us', 'usa', 'gb', 'uk', 'england', 'ca', 'canada', 'au', 'australia'];
+const HIGH_DEMAND_COUNTRIES = [
+  ...TOP_TIER_COUNTRIES,
+  'de', 'germany', 'nl', 'netherlands', 'fr', 'france', 'ng', 'nigeria', 'ke', 'kenya'
+];
 
 // Competitor Market References (Reference Data Only - NEVER Supplier Cost)
 export const MARKET_BENCHMARKS: Record<string, MarketBenchmark> = {
@@ -88,7 +104,7 @@ export function calculateNavaPrice(
   countryCode: string = "",
   config: TieredPricingConfig = DEFAULT_TIERED_CONFIG
 ): CalculatePriceResult {
-  if (supplierCostUSD <= 0) {
+  if (!supplierCostUSD || supplierCostUSD <= 0) {
     return {
       supplierCostUSD: 0,
       retailPriceUSD: 0,
@@ -100,25 +116,58 @@ export function calculateNavaPrice(
     };
   }
 
-  // Find matching tier
+  const s = (serviceSlug || '').toLowerCase().trim();
+  const c = (countryCode || '').toLowerCase().trim();
+
+  // 1. Determine Base Tier Markup
   const tier = config.tiers.find((t) => supplierCostUSD <= t.maxCostUSD) || config.tiers[config.tiers.length - 1];
-  const rawMarkedUpPrice = supplierCostUSD * (1 + tier.markupPercent);
+  let effectiveMarkup = tier.markupPercent;
 
-  // Apply minimum retail floor
-  const priceBeforeRounding = Math.max(rawMarkedUpPrice, config.minRetailFloorUSD);
+  // 2. App & Region Specific Custom Rules
+  let customFloor = config.minRetailFloorUSD || 0.40;
 
-  // Round UP to the next $0.05
-  const finalRetailPrice = roundUpToStep(priceBeforeRounding, config.roundToStepUSD);
+  const isWhatsApp = WHATSAPP_SLUGS.includes(s);
+  const isTopApp = TOP_APP_SLUGS.includes(s);
+  const isTopCountry = TOP_TIER_COUNTRIES.includes(c);
+  const isHighDemandCountry = HIGH_DEMAND_COUNTRIES.includes(c);
 
-  // Calculate margins
+  if (isWhatsApp) {
+    // WhatsApp gets minimum 120% markup (2.2x cost multiplier)
+    effectiveMarkup = Math.max(effectiveMarkup, 1.20);
+
+    if (isTopCountry) {
+      customFloor = 2.00; // $2.00 for USA, UK, AU, CA WhatsApp
+    } else {
+      customFloor = 1.25; // $1.25 minimum for budget WhatsApp (beats NeuraOTP $1.53)
+    }
+  } else if (isTopApp) {
+    effectiveMarkup = Math.max(effectiveMarkup, 0.80); // 80% minimum markup
+
+    if (isTopCountry) {
+      customFloor = 1.00; // $1.00 floor for top apps in US/UK/AU/CA
+    } else {
+      customFloor = 0.75; // $0.75 floor for top apps in other countries
+    }
+  } else if (isHighDemandCountry) {
+    customFloor = Math.max(customFloor, 0.50);
+  }
+
+  // 3. Compute marked-up price before floor and rounding
+  const rawMarkedUpPrice = supplierCostUSD * (1 + effectiveMarkup);
+  const priceBeforeRounding = Math.max(rawMarkedUpPrice, customFloor);
+
+  // 4. Round UP to the next $0.05
+  const finalRetailPrice = roundUpToStep(priceBeforeRounding, config.roundToStepUSD || 0.05);
+
+  // 5. Compute Profit Margins
   const marginUSD = Number((finalRetailPrice - supplierCostUSD).toFixed(2));
   const marginPercent = Number(((marginUSD / finalRetailPrice) * 100).toFixed(1));
 
-  // Check optional benchmark for reference comparison
-  const benchmarkKey = `${countryCode.toLowerCase()}:${serviceSlug.toLowerCase()}`;
+  // 6. Optional Competitor Benchmark
+  const benchmarkKey = `${c}:${s}`;
   const benchmark = MARKET_BENCHMARKS[benchmarkKey];
 
-  // Viability check: Never sell at loss or zero margin
+  // 7. Viability Check
   const isViable = marginUSD > 0 && finalRetailPrice > supplierCostUSD;
 
   return {
@@ -126,7 +175,7 @@ export function calculateNavaPrice(
     retailPriceUSD: finalRetailPrice,
     marginUSD,
     marginPercent,
-    appliedTierMarkupPercent: tier.markupPercent * 100,
+    appliedTierMarkupPercent: Number((effectiveMarkup * 100).toFixed(1)),
     marketBenchmark: benchmark,
     isViable,
     unviableReason: isViable ? undefined : "Unviable pricing margin",

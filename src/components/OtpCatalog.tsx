@@ -1,0 +1,996 @@
+'use client';
+
+import React, { useState, useEffect, useCallback, useRef, useMemo } from 'react';
+import ServiceLogo from '@/components/ServiceLogo';
+import { supabase } from '@/lib/supabase';
+
+export interface GlobalService {
+  slug: string;
+  displayName: string;
+  logoUrl: string;
+  totalAvailability: number;
+}
+
+export interface ServiceCountry {
+  slug: string;
+  displayName: string;
+  flagEmoji: string;
+  availability: number;
+  navaPrice: number;
+}
+
+export interface ActiveOrder {
+  orderId: string;
+  phoneNumber: string;
+  country: string;
+  service: string;
+  price: number;
+  status: 'pending' | 'received' | 'completed' | 'canceled' | 'expired' | 'banned' | 'refunded';
+  code: string | null;
+  sms: string | null;
+  expiresAt: string;
+}
+
+export interface OrderActivity {
+  id: string;
+  orderId: string;
+  phoneNumber: string;
+  country: string;
+  service: string;
+  price: number;
+  status: ActiveOrder['status'];
+  code: string | null;
+  at: string;
+}
+
+interface OtpCatalogProps {
+  onBalanceRefresh?: () => void;
+  userBalance?: number;
+}
+
+const CATEGORIES = [
+  { id: 'all', label: 'All' },
+  { id: 'popular', label: ' Popular' },
+  { id: 'social', label: '💬 Social' },
+  { id: 'ai', label: ' AI & Tech' },
+  { id: 'finance', label: '💳 Finance' },
+  { id: 'gaming', label: ' Gaming' },
+];
+
+const DARK_LOGO_KEYS = ['match', 'uber', 'tiktok', 'apple', 'steam', 'x', 'twitter'];
+
+function isDarkLogo(slug: string, displayName: string): boolean {
+  const s = (slug || '').toLowerCase();
+  const d = (displayName || '').toLowerCase();
+  return DARK_LOGO_KEYS.some((key) => s.includes(key) || d.includes(key));
+}
+
+const POPULAR_COUNTRY_SLUGS = [
+  'usa', 'us', 'uk', 'england', 'gb', 'australia', 'au', 'canada', 'ca',
+  'nigeria', 'ng', 'kenya', 'ke', 'germany', 'de', 'france', 'fr',
+  'netherlands', 'nl', 'india', 'in', 'ghana', 'gh',
+  'south_africa', 'southafrica', 'za',
+];
+
+const SLUG_TO_ISO: Record<string, string> = {
+  usa: 'us', us: 'us', uk: 'gb', england: 'gb', gb: 'gb', canada: 'ca',
+  nigeria: 'ng', ghana: 'gh', kenya: 'ke', south_africa: 'za', southafrica: 'za',
+  germany: 'de', france: 'fr', brazil: 'br', india: 'in', russia: 'ru',
+  indonesia: 'id', philippines: 'ph', vietnam: 'vn', mexico: 'mx',
+  spain: 'es', italy: 'it', netherlands: 'nl', poland: 'pl', turkey: 'tr',
+  egypt: 'eg', colombia: 'co', argentina: 'ar', thailand: 'th', malaysia: 'my',
+  hongkong: 'hk', hong_kong: 'hk', morocco: 'ma', sweden: 'se', switzerland: 'ch',
+  australia: 'au', au: 'au', japan: 'jp', china: 'cn', south_korea: 'kr', korea: 'kr',
+  uae: 'ae', saudi: 'sa', pakistan: 'pk', bangladesh: 'bd', singapore: 'sg',
+  chile: 'cl', peru: 'pe', ukraine: 'ua', czech: 'cz', czechia: 'cz',
+  romania: 'ro', hungary: 'hu', greece: 'gr', israel: 'il', portugal: 'pt',
+  ireland: 'ie', austria: 'at', belgium: 'be', denmark: 'dk', finland: 'fi',
+  norway: 'no', georgia: 'ge', taiwan: 'tw', macau: 'mo', estonia: 'ee',
+  lithuania: 'lt', latvia: 'lv', kazakhstan: 'kz', uzbekistan: 'uz',
+  kyrgyzstan: 'kg', tajikistan: 'tj', cambodia: 'kh', mongolia: 'mn',
+  nepal: 'np', myanmar: 'mm', sri_lanka: 'lk', maldives: 'mv', afghanistan: 'af',
+  iran: 'ir', iraq: 'iq', syria: 'sy', jordan: 'jo', lebanon: 'lb',
+  yemen: 'ye', oman: 'om', qatar: 'qa', kuwait: 'kw', bahrain: 'bh',
+  cyprus: 'cy', malta: 'mt', iceland: 'is', luxembourg: 'lu', croatia: 'hr',
+  slovenia: 'si', slovakia: 'sk', bulgaria: 'bg', serbia: 'rs', bosnia: 'ba',
+  montenegro: 'me', albania: 'al', macedonia: 'mk', moldova: 'md', belarus: 'by',
+  armenia: 'am', azerbaijan: 'az', angola: 'ao', cameroon: 'cm', senegal: 'sn',
+  ivory_coast: 'ci', mali: 'ml', guinea: 'gn', sierra_leone: 'sl', liberia: 'lr',
+  burkina_faso: 'bf', togo: 'tg', benin: 'bj', niger: 'ne', chad: 'td',
+  mauritania: 'mr', sudan: 'sd', ethiopia: 'et', somalia: 'so', djibouti: 'dj',
+  uganda: 'ug', rwanda: 'rw', burundi: 'bi', tanzania: 'tz', zambia: 'zm',
+  malawi: 'mw', mozambique: 'mz', zimbabwe: 'zw', botswana: 'bw', namibia: 'na',
+  lesotho: 'ls', swaziland: 'sz', madagascar: 'mg', mauritius: 'mu',
+  seychelles: 'sc', congo: 'cg', gabon: 'ga', gambia: 'gm', equatorial_guinea: 'gq',
+  sao_tome: 'st', central_african: 'cf', venezuela: 've', guyana: 'gy',
+  suriname: 'sr', ecuador: 'ec', bolivia: 'bo', paraguay: 'py', uruguay: 'uy',
+  panama: 'pa', cuba: 'cu', dominican: 'do', haiti: 'ht', jamaica: 'jm',
+  puerto_rico: 'pr', trinidad: 'tt', bahamas: 'bs', barbados: 'bb', belize: 'bz',
+  guatemala: 'gt', honduras: 'hn', el_salvador: 'sv', nicaragua: 'ni',
+  costa_rica: 'cr', fiji: 'fj', papua: 'pg', solomon: 'sb', vanuatu: 'vu',
+  samoa: 'ws', tonga: 'to', reunion: 're', newzealand: 'nz', new_zealand: 'nz',
+};
+
+function getIsoForCountry(slug: string): string | null {
+  const raw = (slug || '').toLowerCase().trim();
+  const compact = raw.replace(/_/g, '');
+  return SLUG_TO_ISO[raw] || SLUG_TO_ISO[compact] || (compact.length === 2 ? compact : null);
+}
+
+function CountryFlag({ slug, name }: { slug: string; name: string }) {
+  const iso = getIsoForCountry(slug);
+  const [failed, setFailed] = useState(false);
+
+  if (!iso || failed) {
+    return (
+      // UPDATED: Stronger border for fallback flag
+      <div className="w-8 h-6 rounded-md bg-slate-700/70 border-2 border-slate-500 flex items-center justify-center shrink-0">
+        <span className="text-[10px] font-bold text-slate-300">
+          {(name || '?').slice(0, 2).toUpperCase()}
+        </span>
+      </div>
+    );
+  }
+
+  return (
+    <img
+      src={`https://flagcdn.com/w40/${iso}.png`}
+      alt={name}
+      width={32}
+      height={24}
+      loading="lazy"
+      decoding="async"
+      draggable={false}
+      onError={() => setFailed(true)}
+      className="w-8 h-6 object-cover rounded-md shadow-sm ring-2 ring-black/30 shrink-0 select-none"
+    />
+  );
+}
+
+function getServiceCategory(slug: string): string[] {
+  const s = slug.toLowerCase();
+  const cats: string[] = ['all'];
+  const popular = ['whatsapp', 'telegram', 'google', 'openai', 'chatgpt', 'apple', 'instagram', 'tiktok', 'facebook', 'paypal', 'uber', 'amazon', 'yahoo', 'discord', 'viber'];
+  if (popular.some((p) => s.includes(p))) cats.push('popular');
+  const social = ['whatsapp', 'telegram', 'instagram', 'tiktok', 'facebook', 'messenger', 'twitter', 'x', 'discord', 'snapchat', 'linkedin', 'wechat', 'line', 'viber', 'signal', 'vk', 'imo'];
+  if (social.some((p) => s.includes(p))) cats.push('social');
+  const ai = ['openai', 'chatgpt', 'google', 'microsoft', 'claude', 'midjourney'];
+  if (ai.some((p) => s.includes(p))) cats.push('ai');
+  const finance = ['paypal', 'binance', 'coinbase', 'crypto', 'kucoin', 'bybit', 'okx', 'kraken', 'papara', 'alipay', 'stripe', 'revolut', 'wise'];
+  if (finance.some((p) => s.includes(p))) cats.push('finance');
+  const gaming = ['steam', 'twitch', 'blizzard', 'ubisoft', 'nttgame', 'roblox', 'epic', 'psn'];
+  if (gaming.some((p) => s.includes(p))) cats.push('gaming');
+  return cats;
+}
+
+function formatStock(qty: number): string {
+  if (!qty) return '0';
+  if (qty >= 1_000_000) return `${(qty / 1_000_000).toFixed(1)}M`;
+  if (qty >= 1_000) return `${(qty / 1_000).toFixed(1)}k`;
+  return `${qty}`;
+}
+
+function formatCountdown(totalSec: number): string {
+  const s = Math.max(0, totalSec);
+  const m = Math.floor(s / 60);
+  const r = s % 60;
+  return `${String(m).padStart(2, '0')}:${String(r).padStart(2, '0')}`;
+}
+
+function playCodeChime() {
+  try {
+    const AudioCtx = window.AudioContext || (window as any).webkitAudioContext;
+    if (!AudioCtx) return;
+    const ctx = new AudioCtx();
+    const now = ctx.currentTime;
+    const tone = (freq: number, start: number, dur: number, gain = 0.045) => {
+      const osc = ctx.createOscillator();
+      const g = ctx.createGain();
+      osc.type = 'sine';
+      osc.frequency.value = freq;
+      g.gain.setValueAtTime(0, now + start);
+      g.gain.linearRampToValueAtTime(gain, now + start + 0.02);
+      g.gain.exponentialRampToValueAtTime(0.001, now + start + dur);
+      osc.connect(g);
+      g.connect(ctx.destination);
+      osc.start(now + start);
+      osc.stop(now + start + dur + 0.02);
+    };
+    tone(880, 0, 0.12, 0.05);
+    tone(1174.7, 0.1, 0.18, 0.04);
+    setTimeout(() => ctx.close().catch(() => {}), 600);
+  } catch {
+    /* autoplay / unsupported — silent fail */
+  }
+}
+
+function statusLabel(status: string): string {
+  switch (status) {
+    case 'completed':
+    case 'received':
+      return 'Code received';
+    case 'canceled':
+      return 'Canceled';
+    case 'refunded':
+      return 'Refunded';
+    case 'expired':
+    case 'banned':
+      return 'Expired';
+    case 'pending':
+      return 'Waiting for SMS';
+    default:
+      return status;
+  }
+}
+
+function statusColor(status: string, darkMode: boolean): string {
+  if (status === 'completed' || status === 'received')
+    return darkMode ? 'text-emerald-400 bg-emerald-500/10 border-2 border-emerald-500/25' : 'text-emerald-700 bg-emerald-500/15 border-2 border-emerald-500/30';
+  if (status === 'canceled' || status === 'refunded')
+    return darkMode ? 'text-rose-400 bg-rose-500/10 border-2 border-rose-500/25' : 'text-rose-700 bg-rose-500/15 border-2 border-rose-500/30';
+  if (status === 'expired' || status === 'banned')
+    return darkMode ? 'text-amber-400 bg-amber-500/10 border-2 border-amber-500/25' : 'text-amber-700 bg-amber-500/15 border-2 border-amber-500/30';
+  return darkMode ? 'text-sky-400 bg-sky-500/10 border-2 border-sky-500/25' : 'text-sky-700 bg-sky-500/15 border-2 border-sky-500/30';
+}
+
+export default function OtpCatalog({ onBalanceRefresh, userBalance }: OtpCatalogProps) {
+  // ─── THEME SYNC ───
+  const [darkMode, setDarkMode] = useState<boolean>(true);
+  useEffect(() => {
+    const checkTheme = () => {
+      const saved = localStorage.getItem('nava-theme');
+      setDarkMode(saved !== 'light');
+    };
+    checkTheme();
+    window.addEventListener('nava-theme-change', checkTheme);
+    return () => window.removeEventListener('nava-theme-change', checkTheme);
+  }, []);
+
+  const [errorMessage, setErrorMessage] = useState<string | null>(null);
+  const [services, setServices] = useState<GlobalService[]>([]);
+  const [countries, setCountries] = useState<ServiceCountry[]>([]);
+  const [isLoadingServices, setIsLoadingServices] = useState(true);
+  const [isLoadingCountries, setIsLoadingCountries] = useState(false);
+  const [isPurchasing, setIsPurchasing] = useState(false);
+
+  const [selectedCategory, setSelectedCategory] = useState('all');
+  const [selectedService, setSelectedService] = useState<GlobalService | null>(null);
+  const [expandedCountry, setExpandedCountry] = useState<string | null>(null);
+
+  const [serviceSearch, setServiceSearch] = useState('');
+  const [countrySearch, setCountrySearch] = useState('');
+  const [countrySort, setCountrySort] = useState<'popularity' | 'price'>('popularity');
+
+  const [activeOrder, setActiveOrder] = useState<ActiveOrder | null>(null);
+  const [activityLog, setActivityLog] = useState<OrderActivity[]>([]);
+  const [copiedPhone, setCopiedPhone] = useState(false);
+  const [copiedCode, setCopiedCode] = useState(false);
+  const [isCanceling, setIsCanceling] = useState(false);
+  const [secondsLeft, setSecondsLeft] = useState<number | null>(null);
+
+  const pollTimerRef = useRef<ReturnType<typeof setInterval> | null>(null);
+  const countdownRef = useRef<ReturnType<typeof setInterval> | null>(null);
+  const chimePlayedForRef = useRef<string | null>(null);
+  const prevCodeRef = useRef<string | null>(null);
+
+  const pushActivity = useCallback((order: ActiveOrder, overrideStatus?: ActiveOrder['status']) => {
+    const status = overrideStatus || order.status;
+    setActivityLog((prev) => {
+      const idx = prev.findIndex((a) => a.orderId === order.orderId);
+      const row: OrderActivity = {
+        id: `${order.orderId}-${status}-${Date.now()}`,
+        orderId: order.orderId,
+        phoneNumber: order.phoneNumber,
+        country: order.country,
+        service: order.service,
+        price: order.price,
+        status,
+        code: order.code,
+        at: new Date().toISOString(),
+      };
+      if (idx >= 0) {
+        const clone = [...prev];
+        clone.splice(idx, 1);
+        return [row, ...clone].slice(0, 20);
+      }
+      return [row, ...prev].slice(0, 20);
+    });
+  }, []);
+
+  useEffect(() => {
+    if (countdownRef.current) {
+      clearInterval(countdownRef.current);
+      countdownRef.current = null;
+    }
+    if (!activeOrder?.expiresAt || activeOrder.status !== 'pending') {
+      setSecondsLeft(null);
+      return;
+    }
+    const tick = () => {
+      const end = new Date(activeOrder.expiresAt).getTime();
+      const left = Math.max(0, Math.floor((end - Date.now()) / 1000));
+      setSecondsLeft(left);
+      if (left <= 0) {
+        setActiveOrder((prev) => {
+          if (!prev || prev.status !== 'pending') return prev;
+          const expired = { ...prev, status: 'expired' as const };
+          pushActivity(expired, 'expired');
+          return expired;
+        });
+        if (onBalanceRefresh) onBalanceRefresh();
+      }
+    };
+    tick();
+    countdownRef.current = setInterval(tick, 1000);
+    return () => {
+      if (countdownRef.current) clearInterval(countdownRef.current);
+    };
+  }, [activeOrder?.expiresAt, activeOrder?.status, activeOrder?.orderId, pushActivity, onBalanceRefresh]);
+
+  useEffect(() => {
+    const code = activeOrder?.code;
+    const orderId = activeOrder?.orderId;
+    if (code && orderId && code !== prevCodeRef.current) {
+      if (chimePlayedForRef.current !== `${orderId}:${code}`) {
+        playCodeChime();
+        chimePlayedForRef.current = `${orderId}:${code}`;
+      }
+    }
+    prevCodeRef.current = code ?? null;
+  }, [activeOrder?.code, activeOrder?.orderId]);
+
+  useEffect(() => {
+    async function fetchServices() {
+      try {
+        const res = await fetch('/api/otp/catalog/services');
+        if (!res.ok) throw new Error('Failed to load apps');
+        const data = await res.json();
+        setServices(data.services || []);
+      } catch (err: any) {
+        setErrorMessage(err.message || 'Unable to connect to live catalog.');
+      } finally {
+        setIsLoadingServices(false);
+      }
+    }
+    fetchServices();
+  }, []);
+
+  const handleServiceSelect = useCallback(async (service: GlobalService) => {
+    setSelectedService(service);
+    setServiceSearch('');
+    setCountrySearch('');
+    setExpandedCountry(null);
+    setCountries([]);
+    setIsLoadingCountries(true);
+    setErrorMessage(null);
+    try {
+      const res = await fetch(`/api/otp/catalog/countries?service=${encodeURIComponent(service.slug)}`);
+      if (!res.ok) throw new Error('Failed to load countries');
+      const data = await res.json();
+      setCountries(data.countries || []);
+    } catch (err: any) {
+      setErrorMessage(err.message);
+      setSelectedService(null);
+    } finally {
+      setIsLoadingCountries(false);
+    }
+  }, []);
+
+  const handleClearService = () => {
+    setSelectedService(null);
+    setCountries([]);
+    setExpandedCountry(null);
+    setCountrySearch('');
+  };
+
+  const stopPolling = useCallback(() => {
+    if (pollTimerRef.current) {
+      clearInterval(pollTimerRef.current);
+      pollTimerRef.current = null;
+    }
+  }, []);
+
+  const startPolling = useCallback(
+    (orderId: string) => {
+      stopPolling();
+      pollTimerRef.current = setInterval(async () => {
+        try {
+          const res = await fetch(`/api/otp?orderId=${encodeURIComponent(orderId)}`);
+          if (!res.ok) return;
+          const data = await res.json();
+          if (!data || data.error) return;
+          const status = data.status as ActiveOrder['status'];
+          const code = data.sms_code || data.code || null;
+          const sms = data.sms || data.sms_text || null;
+          setActiveOrder((prev) => {
+            if (!prev || prev.orderId !== orderId) return prev;
+            const next: ActiveOrder = {
+              ...prev,
+              status: status || prev.status,
+              code: code || prev.code,
+              sms: sms || prev.sms,
+            };
+            if (code && !prev.code) {
+              pushActivity({ ...next, status: 'completed' }, 'completed');
+            } else if (
+              status &&
+              status !== prev.status &&
+              ['canceled', 'refunded', 'expired', 'banned', 'completed'].includes(status)
+            ) {
+              pushActivity(next, status);
+            }
+            return next;
+          });
+          if (['completed', 'canceled', 'expired', 'banned', 'refunded'].includes(status)) {
+            stopPolling();
+            if (onBalanceRefresh) onBalanceRefresh();
+          }
+        } catch {
+          /* ignore transient poll errors */
+        }
+      }, 4000);
+    },
+    [stopPolling, onBalanceRefresh, pushActivity]
+  );
+
+  useEffect(() => () => stopPolling(), [stopPolling]);
+
+  async function handlePurchase(country: ServiceCountry) {
+    if (!selectedService) return;
+    setIsPurchasing(true);
+    setErrorMessage(null);
+    try {
+      let userId: string | undefined;
+      try {
+        const { data: { user } } = await supabase.auth.getUser();
+        if (user?.id) userId = user.id;
+      } catch (_) {}
+      const res = await fetch('/api/otp', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({
+          userId,
+          country: country.slug,
+          service: selectedService.slug,
+          priceUSD: country.navaPrice,
+        }),
+      });
+      const data = await res.json();
+      if (!res.ok || data.error) {
+        throw new Error(data.error || 'Order purchase failed');
+      }
+      const resolvedOrderId = String(data.id || data.orderId || data.supplier_order_id || '');
+      const resolvedPhone = String(data.number || data.phone_number || data.phoneNumber || '');
+      const resolvedService = String(data.service || data.service_name || selectedService.displayName);
+      const resolvedCountry = String(data.country || data.country_code || country.displayName);
+      const resolvedPrice = Number(data.priceUSD || data.navaPrice || data.price_usd || country.navaPrice);
+      const resolvedExpiresAt = String(data.expires_at || data.expiresAt || new Date(Date.now() + 15 * 60_000).toISOString());
+      if (!resolvedOrderId || !resolvedPhone) {
+        throw new Error('Received invalid order payload from server.');
+      }
+      const order: ActiveOrder = {
+        orderId: resolvedOrderId,
+        phoneNumber: resolvedPhone,
+        country: resolvedCountry,
+        service: resolvedService,
+        price: resolvedPrice,
+        status: 'pending',
+        code: null,
+        sms: null,
+        expiresAt: resolvedExpiresAt,
+      };
+      chimePlayedForRef.current = null;
+      prevCodeRef.current = null;
+      setActiveOrder(order);
+      pushActivity(order, 'pending');
+      if (onBalanceRefresh) onBalanceRefresh();
+      startPolling(resolvedOrderId);
+    } catch (err: any) {
+      setErrorMessage(err.message || 'Failed to complete order.');
+      setExpandedCountry(null);
+    } finally {
+      setIsPurchasing(false);
+    }
+  }
+
+  async function handleCancelOrder() {
+    if (!activeOrder || isCanceling) return;
+    setIsCanceling(true);
+    setErrorMessage(null);
+    try {
+      const res = await fetch('/api/otp/cancel', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ orderId: activeOrder.orderId }),
+      });
+      const data = await res.json();
+      if (!res.ok || (data.success === false && data.error)) {
+        throw new Error(data.error || 'Unable to cancel order.');
+      }
+      stopPolling();
+      const canceled: ActiveOrder = { ...activeOrder, status: 'canceled' };
+      setActiveOrder(canceled);
+      pushActivity(canceled, 'canceled');
+      if (onBalanceRefresh) onBalanceRefresh();
+    } catch (err: any) {
+      setErrorMessage(err.message || 'Unable to cancel order.');
+    } finally {
+      setIsCanceling(false);
+    }
+  }
+
+  function handleCopyCode(code: string) {
+    navigator.clipboard.writeText(code).then(() => {
+      setCopiedCode(true);
+      setTimeout(() => setCopiedCode(false), 1800);
+    }).catch(() => {});
+  }
+
+  const filteredServices = useMemo(() => {
+    const q = serviceSearch.toLowerCase();
+    return services.filter((s) => {
+      const matchesSearch = s.displayName.toLowerCase().includes(q) || s.slug.toLowerCase().includes(q);
+      const matchesCategory = selectedCategory === 'all' || getServiceCategory(s.slug).includes(selectedCategory);
+      return matchesSearch && matchesCategory;
+    });
+  }, [services, serviceSearch, selectedCategory]);
+
+  const sortedAndFilteredCountries = useMemo(() => {
+    const q = countrySearch.toLowerCase();
+    const filtered = countries.filter((c) => c.displayName.toLowerCase().includes(q));
+    return filtered.sort((a, b) => {
+      if (countrySort === 'price') return a.navaPrice - b.navaPrice;
+      return b.availability - a.availability;
+    });
+  }, [countries, countrySearch, countrySort]);
+
+  const popularCountries = useMemo(() => {
+    if (!countries?.length) return [];
+    const matched = countries.filter((c) => {
+      const s = c.slug.toLowerCase().replace(/_/g, '');
+      return POPULAR_COUNTRY_SLUGS.includes(s) || POPULAR_COUNTRY_SLUGS.includes(c.slug.toLowerCase());
+    });
+    matched.sort((a, b) => b.availability - a.availability);
+    return matched.slice(0, 8);
+  }, [countries]);
+
+  const selectedPopularCountry = useMemo(() => {
+    if (!expandedCountry) return null;
+    return popularCountries.find((c) => c.slug === expandedCountry) || null;
+  }, [expandedCountry, popularCountries]);
+
+  const timerUrgent = secondsLeft !== null && secondsLeft <= 60;
+  const timerCritical = secondsLeft !== null && secondsLeft <= 30;
+
+  // ─── THEME-AWARE COLORS (UPDATED FOR STRONGER BORDERS) ───
+  const theme = darkMode
+    ? {
+        cardBg: 'bg-[#111827] border-2 border-gray-700', // Stronger border
+        innerBg: 'bg-[#0b1120]',
+        headerBg: 'bg-[#161f33]/80',
+        textTitle: 'text-white',
+        textMuted: 'text-gray-400',
+        textSubtle: 'text-gray-500',
+        inputBg: 'bg-gray-900 border-2 border-gray-700', // Stronger border
+        dropdownBg: 'bg-[#1b2537] border-2 border-slate-600', // Stronger border
+        cardHover: 'hover:bg-slate-700/20',
+        activityBg: 'bg-[#0d1320]',
+      }
+    : {
+        cardBg: 'bg-white border-2 border-slate-400', // Stronger border
+        innerBg: 'bg-slate-50',
+        headerBg: 'bg-white/95',
+        textTitle: 'text-slate-900',
+        textMuted: 'text-slate-600',
+        textSubtle: 'text-slate-500',
+        inputBg: 'bg-white border-2 border-slate-400', // Stronger border
+        dropdownBg: 'bg-white border-2 border-slate-400', // Stronger border
+        cardHover: 'hover:bg-slate-100',
+        activityBg: 'bg-white',
+      };
+
+  return (
+    <div className={`w-full ${theme.cardBg} rounded-2xl shadow-2xl overflow-hidden flex flex-col`}>
+      {/* HEADER */}
+      <div className={`flex items-center justify-between p-5 border-b-2 ${darkMode ? 'border-gray-700' : 'border-slate-300'} ${theme.headerBg} backdrop-blur-md`}>
+        <h2 className={`text-base sm:text-lg font-bold ${theme.textTitle} tracking-tight flex items-center gap-2`}>
+          Instant Verification
+          <span className="relative flex h-2.5 w-2.5 ml-1">
+            <span className="animate-ping absolute inline-flex h-full w-full rounded-full bg-emerald-400 opacity-75" />
+            <span className="relative inline-flex rounded-full h-2.5 w-2.5 bg-emerald-500" />
+          </span>
+        </h2>
+        {activeOrder?.status === 'pending' && secondsLeft !== null && (
+          <div
+            className={`flex items-center gap-2 px-3 py-1.5 rounded-full border-2 text-xs font-mono font-bold tabular-nums ${
+              timerCritical
+                ? 'bg-rose-500/15 border-rose-500/40 text-rose-300 animate-pulse'
+                : timerUrgent
+                ? 'bg-amber-500/15 border-amber-500/40 text-amber-300'
+                : darkMode
+                ? 'bg-slate-800/80 border-slate-600/60 text-slate-200'
+                : 'bg-slate-100 border-slate-300 text-slate-700'
+            }`}
+            title="Time remaining to receive SMS"
+          >
+            <svg className="w-3.5 h-3.5 opacity-80" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+              <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M12 8v4l3 3m6-3a9 9 0 11-18 0 9 9 0 0118 0z" />
+            </svg>
+            {formatCountdown(secondsLeft)}
+          </div>
+        )}
+      </div>
+
+      <div className={`p-5 sm:p-6 flex-1 ${theme.innerBg}`}>
+        {errorMessage && (
+          <div className={`mb-5 p-3 rounded-lg text-xs flex justify-between items-center border-2 ${darkMode ? 'bg-red-950/40 border-red-900/50 text-red-300' : 'bg-red-50 border-red-200 text-red-700'}`}>
+            <span>{errorMessage}</span>
+            <button type="button" onClick={() => setErrorMessage(null)} className={`font-bold ml-4 ${darkMode ? 'text-red-400 hover:text-white' : 'text-red-600 hover:text-red-800'}`}></button>
+          </div>
+        )}
+
+        {activeOrder ? (
+          <div className="max-w-xl mx-auto space-y-5">
+            {/* ACTIVE ORDER CARD */}
+            <div className={`p-5 rounded-2xl border-2 ${darkMode ? 'border-gray-700 bg-[#161f33]' : 'border-slate-300 bg-white'} shadow-inner`}>
+              <div className="flex items-center justify-between mb-4 gap-2">
+                <div className="flex items-center gap-2.5 min-w-0">
+                  <div className={`w-7 h-7 rounded-lg flex items-center justify-center overflow-hidden shrink-0 border-2 ${darkMode ? 'bg-slate-800/90 border-slate-600/60' : 'bg-slate-100 border-slate-300'}`}>
+                    <ServiceLogo src={`/api/otp/logo?slug=${encodeURIComponent(activeOrder.service)}&name=${encodeURIComponent(activeOrder.service)}`} name={activeOrder.service} size={18} />
+                  </div>
+                  <span className="text-xs font-bold text-emerald-500 uppercase tracking-wider truncate">{activeOrder.service}</span>
+                  <span className={`text-xs ${theme.textMuted}`}>•</span>
+                  <CountryFlag slug={activeOrder.country} name={activeOrder.country} />
+                  <span className={`text-xs font-bold uppercase truncate ${theme.textTitle}`}>{activeOrder.country}</span>
+                </div>
+                <div className="flex items-center gap-2 shrink-0">
+                  {activeOrder.status === 'pending' && secondsLeft !== null && (
+                    <span className={`hidden sm:inline-flex items-center gap-1 px-2 py-1 rounded-md text-[10px] font-mono font-bold tabular-nums border-2 ${timerCritical ? 'text-rose-400 border-rose-500/40 bg-rose-500/10' : timerUrgent ? 'text-amber-400 border-amber-500/40 bg-amber-500/10' : darkMode ? 'text-slate-300 border-slate-600/50 bg-slate-800/60' : 'text-slate-600 border-slate-300 bg-slate-100'}`}>
+                      {formatCountdown(secondsLeft)}
+                    </span>
+                  )}
+                  <span className={`text-[10px] px-2.5 py-1 rounded-full font-bold uppercase border-2 ${activeOrder.status === 'completed' ? 'bg-emerald-500/20 text-emerald-500 border-emerald-500/30' : activeOrder.status === 'canceled' || activeOrder.status === 'refunded' ? 'bg-rose-500/20 text-rose-500 border-rose-500/30' : activeOrder.status === 'expired' || activeOrder.status === 'banned' ? 'bg-amber-500/20 text-amber-500 border-amber-500/30' : 'bg-amber-500/20 text-amber-500 border-amber-500/30 animate-pulse'}`}>
+                    {activeOrder.status}
+                  </span>
+                </div>
+              </div>
+
+              {/* Phone */}
+              <div className="mb-5">
+                <label className={`text-[10px] uppercase font-bold mb-1.5 block ${theme.textMuted}`}>Verification Number</label>
+                <div className="flex items-center gap-2">
+                  <input type="text" readOnly value={activeOrder.phoneNumber} className={`w-full border-2 rounded-xl px-4 py-3 text-lg font-mono tracking-widest focus:outline-none ${darkMode ? 'bg-gray-900 border-gray-700 text-white' : 'bg-slate-50 border-slate-300 text-slate-900'}`} />
+                  <button type="button" onClick={() => { navigator.clipboard.writeText(activeOrder.phoneNumber); setCopiedPhone(true); setTimeout(() => setCopiedPhone(false), 2000); }} className={`px-4 py-3 border-2 rounded-xl text-xs font-bold transition-colors ${darkMode ? 'bg-gray-800 hover:bg-gray-700 border-gray-700 text-gray-300' : 'bg-white hover:bg-slate-50 border-slate-300 text-slate-700'}`}>
+                    {copiedPhone ? 'Copied' : 'Copy'}
+                  </button>
+                </div>
+              </div>
+
+              {/* SMS CODE AREA */}
+              <div className={`p-5 rounded-xl border-2 text-center ${darkMode ? 'bg-gray-900 border-gray-800' : 'bg-slate-50 border-slate-300'}`}>
+                <div className="flex items-center justify-between mb-2">
+                  <span className={`text-[10px] uppercase font-bold ${theme.textMuted}`}>Incoming SMS Code</span>
+                  {activeOrder.status === 'pending' && secondsLeft !== null && (
+                    <span className={`text-[10px] font-mono font-bold tabular-nums ${timerCritical ? 'text-rose-500' : timerUrgent ? 'text-amber-500' : theme.textSubtle}`}>
+                      {formatCountdown(secondsLeft)} left
+                    </span>
+                  )}
+                </div>
+
+                {activeOrder.code ? (
+                  <div className="flex flex-col items-center gap-2">
+                    <div className="group relative inline-flex items-center justify-center">
+                      <button type="button" onClick={() => handleCopyCode(activeOrder.code!)} className="relative px-4 py-2 rounded-xl hover:bg-emerald-500/10 transition-colors cursor-pointer">
+                        <span className="text-4xl font-mono font-black text-emerald-500 tracking-widest select-all">{activeOrder.code}</span>
+                        <span className="pointer-events-none absolute -right-1 -top-1 opacity-0 group-hover:opacity-100 transition-opacity">
+                          <span className={`flex items-center justify-center w-7 h-7 rounded-full border-2 shadow-lg ${darkMode ? 'bg-emerald-500/20 border-emerald-400/40 text-emerald-300' : 'bg-emerald-500/15 border-emerald-400/50 text-emerald-600'}`}>
+                            {copiedCode ? (<svg className="w-3.5 h-3.5" fill="none" viewBox="0 0 24 24" stroke="currentColor"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2.5} d="M5 13l4 4L19 7" /></svg>) : (<svg className="w-3.5 h-3.5" fill="none" viewBox="0 0 24 24" stroke="currentColor"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M8 16H6a2 2 0 01-2-2V6a2 2 0 012-2h8a2 2 0 012 2v2m-6 12h8a2 2 0 002-2v-8a2 2 0 00-2-2h-8a2 2 0 00-2 2v8a2 2 0 002 2z" /></svg>)}
+                          </span>
+                        </span>
+                      </button>
+                    </div>
+                    <span className={`text-[10px] ${theme.textSubtle}`}>{copiedCode ? 'Copied to clipboard' : 'Hover / click code to copy'}</span>
+                    {activeOrder.sms && (<p className={`text-xs mt-1 p-2 rounded w-full text-left font-mono border ${darkMode ? 'text-gray-500 bg-gray-950 border-gray-800' : 'text-slate-500 bg-white border-slate-200'}`}>{activeOrder.sms}</p>)}
+                  </div>
+                ) : activeOrder.status === 'canceled' || activeOrder.status === 'refunded' ? (
+                  <div className="py-4 flex flex-col items-center justify-center gap-1.5">
+                    <span className="text-sm font-bold text-rose-500">Order Canceled & Refunded</span>
+                    <span className={`text-xs ${theme.textSubtle}`}>Your wallet balance has been restored.</span>
+                  </div>
+                ) : activeOrder.status === 'expired' || activeOrder.status === 'banned' ? (
+                  <div className="py-4 flex flex-col items-center justify-center gap-1.5">
+                    <span className="text-sm font-bold text-amber-500">Order Expired & Refunded</span>
+                    <span className={`text-xs ${theme.textSubtle}`}>No verification code was received in time.</span>
+                  </div>
+                ) : (
+                  <div className="py-4 flex flex-col items-center justify-center gap-3">
+                    <div className="w-5 h-5 border-2 border-emerald-500 border-t-transparent rounded-full animate-spin" />
+                    <span className={`text-xs ${theme.textMuted}`}>Listening for SMS…</span>
+                    {secondsLeft !== null && (<span className={`text-[11px] font-mono ${theme.textSubtle}`}>Auto-refund if no code by {formatCountdown(secondsLeft)}</span>)}
+                  </div>
+                )}
+              </div>
+            </div>
+
+            <div className="flex items-center justify-between">
+              {activeOrder.status === 'pending' && (
+                <button type="button" onClick={handleCancelOrder} disabled={isCanceling} className="px-4 py-2.5 text-xs font-bold text-rose-500 hover:text-rose-400 hover:bg-rose-500/10 rounded-lg transition-colors">
+                  {isCanceling ? 'Refunding…' : 'Cancel & Refund'}
+                </button>
+              )}
+              <button type="button" onClick={() => { stopPolling(); setActiveOrder(null); handleClearService(); }} className={`ml-auto px-5 py-2.5 text-xs font-bold rounded-lg transition-colors border-2 ${darkMode ? 'bg-gray-800 hover:bg-gray-700 text-white border-gray-700' : 'bg-white hover:bg-slate-50 text-slate-900 border-slate-300'}`}>
+                Buy Another Number
+              </button>
+            </div>
+
+            {/* ACTIVITY / RENTAL HISTORY */}
+            {activityLog.length > 0 && (
+              <div className={`mt-2 rounded-2xl border-2 overflow-hidden ${darkMode ? 'border-gray-700 bg-[#0d1320]' : 'border-slate-300 bg-white'}`}>
+                <div className={`flex items-center justify-between px-4 py-3 border-b-2 ${darkMode ? 'border-gray-700/80' : 'border-slate-200'}`}>
+                  <h3 className={`text-xs font-bold uppercase tracking-wider ${darkMode ? 'text-slate-300' : 'text-slate-700'}`}>Recent activity</h3>
+                  <span className={`text-[10px] ${theme.textSubtle}`}>{activityLog.length} {activityLog.length === 1 ? 'event' : 'events'}</span>
+                </div>
+                <ul className={`divide-y-2 ${darkMode ? 'divide-gray-800/60' : 'divide-slate-200'} max-h-56 overflow-y-auto`}>
+                  {activityLog.map((row) => (
+                    <li key={row.id} className={`px-4 py-3 flex items-start gap-3 ${darkMode ? 'hover:bg-slate-800/20' : 'hover:bg-slate-50'} transition-colors`}>
+                      <CountryFlag slug={row.country} name={row.country} />
+                      <div className="min-w-0 flex-1">
+                        <div className="flex items-center gap-2 flex-wrap">
+                          <span className={`text-xs font-bold truncate uppercase ${theme.textTitle}`}>{row.service}</span>
+                          <span className={`text-[9px] px-1.5 py-0.5 rounded border-2 font-bold uppercase ${statusColor(row.status, darkMode)}`}>{statusLabel(row.status)}</span>
+                        </div>
+                        <p className={`text-[11px] font-mono mt-0.5 truncate ${theme.textMuted}`}>
+                          {row.phoneNumber}
+                          {row.code ? (<button type="button" onClick={() => handleCopyCode(row.code!)} className="ml-2 text-emerald-500 hover:text-emerald-400 font-bold" title="Copy code">· {row.code}</button>) : null}
+                        </p>
+                        <p className={`text-[10px] mt-0.5 ${theme.textSubtle}`}>${row.price.toFixed(2)} · {new Date(row.at).toLocaleTimeString()}</p>
+                      </div>
+                    </li>
+                  ))}
+                </ul>
+              </div>
+            )}
+          </div>
+        ) : (
+          <div className="flex flex-col gap-6 max-w-4xl mx-auto">
+            {/* WIZARD */}
+            <div className={`flex items-center justify-start space-x-2 sm:space-x-4 ${darkMode ? 'bg-[#161f33]/40 border-2 border-gray-700' : 'bg-slate-100 border-2 border-slate-300'} p-2.5 sm:p-3 rounded-2xl border-2 w-max mb-2`}>
+              <div className={`flex items-center gap-2 text-sm font-semibold transition-colors ${!selectedService ? 'text-emerald-500' : theme.textMuted} cursor-pointer hover:${theme.textTitle}`} onClick={handleClearService}>
+                <span className={`w-6 h-6 rounded-full flex items-center justify-center text-xs border-2 ${!selectedService ? 'bg-emerald-500/20 border-emerald-500/40 text-emerald-500' : darkMode ? 'bg-gray-800 border-transparent text-gray-400' : 'bg-slate-200 border-transparent text-slate-500'}`}>1</span>
+                <span className="hidden sm:inline">Select Service</span><span className="sm:hidden">Service</span>
+              </div>
+              <svg className={`w-4 h-4 ${theme.textMuted}`} fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M9 5l7 7-7 7"/></svg>
+              <div className={`flex items-center gap-2 text-sm font-semibold transition-colors ${selectedService ? 'text-emerald-500' : theme.textSubtle + ' opacity-50'}`}>
+                <span className={`w-6 h-6 rounded-full flex items-center justify-center text-xs border-2 ${selectedService ? 'bg-emerald-500/20 border-emerald-500/40 text-emerald-500' : darkMode ? 'bg-gray-800 border-transparent text-gray-400' : 'bg-slate-200 border-transparent text-slate-500'}`}>2</span>
+                <span className="hidden sm:inline">Select Country</span><span className="sm:hidden">Country</span>
+              </div>
+              <svg className={`w-4 h-4 ${theme.textMuted}`} fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M9 5l7 7-7 7"/></svg>
+              <div className={`flex items-center gap-2 text-sm font-semibold ${theme.textSubtle} opacity-50`}>
+                <span className={`w-6 h-6 rounded-full flex items-center justify-center text-xs border-2 border-transparent ${darkMode ? 'bg-gray-800 text-gray-400' : 'bg-slate-200 text-slate-500'}`}>3</span>
+                <span className="hidden sm:inline">Receive Code</span><span className="sm:hidden">Code</span>
+              </div>
+            </div>
+
+            {/* SERVICE PICKER */}
+            <div>
+              <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-3 mb-4">
+                {selectedService ? (
+                  <div className="inline-flex items-center gap-3 bg-emerald-500/10 border-2 border-emerald-500/30 pr-5 pl-1.5 py-1.5 rounded-full shadow-[0_0_15px_rgba(0,255,136,0.1)]">
+                    <button type="button" onClick={handleClearService} className="w-7 h-7 flex items-center justify-center rounded-full bg-emerald-500/20 text-emerald-500 hover:text-white hover:bg-rose-500/80 transition-colors" title="Change service">✕</button>
+                    <div className={`w-7 h-7 rounded-lg flex items-center justify-center overflow-hidden shrink-0 shadow-inner border-2 ${darkMode ? 'bg-slate-800/80 border-slate-700' : 'bg-slate-100 border-slate-300'}`}>
+                      <ServiceLogo src={selectedService.logoUrl} name={selectedService.displayName} size={18} />
+                    </div>
+                    <span className="text-sm font-bold text-emerald-500">{selectedService.displayName}</span>
+                  </div>
+                ) : (
+                  <div className="flex flex-col sm:flex-row items-center w-full gap-4">
+                    <div className="relative w-full sm:w-72">
+                      <span className={`absolute inset-y-0 left-0 flex items-center pl-3 pointer-events-none ${theme.textMuted}`}>
+                        <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M21 21l-6-6m2-5a7 7 0 11-14 0 7 7 0 0114 0z" /></svg>
+                      </span>
+                      <input type="text" value={serviceSearch} onChange={(e) => setServiceSearch(e.target.value)} placeholder="Find service..." className={`w-full pl-9 pr-4 py-2 border-2 rounded-xl text-sm placeholder-slate-500 focus:outline-none focus:border-emerald-500 transition-colors shadow-inner ${darkMode ? 'bg-[#161f33] border-gray-700 text-white' : 'bg-white border-slate-400 text-slate-900'}`} />
+                    </div>
+                    <span className="text-[11px] font-semibold text-emerald-500 bg-emerald-500/10 border-2 border-emerald-500/20 px-3 py-1.5 rounded-full mr-auto">{filteredServices.length} apps available</span>
+                  </div>
+                )}
+              </div>
+
+              {!selectedService && (
+                <div className="flex items-center gap-2 overflow-x-auto custom-scrollbar pb-3 mb-2">
+                  {CATEGORIES.map((cat) => (
+                    <button key={cat.id} type="button" onClick={() => setSelectedCategory(cat.id)} className={`px-3 py-1.5 rounded-xl text-xs font-semibold whitespace-nowrap transition-all duration-200 cursor-pointer border-2 ${selectedCategory === cat.id ? 'bg-emerald-500/20 text-emerald-500 border-emerald-500/40 shadow-sm' : darkMode ? 'bg-[#161f33] text-gray-400 border-gray-700 hover:text-white hover:border-gray-600' : 'bg-white text-slate-600 border-slate-300 hover:text-slate-900 hover:border-slate-400'}`}>{cat.label}</button>
+                  ))}
+                </div>
+              )}
+
+              {!selectedService && (isLoadingServices ? (
+                <div className="py-10 text-center"><div className="w-6 h-6 border-2 border-emerald-500 border-t-transparent rounded-full animate-spin mx-auto" /></div>
+              ) : (
+                <div className="grid grid-cols-3 sm:grid-cols-4 md:grid-cols-5 lg:grid-cols-6 xl:grid-cols-7 gap-x-4 gap-y-6 max-h-[360px] overflow-y-auto custom-scrollbar p-2">
+                  {filteredServices.map((s) => {
+                    const hasDarkLogo = isDarkLogo(s.slug, s.displayName);
+                    return (
+                      <button key={s.slug} type="button" onClick={() => handleServiceSelect(s)} className="flex flex-col items-center justify-start gap-2 group outline-none cursor-pointer">
+                        <div className={`relative w-[64px] h-[64px] rounded-[18px] border-2 shadow-[0_8px_16px_-4px_rgba(0,0,0,0.5),inset_0_1px_1px_rgba(255,255,255,0.15)] group-hover:shadow-[0_12px_24px_-4px_rgba(16,185,129,0.35),inset_0_1px_1px_rgba(255,255,255,0.3)] group-hover:border-emerald-500/60 group-hover:-translate-y-1.5 active:translate-y-0.5 active:shadow-inner transition-all duration-300 ease-out flex items-center justify-center ${darkMode ? 'bg-gradient-to-b from-[#222c42] via-[#1a2336] to-[#121927] border-slate-600/60 border-t-slate-500/60' : 'bg-gradient-to-b from-white via-slate-50 to-slate-100 border-slate-400 border-t-white'}`}>
+                          {selectedCategory === 'popular' && (<span className="absolute -top-1.5 -right-1.5 text-xs select-none filter drop-shadow z-20">🔥</span>)}
+                          <div className={`absolute inset-0 rounded-[18px] bg-gradient-to-tr from-transparent via-white/5 to-white/10 pointer-events-none ${darkMode ? '' : 'hidden'}`} />
+                          <div className={`relative z-10 filter drop-shadow-[0_4px_6px_rgba(0,0,0,0.5)] group-hover:scale-110 transition-transform duration-300 ease-out flex items-center justify-center ${hasDarkLogo ? 'w-10 h-10 rounded-xl bg-gradient-to-b from-white to-[#f1f5f9] border-2 border-white/80 p-1 shadow-sm' : ''}`}>
+                            <ServiceLogo src={s.logoUrl} name={s.displayName} size={hasDarkLogo ? 26 : 32} />
+                          </div>
+                        </div>
+                        <div className="flex flex-col items-center w-full px-1">
+                          <span className={`text-[11px] font-medium group-hover:text-emerald-500 group-hover:font-bold truncate w-full text-center transition-colors duration-200 ${darkMode ? 'text-slate-200' : 'text-slate-700'}`}>{s.displayName}</span>
+                          <span className={`text-[10px] font-medium mt-0.5 transition-colors ${darkMode ? 'text-gray-400 group-hover:text-emerald-300' : 'text-slate-500 group-hover:text-emerald-600'}`}>{formatStock(s.totalAvailability)} lines</span>
+                        </div>
+                      </button>
+                    );
+                  })}
+                </div>
+              ))}
+            </div>
+
+            {/* COUNTRY PICKER */}
+            {selectedService && (
+              <div className="animate-in fade-in slide-in-from-top-4 duration-300">
+                <div className="flex flex-col sm:flex-row gap-3 mb-4">
+                  <div className="relative flex-1">
+                    <span className={`absolute inset-y-0 left-0 flex items-center pl-3.5 pointer-events-none ${theme.textMuted}`}>
+                      <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M21 21l-6-6m2-5a7 7 0 11-14 0 7 7 0 0114 0z" /></svg>
+                    </span>
+                    <input type="text" value={countrySearch} onChange={(e) => setCountrySearch(e.target.value)} placeholder="Search countries..." autoComplete="off" className={`w-full pl-10 pr-10 py-3 border-2 rounded-xl text-sm font-medium placeholder-slate-400 focus:outline-none focus:border-emerald-400 focus:ring-2 focus:ring-emerald-500/25 hover:border-slate-500 transition-colors ${theme.dropdownBg} ${darkMode ? 'text-white' : 'text-slate-900'}`} />
+                    {countrySearch && (<button type="button" onClick={() => setCountrySearch('')} className="absolute inset-y-0 right-0 flex items-center pr-3.5 text-slate-400 hover:text-white transition-colors" title="Clear">✕</button>)}
+                  </div>
+                  <div className="relative min-w-[170px]">
+                    <select value={countrySort} onChange={(e) => setCountrySort(e.target.value as 'popularity' | 'price')} className={`w-full appearance-none pl-4 pr-9 py-3 border-2 rounded-xl text-sm font-medium focus:outline-none focus:border-emerald-400 focus:ring-2 focus:ring-emerald-500/25 cursor-pointer transition-colors ${theme.dropdownBg} ${darkMode ? 'text-slate-100' : 'text-slate-900'}`}>
+                      <option value="popularity">Sort by stock</option>
+                      <option value="price">Sort by price</option>
+                    </select>
+                    <span className={`absolute inset-y-0 right-0 flex items-center pr-3.5 pointer-events-none text-[10px] ${theme.textMuted}`}>▼</span>
+                  </div>
+                </div>
+
+                {/* TOP DEMAND */}
+                {!isLoadingCountries && countries.length > 0 && !countrySearch && popularCountries.length > 0 && (
+                  <div className={`mb-4 border-2 rounded-xl p-3 sm:p-4 shadow-lg ${darkMode ? 'bg-[#141c2d]/90 border-amber-500/25' : 'bg-slate-50 border-amber-500/30'}`}>
+                    <div className="flex items-center justify-between mb-2.5">
+                      <span className="text-xs font-bold uppercase tracking-wider text-amber-500 flex items-center gap-1.5"><span></span> Top Demand Regions</span>
+                      <span className={`text-[10px] font-medium ${theme.textMuted}`}>Quick Select</span>
+                    </div>
+                    <div className="grid grid-cols-2 sm:grid-cols-4 md:grid-cols-4 lg:grid-cols-8 gap-2">
+                      {popularCountries.map((pop) => {
+                        const isSelected = expandedCountry === pop.slug;
+                        return (
+                          <button key={`pop-${pop.slug}`} type="button" onClick={() => setExpandedCountry(isSelected ? null : pop.slug)} className={`flex flex-col p-2.5 rounded-lg border-2 text-left transition-all cursor-pointer ${isSelected ? 'bg-[#1e2d4a] border-amber-500 text-white shadow-md ring-1 ring-amber-500/40' : darkMode ? 'bg-[#182338] border-slate-600/70 hover:border-amber-500/40 hover:bg-[#1c2a44] text-slate-200' : 'bg-white border-slate-300 hover:border-amber-500/50 hover:bg-amber-50 text-slate-700'}`}>
+                            <div className="flex items-center justify-between w-full mb-1.5">
+                              <CountryFlag slug={pop.slug} name={pop.displayName} />
+                              <span className="text-[9px] font-bold text-amber-500 bg-amber-500/10 px-1 py-0.5 rounded border-2 border-amber-500/20">HOT</span>
+                            </div>
+                            <p className="text-xs font-bold truncate">{pop.displayName}</p>
+                            <div className="flex items-center justify-between mt-1 text-[10px]">
+                              <span className={theme.textMuted}>{formatStock(pop.availability)}</span>
+                              <span className="font-extrabold text-emerald-500">${pop.navaPrice.toFixed(2)}</span>
+                            </div>
+                          </button>
+                        );
+                      })}
+                    </div>
+                    {selectedPopularCountry && (
+                      <div className={`mt-3 p-4 border-2 rounded-xl flex flex-col sm:flex-row sm:items-center justify-between gap-3 animate-in fade-in slide-in-from-top-2 shadow-[0_0_20px_rgba(16,185,129,0.15)] ${darkMode ? 'bg-[#0d1320] border-emerald-500/40' : 'bg-white border-emerald-500/30'}`}>
+                        <div className="flex items-center gap-3 min-w-0">
+                          <CountryFlag slug={selectedPopularCountry.slug} name={selectedPopularCountry.displayName} />
+                          <div className="min-w-0">
+                            <p className={`text-sm font-bold truncate ${theme.textTitle}`}>{selectedPopularCountry.displayName}<span className="ml-2 text-[10px] font-semibold text-amber-500 bg-amber-500/10 border-2 border-amber-500/20 px-1.5 py-0.5 rounded">TOP DEMAND</span></p>
+                            <p className={`text-[11px] mt-0.5 ${theme.textMuted}`}>{selectedService.displayName} · {selectedPopularCountry.availability.toLocaleString()} in stock</p>
+                            <p className={`text-xs mt-1 ${theme.textMuted}`}>Wallet: <span className={`font-mono font-bold ${theme.textTitle}`}>${userBalance?.toFixed(2) || '0.00'}</span></p>
+                          </div>
+                        </div>
+                        <div className="flex items-center gap-2 shrink-0">
+                          <button type="button" onClick={() => setExpandedCountry(null)} className={`px-4 py-2.5 text-xs font-bold rounded-lg transition-colors cursor-pointer ${darkMode ? 'text-slate-300 hover:text-white hover:bg-slate-700/50' : 'text-slate-600 hover:text-slate-800 hover:bg-slate-100'}`}>Cancel</button>
+                          <button type="button" onClick={() => handlePurchase(selectedPopularCountry)} disabled={isPurchasing} className="px-5 py-2.5 bg-emerald-500 hover:bg-emerald-400 disabled:opacity-50 disabled:cursor-not-allowed text-white text-xs font-bold rounded-lg transition-colors cursor-pointer shadow-[0_4px_14px_rgba(0,255,136,0.25)] hover:shadow-[0_6px_20px_rgba(0,255,136,0.35)]">
+                            {isPurchasing ? 'Buying…' : `Buy for $${selectedPopularCountry.navaPrice.toFixed(2)}`}
+                          </button>
+                        </div>
+                      </div>
+                    )}
+                  </div>
+                )}
+
+                {!isLoadingCountries && countries.length > 0 && (
+                  <div className="flex items-center justify-between mb-3 px-1">
+                    <span className={`text-xs font-semibold ${darkMode ? 'text-slate-300' : 'text-slate-700'}`}>{sortedAndFilteredCountries.length} {sortedAndFilteredCountries.length === 1 ? 'country' : 'countries'} available</span>
+                    <span className="text-[10px] font-semibold text-emerald-500 bg-emerald-500/10 border-2 border-emerald-500/25 px-2.5 py-1 rounded-full">Live stock</span>
+                  </div>
+                )}
+
+                {isLoadingCountries ? (
+                  <div className={`py-14 flex flex-col items-center justify-center gap-3 border-2 rounded-2xl ${darkMode ? 'bg-[#141c2d]/60 border-slate-700' : 'bg-slate-50 border-slate-300'}`}>
+                    <div className="w-7 h-7 border-2 border-emerald-500 border-t-transparent rounded-full animate-spin" />
+                    <span className={`text-sm font-semibold ${theme.textTitle}`}>Loading live countries…</span>
+                    <span className={`text-xs ${theme.textMuted}`}>Checking real-time availability for {selectedService.displayName}</span>
+                  </div>
+                ) : countries.length === 0 ? (
+                  <div className={`py-14 flex flex-col items-center justify-center gap-2 border-2 rounded-2xl text-center px-6 ${darkMode ? 'bg-[#141c2d]/60 border-slate-700' : 'bg-slate-50 border-slate-300'}`}>
+                    <span className="text-2xl">📭</span>
+                    <span className={`text-sm font-semibold ${theme.textTitle}`}>No numbers available right now</span>
+                    <span className={`text-xs max-w-xs ${theme.textMuted}`}>{selectedService.displayName} has no live stock at the moment. Please pick another service or try again shortly.</span>
+                    <button type="button" onClick={handleClearService} className="mt-3 px-4 py-2 text-xs font-bold text-emerald-500 bg-emerald-500/10 border-2 border-emerald-500/30 rounded-lg hover:bg-emerald-500/20 transition-colors">Choose another service</button>
+                  </div>
+                ) : sortedAndFilteredCountries.length === 0 ? (
+                  <div className={`py-14 flex flex-col items-center justify-center gap-2 border-2 rounded-2xl text-center px-6 ${darkMode ? 'bg-[#141c2d]/60 border-slate-700' : 'bg-slate-50 border-slate-300'}`}>
+                    <span className="text-2xl">🔍</span>
+                    <span className={`text-sm font-semibold ${theme.textTitle}`}>No country matches "{countrySearch}"</span>
+                    <span className={`text-xs ${theme.textMuted}`}>Try a different spelling or clear the search.</span>
+                    <button type="button" onClick={() => setCountrySearch('')} className={`mt-3 px-4 py-2 text-xs font-bold rounded-lg transition-colors border-2 ${darkMode ? 'text-slate-200 bg-slate-700/60 border-slate-600' : 'text-slate-700 bg-slate-200 border-slate-300'}`}>Clear search</button>
+                  </div>
+                ) : (
+                  <div className="flex flex-col gap-2.5 max-h-[420px] overflow-y-auto custom-scrollbar pr-2 pb-2">
+                    {sortedAndFilteredCountries.map((c) => {
+                      const isOpen = expandedCountry === c.slug;
+                      const lowStock = c.availability > 0 && c.availability < 50;
+                      return (
+                        <div key={c.slug} className={`flex flex-col rounded-xl overflow-hidden transition-all shadow-md border-2 ${isOpen ? 'bg-[#18243a] border-emerald-500/50 shadow-[0_0_18px_rgba(16,185,129,0.12)]' : darkMode ? 'bg-[#161f33] border-slate-600/60 hover:border-slate-500' : 'bg-white border-slate-300 hover:border-slate-400'}`}>
+                          <button type="button" onClick={() => setExpandedCountry(isOpen ? null : c.slug)} className={`flex items-center justify-between p-4 cursor-pointer transition-colors text-left ${darkMode ? 'hover:bg-slate-700/20' : 'hover:bg-slate-50'}`}>
+                            <div className="flex items-center gap-3.5 min-w-0">
+                              <CountryFlag slug={c.slug} name={c.displayName} />
+                              <div className="min-w-0">
+                                <p className={`text-sm font-bold truncate ${theme.textTitle}`}>{c.displayName}</p>
+                                <p className={`text-[11px] font-medium mt-0.5 ${lowStock ? 'text-amber-500' : theme.textMuted}`}>{c.availability.toLocaleString()} numbers in stock{lowStock ? ' · low' : ''}</p>
+                              </div>
+                            </div>
+                            <div className="text-right shrink-0 pl-3">
+                              <p className="text-base font-extrabold text-emerald-500 leading-none">${c.navaPrice.toFixed(2)}</p>
+                              <p className={`text-[10px] font-medium mt-1 ${theme.textMuted}`}>per number</p>
+                            </div>
+                          </button>
+                          {isOpen && (
+                            <div className={`p-4 border-t-2 flex flex-col sm:flex-row sm:items-center justify-between gap-3 animate-in slide-in-from-top-2 ${darkMode ? 'bg-[#0d1320] border-slate-600/60' : 'bg-slate-50 border-slate-300'}`}>
+                              <div className="flex flex-col">
+                                <span className={`text-xs ${theme.textMuted}`}>Wallet balance: <span className={`font-mono font-bold ${theme.textTitle}`}>${userBalance?.toFixed(2) || '0.00'}</span></span>
+                                <span className={`text-[11px] mt-0.5 ${theme.textSubtle}`}>{selectedService.displayName} · {c.displayName}</span>
+                              </div>
+                              <div className="flex items-center gap-2">
+                                <button type="button" onClick={() => setExpandedCountry(null)} className={`px-4 py-2.5 text-xs font-bold rounded-lg transition-colors cursor-pointer ${darkMode ? 'text-slate-300 hover:text-white hover:bg-slate-700/50' : 'text-slate-600 hover:text-slate-800 hover:bg-slate-200'}`}>Cancel</button>
+                                <button type="button" onClick={() => handlePurchase(c)} disabled={isPurchasing} className="px-5 py-2.5 bg-emerald-500 hover:bg-emerald-400 disabled:opacity-50 disabled:cursor-not-allowed text-white text-xs font-bold rounded-lg transition-colors cursor-pointer shadow-[0_4px_14px_rgba(0,255,136,0.2)] hover:shadow-[0_6px_20px_rgba(0,255,136,0.3)]">
+                                  {isPurchasing ? 'Buying…' : `Buy for $${c.navaPrice.toFixed(2)}`}
+                                </button>
+                              </div>
+                            </div>
+                          )}
+                        </div>
+                      );
+                    })}
+                  </div>
+                )}
+              </div>
+            )}
+
+            {/* History visible when browsing catalog */}
+            {activityLog.length > 0 && (
+              <div className={`rounded-2xl border-2 overflow-hidden ${darkMode ? 'border-gray-700 bg-[#0d1320]' : 'border-slate-300 bg-white'}`}>
+                <div className={`flex items-center justify-between px-4 py-3 border-b-2 ${darkMode ? 'border-gray-700/80' : 'border-slate-200'}`}>
+                  <h3 className={`text-xs font-bold uppercase tracking-wider ${darkMode ? 'text-slate-300' : 'text-slate-700'}`}>Recent activity</h3>
+                  <span className={`text-[10px] ${theme.textSubtle}`}>{activityLog.length} events this session</span>
+                </div>
+                <ul className={`divide-y-2 ${darkMode ? 'divide-gray-800/60' : 'divide-slate-200'} max-h-48 overflow-y-auto`}>
+                  {activityLog.map((row) => (
+                    <li key={row.id} className="px-4 py-3 flex items-start gap-3">
+                      <CountryFlag slug={row.country} name={row.country} />
+                      <div className="min-w-0 flex-1">
+                        <div className="flex items-center gap-2 flex-wrap">
+                          <span className={`text-xs font-bold uppercase truncate ${theme.textTitle}`}>{row.service}</span>
+                          <span className={`text-[9px] px-1.5 py-0.5 rounded border-2 font-bold uppercase ${statusColor(row.status, darkMode)}`}>{statusLabel(row.status)}</span>
+                        </div>
+                        <p className={`text-[11px] font-mono mt-0.5 ${theme.textMuted}`}>{row.phoneNumber}{row.code ? <span className="ml-2 text-emerald-500 font-bold">· {row.code}</span> : null}</p>
+                        <p className={`text-[10px] mt-0.5 ${theme.textSubtle}`}>${row.price.toFixed(2)} · {new Date(row.at).toLocaleTimeString()}</p>
+                      </div>
+                    </li>
+                  ))}
+                </ul>
+              </div>
+            )}
+          </div>
+        )}
+      </div>
+    </div>
+  );
+}
