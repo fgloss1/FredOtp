@@ -1,200 +1,1019 @@
-Windows PowerShell
-Copyright (C) Microsoft Corporation. All rights reserved.
+PS C:\Users\Sire-F\OneDrive\Desktop\My Projects\nava-otp> Write-Host "=== SUPABASE DATABASE REFERENCES ===" -ForegroundColor Cyan
+=== SUPABASE DATABASE REFERENCES ===
+PS C:\Users\Sire-F\OneDrive\Desktop\My Projects\nava-otp>
+PS C:\Users\Sire-F\OneDrive\Desktop\My Projects\nava-otp> Get-ChildItem "." -Recurse -File -Include "*.ts","*.tsx","*.sql" -ErrorAction SilentlyContinue |
+>>     Select-String -Pattern `
+>>         'supabase\.from\(',
+>>         '"users"',
+>>         "'users'",
+>>         '"profiles"',
+>>         "'profiles'",
+>>         'user_metadata',
+>>         'username',
+>>         'user_name' `
+>>         -CaseSensitive:$false |
+>>     Select-Object Path, LineNumber, Line |
+>>     Format-Table -Wrap -AutoSize
 
-Loading personal and system profiles took 3409ms.
-PS C:\Users\Sire-F> $Root = "C:\Users\Sire-F\OneDrive\Desktop\nava-otp - Copy"
-PS C:\Users\Sire-F>
-PS C:\Users\Sire-F> Write-Host ""
+Path
+----
+C:\Users\Sire-F\OneDrive\Desktop\My
+Projects\nava-otp\drizzle\0000_gigantic_eddie_brock.sql
+C:\Users\Sire-F\OneDrive\Desktop\My
+Projects\nava-otp\drizzle\0000_gigantic_eddie_brock.sql
+C:\Users\Sire-F\OneDrive\Desktop\My
+Projects\nava-otp\drizzle\0000_gigantic_eddie_brock.sql
+C:\Users\Sire-F\OneDrive\Desktop\My
+Projects\nava-otp\drizzle\0000_gigantic_eddie_brock.sql
+C:\Users\Sire-F\OneDrive\Desktop\My
+Projects\nava-otp\drizzle\0000_gigantic_eddie_brock.sql
+C:\Users\Sire-F\OneDrive\Desktop\My
+Projects\nava-otp\drizzle\0000_gigantic_eddie_brock.sql
+C:\Users\Sire-F\OneDrive\Desktop\My
+Projects\nava-otp\drizzle\0000_gigantic_eddie_brock.sql
+C:\Users\Sire-F\OneDrive\Desktop\My
+Projects\nava-otp\drizzle\0000_gigantic_eddie_brock.sql
+C:\Users\Sire-F\OneDrive\Desktop\My
+Projects\nava-otp\drizzle\0000_gigantic_eddie_brock.sql
+C:\Users\Sire-F\OneDrive\Desktop\My
+Projects\nava-otp\drizzle\0000_gigantic_eddie_brock.sql
+C:\Users\Sire-F\OneDrive\Desktop\My
+Projects\nava-otp\drizzle\0000_gigantic_eddie_brock.sql
+C:\Users\Sire-F\OneDrive\Desktop\My
+Projects\nava-otp\drizzle\0001_bitter_bulldozer.sql
+C:\Users\Sire-F\OneDrive\Desktop\My
+Projects\nava-otp\nava-otp\drizzle\0000_gigantic_eddie_brock.sql
+C:\Users\Sire-F\OneDrive\Desktop\My
+Projects\nava-otp\nava-otp\drizzle\0000_gigantic_eddie_brock.sql
+C:\Users\Sire-F\OneDrive\Desktop\My
+Projects\nava-otp\nava-otp\drizzle\0000_gigantic_eddie_brock.sql
+C:\Users\Sire-F\OneDrive\Desktop\My
+Projects\nava-otp\nava-otp\drizzle\0000_gigantic_eddie_brock.sql
+C:\Users\Sire-F\OneDrive\Desktop\My
+Projects\nava-otp\nava-otp\drizzle\0000_gigantic_eddie_brock.sql
+C:\Users\Sire-F\OneDrive\Desktop\My
+Projects\nava-otp\nava-otp\drizzle\0000_gigantic_eddie_brock.sql
+C:\Users\Sire-F\OneDrive\Desktop\My
+Projects\nava-otp\nava-otp\drizzle\0000_gigantic_eddie_brock.sql
+C:\Users\Sire-F\OneDrive\Desktop\My
+Projects\nava-otp\nava-otp\drizzle\0000_gigantic_eddie_brock.sql
+C:\Users\Sire-F\OneDrive\Desktop\My
+Projects\nava-otp\nava-otp\drizzle\0000_gigantic_eddie_brock.sql
+C:\Users\Sire-F\OneDrive\Desktop\My
+Projects\nava-otp\nava-otp\drizzle\0000_gigantic_eddie_brock.sql
+C:\Users\Sire-F\OneDrive\Desktop\My
+Projects\nava-otp\nava-otp\drizzle\0000_gigantic_eddie_brock.sql
+C:\Users\Sire-F\OneDrive\Desktop\My Projects\nava-otp\nava-otp\node_modules\@su
+pabase\auth-js\dist\main\lib\types.d.ts
+C:\Users\Sire-F\OneDrive\Desktop\My Projects\nava-otp\nava-otp\node_modules\@su
+pabase\auth-js\dist\main\lib\types.d.ts
+C:\Users\Sire-F\OneDrive\Desktop\My Projects\nava-otp\nava-otp\node_modules\@su
+pabase\auth-js\dist\main\lib\types.d.ts
+C:\Users\Sire-F\OneDrive\Desktop\My Projects\nava-otp\nava-otp\node_modules\@su
+pabase\auth-js\dist\main\lib\types.d.ts
+C:\Users\Sire-F\OneDrive\Desktop\My Projects\nava-otp\nava-otp\node_modules\@su
+pabase\auth-js\dist\main\lib\types.d.ts
+C:\Users\Sire-F\OneDrive\Desktop\My Projects\nava-otp\nava-otp\node_modules\@su
+pabase\auth-js\dist\main\lib\types.d.ts
+C:\Users\Sire-F\OneDrive\Desktop\My Projects\nava-otp\nava-otp\node_modules\@su
+pabase\auth-js\dist\main\lib\types.d.ts
+C:\Users\Sire-F\OneDrive\Desktop\My Projects\nava-otp\nava-otp\node_modules\@su
+pabase\auth-js\dist\main\lib\webauthn.dom.d.ts
+C:\Users\Sire-F\OneDrive\Desktop\My Projects\nava-otp\nava-otp\node_modules\@su
+pabase\auth-js\dist\main\lib\webauthn.dom.d.ts
+C:\Users\Sire-F\OneDrive\Desktop\My Projects\nava-otp\nava-otp\node_modules\@su
+pabase\auth-js\dist\main\GoTrueAdminApi.d.ts
+C:\Users\Sire-F\OneDrive\Desktop\My Projects\nava-otp\nava-otp\node_modules\@su
+pabase\auth-js\dist\main\GoTrueAdminApi.d.ts
+C:\Users\Sire-F\OneDrive\Desktop\My Projects\nava-otp\nava-otp\node_modules\@su
+pabase\auth-js\dist\main\GoTrueAdminApi.d.ts
+C:\Users\Sire-F\OneDrive\Desktop\My Projects\nava-otp\nava-otp\node_modules\@su
+pabase\auth-js\dist\main\GoTrueAdminApi.d.ts
+C:\Users\Sire-F\OneDrive\Desktop\My Projects\nava-otp\nava-otp\node_modules\@su
+pabase\auth-js\dist\main\GoTrueAdminApi.d.ts
+C:\Users\Sire-F\OneDrive\Desktop\My Projects\nava-otp\nava-otp\node_modules\@su
+pabase\auth-js\dist\main\GoTrueAdminApi.d.ts
+C:\Users\Sire-F\OneDrive\Desktop\My Projects\nava-otp\nava-otp\node_modules\@su
+pabase\auth-js\dist\main\GoTrueAdminApi.d.ts
+C:\Users\Sire-F\OneDrive\Desktop\My Projects\nava-otp\nava-otp\node_modules\@su
+pabase\auth-js\dist\main\GoTrueAdminApi.d.ts
+C:\Users\Sire-F\OneDrive\Desktop\My Projects\nava-otp\nava-otp\node_modules\@su
+pabase\auth-js\dist\main\GoTrueAdminApi.d.ts
+C:\Users\Sire-F\OneDrive\Desktop\My Projects\nava-otp\nava-otp\node_modules\@su
+pabase\auth-js\dist\main\GoTrueClient.d.ts
+C:\Users\Sire-F\OneDrive\Desktop\My Projects\nava-otp\nava-otp\node_modules\@su
+pabase\auth-js\dist\main\GoTrueClient.d.ts
+C:\Users\Sire-F\OneDrive\Desktop\My Projects\nava-otp\nava-otp\node_modules\@su
+pabase\auth-js\dist\main\GoTrueClient.d.ts
+C:\Users\Sire-F\OneDrive\Desktop\My Projects\nava-otp\nava-otp\node_modules\@su
+pabase\auth-js\dist\main\GoTrueClient.d.ts
+C:\Users\Sire-F\OneDrive\Desktop\My Projects\nava-otp\nava-otp\node_modules\@su
+pabase\auth-js\dist\main\GoTrueClient.d.ts
+C:\Users\Sire-F\OneDrive\Desktop\My Projects\nava-otp\nava-otp\node_modules\@su
+pabase\auth-js\dist\main\GoTrueClient.d.ts
+C:\Users\Sire-F\OneDrive\Desktop\My Projects\nava-otp\nava-otp\node_modules\@su
+pabase\auth-js\dist\main\GoTrueClient.d.ts
+C:\Users\Sire-F\OneDrive\Desktop\My Projects\nava-otp\nava-otp\node_modules\@su
+pabase\auth-js\dist\main\GoTrueClient.d.ts
+C:\Users\Sire-F\OneDrive\Desktop\My Projects\nava-otp\nava-otp\node_modules\@su
+pabase\auth-js\dist\main\GoTrueClient.d.ts
+C:\Users\Sire-F\OneDrive\Desktop\My Projects\nava-otp\nava-otp\node_modules\@su
+pabase\auth-js\dist\main\GoTrueClient.d.ts
+C:\Users\Sire-F\OneDrive\Desktop\My Projects\nava-otp\nava-otp\node_modules\@su
+pabase\auth-js\dist\main\GoTrueClient.d.ts
+C:\Users\Sire-F\OneDrive\Desktop\My Projects\nava-otp\nava-otp\node_modules\@su
+pabase\auth-js\dist\main\GoTrueClient.d.ts
+C:\Users\Sire-F\OneDrive\Desktop\My Projects\nava-otp\nava-otp\node_modules\@su
+pabase\auth-js\dist\main\GoTrueClient.d.ts
+C:\Users\Sire-F\OneDrive\Desktop\My Projects\nava-otp\nava-otp\node_modules\@su
+pabase\auth-js\dist\main\GoTrueClient.d.ts
+C:\Users\Sire-F\OneDrive\Desktop\My Projects\nava-otp\nava-otp\node_modules\@su
+pabase\auth-js\dist\main\GoTrueClient.d.ts
+C:\Users\Sire-F\OneDrive\Desktop\My Projects\nava-otp\nava-otp\node_modules\@su
+pabase\auth-js\dist\main\GoTrueClient.d.ts
+C:\Users\Sire-F\OneDrive\Desktop\My Projects\nava-otp\nava-otp\node_modules\@su
+pabase\auth-js\dist\main\GoTrueClient.d.ts
+C:\Users\Sire-F\OneDrive\Desktop\My Projects\nava-otp\nava-otp\node_modules\@su
+pabase\auth-js\dist\main\GoTrueClient.d.ts
+C:\Users\Sire-F\OneDrive\Desktop\My Projects\nava-otp\nava-otp\node_modules\@su
+pabase\auth-js\dist\main\GoTrueClient.d.ts
+C:\Users\Sire-F\OneDrive\Desktop\My Projects\nava-otp\nava-otp\node_modules\@su
+pabase\auth-js\dist\main\GoTrueClient.d.ts
+C:\Users\Sire-F\OneDrive\Desktop\My Projects\nava-otp\nava-otp\node_modules\@su
+pabase\auth-js\dist\main\GoTrueClient.d.ts
+C:\Users\Sire-F\OneDrive\Desktop\My Projects\nava-otp\nava-otp\node_modules\@su
+pabase\auth-js\dist\main\GoTrueClient.d.ts
+C:\Users\Sire-F\OneDrive\Desktop\My Projects\nava-otp\nava-otp\node_modules\@su
+pabase\auth-js\dist\module\lib\types.d.ts
+C:\Users\Sire-F\OneDrive\Desktop\My Projects\nava-otp\nava-otp\node_modules\@su
+pabase\auth-js\dist\module\lib\types.d.ts
+C:\Users\Sire-F\OneDrive\Desktop\My Projects\nava-otp\nava-otp\node_modules\@su
+pabase\auth-js\dist\module\lib\types.d.ts
+C:\Users\Sire-F\OneDrive\Desktop\My Projects\nava-otp\nava-otp\node_modules\@su
+pabase\auth-js\dist\module\lib\types.d.ts
+C:\Users\Sire-F\OneDrive\Desktop\My Projects\nava-otp\nava-otp\node_modules\@su
+pabase\auth-js\dist\module\lib\types.d.ts
+C:\Users\Sire-F\OneDrive\Desktop\My Projects\nava-otp\nava-otp\node_modules\@su
+pabase\auth-js\dist\module\lib\types.d.ts
+C:\Users\Sire-F\OneDrive\Desktop\My Projects\nava-otp\nava-otp\node_modules\@su
+pabase\auth-js\dist\module\lib\types.d.ts
+C:\Users\Sire-F\OneDrive\Desktop\My Projects\nava-otp\nava-otp\node_modules\@su
+pabase\auth-js\dist\module\lib\webauthn.dom.d.ts
+C:\Users\Sire-F\OneDrive\Desktop\My Projects\nava-otp\nava-otp\node_modules\@su
+pabase\auth-js\dist\module\lib\webauthn.dom.d.ts
+C:\Users\Sire-F\OneDrive\Desktop\My Projects\nava-otp\nava-otp\node_modules\@su
+pabase\auth-js\dist\module\GoTrueAdminApi.d.ts
+C:\Users\Sire-F\OneDrive\Desktop\My Projects\nava-otp\nava-otp\node_modules\@su
+pabase\auth-js\dist\module\GoTrueAdminApi.d.ts
+C:\Users\Sire-F\OneDrive\Desktop\My Projects\nava-otp\nava-otp\node_modules\@su
+pabase\auth-js\dist\module\GoTrueAdminApi.d.ts
+C:\Users\Sire-F\OneDrive\Desktop\My Projects\nava-otp\nava-otp\node_modules\@su
+pabase\auth-js\dist\module\GoTrueAdminApi.d.ts
+C:\Users\Sire-F\OneDrive\Desktop\My Projects\nava-otp\nava-otp\node_modules\@su
+pabase\auth-js\dist\module\GoTrueAdminApi.d.ts
+C:\Users\Sire-F\OneDrive\Desktop\My Projects\nava-otp\nava-otp\node_modules\@su
+pabase\auth-js\dist\module\GoTrueAdminApi.d.ts
+C:\Users\Sire-F\OneDrive\Desktop\My Projects\nava-otp\nava-otp\node_modules\@su
+pabase\auth-js\dist\module\GoTrueAdminApi.d.ts
+C:\Users\Sire-F\OneDrive\Desktop\My Projects\nava-otp\nava-otp\node_modules\@su
+pabase\auth-js\dist\module\GoTrueAdminApi.d.ts
+C:\Users\Sire-F\OneDrive\Desktop\My Projects\nava-otp\nava-otp\node_modules\@su
+pabase\auth-js\dist\module\GoTrueAdminApi.d.ts
+C:\Users\Sire-F\OneDrive\Desktop\My Projects\nava-otp\nava-otp\node_modules\@su
+pabase\auth-js\dist\module\GoTrueClient.d.ts
+C:\Users\Sire-F\OneDrive\Desktop\My Projects\nava-otp\nava-otp\node_modules\@su
+pabase\auth-js\dist\module\GoTrueClient.d.ts
+C:\Users\Sire-F\OneDrive\Desktop\My Projects\nava-otp\nava-otp\node_modules\@su
+pabase\auth-js\dist\module\GoTrueClient.d.ts
+C:\Users\Sire-F\OneDrive\Desktop\My Projects\nava-otp\nava-otp\node_modules\@su
+pabase\auth-js\dist\module\GoTrueClient.d.ts
+C:\Users\Sire-F\OneDrive\Desktop\My Projects\nava-otp\nava-otp\node_modules\@su
+pabase\auth-js\dist\module\GoTrueClient.d.ts
+C:\Users\Sire-F\OneDrive\Desktop\My Projects\nava-otp\nava-otp\node_modules\@su
+pabase\auth-js\dist\module\GoTrueClient.d.ts
+C:\Users\Sire-F\OneDrive\Desktop\My Projects\nava-otp\nava-otp\node_modules\@su
+pabase\auth-js\dist\module\GoTrueClient.d.ts
+C:\Users\Sire-F\OneDrive\Desktop\My Projects\nava-otp\nava-otp\node_modules\@su
+pabase\auth-js\dist\module\GoTrueClient.d.ts
+C:\Users\Sire-F\OneDrive\Desktop\My Projects\nava-otp\nava-otp\node_modules\@su
+pabase\auth-js\dist\module\GoTrueClient.d.ts
+C:\Users\Sire-F\OneDrive\Desktop\My Projects\nava-otp\nava-otp\node_modules\@su
+pabase\auth-js\dist\module\GoTrueClient.d.ts
+C:\Users\Sire-F\OneDrive\Desktop\My Projects\nava-otp\nava-otp\node_modules\@su
+pabase\auth-js\dist\module\GoTrueClient.d.ts
+C:\Users\Sire-F\OneDrive\Desktop\My Projects\nava-otp\nava-otp\node_modules\@su
+pabase\auth-js\dist\module\GoTrueClient.d.ts
+C:\Users\Sire-F\OneDrive\Desktop\My Projects\nava-otp\nava-otp\node_modules\@su
+pabase\auth-js\dist\module\GoTrueClient.d.ts
+C:\Users\Sire-F\OneDrive\Desktop\My Projects\nava-otp\nava-otp\node_modules\@su
+pabase\auth-js\dist\module\GoTrueClient.d.ts
+C:\Users\Sire-F\OneDrive\Desktop\My Projects\nava-otp\nava-otp\node_modules\@su
+pabase\auth-js\dist\module\GoTrueClient.d.ts
+C:\Users\Sire-F\OneDrive\Desktop\My Projects\nava-otp\nava-otp\node_modules\@su
+pabase\auth-js\dist\module\GoTrueClient.d.ts
+C:\Users\Sire-F\OneDrive\Desktop\My Projects\nava-otp\nava-otp\node_modules\@su
+pabase\auth-js\dist\module\GoTrueClient.d.ts
+C:\Users\Sire-F\OneDrive\Desktop\My Projects\nava-otp\nava-otp\node_modules\@su
+pabase\auth-js\dist\module\GoTrueClient.d.ts
+C:\Users\Sire-F\OneDrive\Desktop\My Projects\nava-otp\nava-otp\node_modules\@su
+pabase\auth-js\dist\module\GoTrueClient.d.ts
+C:\Users\Sire-F\OneDrive\Desktop\My Projects\nava-otp\nava-otp\node_modules\@su
+pabase\auth-js\dist\module\GoTrueClient.d.ts
+C:\Users\Sire-F\OneDrive\Desktop\My Projects\nava-otp\nava-otp\node_modules\@su
+pabase\auth-js\dist\module\GoTrueClient.d.ts
+C:\Users\Sire-F\OneDrive\Desktop\My Projects\nava-otp\nava-otp\node_modules\@su
+pabase\auth-js\dist\module\GoTrueClient.d.ts
+C:\Users\Sire-F\OneDrive\Desktop\My
+Projects\nava-otp\nava-otp\node_modules\@supabase\auth-js\src\lib\types.ts
+C:\Users\Sire-F\OneDrive\Desktop\My
+Projects\nava-otp\nava-otp\node_modules\@supabase\auth-js\src\lib\types.ts
+C:\Users\Sire-F\OneDrive\Desktop\My
+Projects\nava-otp\nava-otp\node_modules\@supabase\auth-js\src\lib\types.ts
+C:\Users\Sire-F\OneDrive\Desktop\My
+Projects\nava-otp\nava-otp\node_modules\@supabase\auth-js\src\lib\types.ts
+C:\Users\Sire-F\OneDrive\Desktop\My
+Projects\nava-otp\nava-otp\node_modules\@supabase\auth-js\src\lib\types.ts
+C:\Users\Sire-F\OneDrive\Desktop\My
+Projects\nava-otp\nava-otp\node_modules\@supabase\auth-js\src\lib\types.ts
+C:\Users\Sire-F\OneDrive\Desktop\My
+Projects\nava-otp\nava-otp\node_modules\@supabase\auth-js\src\lib\types.ts
+C:\Users\Sire-F\OneDrive\Desktop\My Projects\nava-otp\nava-otp\node_modules\@su
+pabase\auth-js\src\lib\webauthn.dom.ts
+C:\Users\Sire-F\OneDrive\Desktop\My Projects\nava-otp\nava-otp\node_modules\@su
+pabase\auth-js\src\lib\webauthn.dom.ts
+C:\Users\Sire-F\OneDrive\Desktop\My
+Projects\nava-otp\nava-otp\node_modules\@supabase\auth-js\src\lib\webauthn.ts
+C:\Users\Sire-F\OneDrive\Desktop\My
+Projects\nava-otp\nava-otp\node_modules\@supabase\auth-js\src\GoTrueAdminApi.ts
+C:\Users\Sire-F\OneDrive\Desktop\My
+Projects\nava-otp\nava-otp\node_modules\@supabase\auth-js\src\GoTrueAdminApi.ts
+C:\Users\Sire-F\OneDrive\Desktop\My
+Projects\nava-otp\nava-otp\node_modules\@supabase\auth-js\src\GoTrueAdminApi.ts
+C:\Users\Sire-F\OneDrive\Desktop\My
+Projects\nava-otp\nava-otp\node_modules\@supabase\auth-js\src\GoTrueAdminApi.ts
+C:\Users\Sire-F\OneDrive\Desktop\My
+Projects\nava-otp\nava-otp\node_modules\@supabase\auth-js\src\GoTrueAdminApi.ts
+C:\Users\Sire-F\OneDrive\Desktop\My
+Projects\nava-otp\nava-otp\node_modules\@supabase\auth-js\src\GoTrueAdminApi.ts
+C:\Users\Sire-F\OneDrive\Desktop\My
+Projects\nava-otp\nava-otp\node_modules\@supabase\auth-js\src\GoTrueAdminApi.ts
+C:\Users\Sire-F\OneDrive\Desktop\My
+Projects\nava-otp\nava-otp\node_modules\@supabase\auth-js\src\GoTrueAdminApi.ts
+C:\Users\Sire-F\OneDrive\Desktop\My
+Projects\nava-otp\nava-otp\node_modules\@supabase\auth-js\src\GoTrueAdminApi.ts
+C:\Users\Sire-F\OneDrive\Desktop\My
+Projects\nava-otp\nava-otp\node_modules\@supabase\auth-js\src\GoTrueClient.ts
+C:\Users\Sire-F\OneDrive\Desktop\My
+Projects\nava-otp\nava-otp\node_modules\@supabase\auth-js\src\GoTrueClient.ts
+C:\Users\Sire-F\OneDrive\Desktop\My
+Projects\nava-otp\nava-otp\node_modules\@supabase\auth-js\src\GoTrueClient.ts
+C:\Users\Sire-F\OneDrive\Desktop\My
+Projects\nava-otp\nava-otp\node_modules\@supabase\auth-js\src\GoTrueClient.ts
+C:\Users\Sire-F\OneDrive\Desktop\My
+Projects\nava-otp\nava-otp\node_modules\@supabase\auth-js\src\GoTrueClient.ts
+C:\Users\Sire-F\OneDrive\Desktop\My
+Projects\nava-otp\nava-otp\node_modules\@supabase\auth-js\src\GoTrueClient.ts
+C:\Users\Sire-F\OneDrive\Desktop\My
+Projects\nava-otp\nava-otp\node_modules\@supabase\auth-js\src\GoTrueClient.ts
+C:\Users\Sire-F\OneDrive\Desktop\My
+Projects\nava-otp\nava-otp\node_modules\@supabase\auth-js\src\GoTrueClient.ts
+C:\Users\Sire-F\OneDrive\Desktop\My
+Projects\nava-otp\nava-otp\node_modules\@supabase\auth-js\src\GoTrueClient.ts
+C:\Users\Sire-F\OneDrive\Desktop\My
+Projects\nava-otp\nava-otp\node_modules\@supabase\auth-js\src\GoTrueClient.ts
+C:\Users\Sire-F\OneDrive\Desktop\My
+Projects\nava-otp\nava-otp\node_modules\@supabase\auth-js\src\GoTrueClient.ts
+C:\Users\Sire-F\OneDrive\Desktop\My
+Projects\nava-otp\nava-otp\node_modules\@supabase\auth-js\src\GoTrueClient.ts
+C:\Users\Sire-F\OneDrive\Desktop\My
+Projects\nava-otp\nava-otp\node_modules\@supabase\auth-js\src\GoTrueClient.ts
+C:\Users\Sire-F\OneDrive\Desktop\My
+Projects\nava-otp\nava-otp\node_modules\@supabase\auth-js\src\GoTrueClient.ts
+C:\Users\Sire-F\OneDrive\Desktop\My
+Projects\nava-otp\nava-otp\node_modules\@supabase\auth-js\src\GoTrueClient.ts
+C:\Users\Sire-F\OneDrive\Desktop\My
+Projects\nava-otp\nava-otp\node_modules\@supabase\auth-js\src\GoTrueClient.ts
+C:\Users\Sire-F\OneDrive\Desktop\My
+Projects\nava-otp\nava-otp\node_modules\@supabase\auth-js\src\GoTrueClient.ts
+C:\Users\Sire-F\OneDrive\Desktop\My
+Projects\nava-otp\nava-otp\node_modules\@supabase\auth-js\src\GoTrueClient.ts
+C:\Users\Sire-F\OneDrive\Desktop\My
+Projects\nava-otp\nava-otp\node_modules\@supabase\auth-js\src\GoTrueClient.ts
+C:\Users\Sire-F\OneDrive\Desktop\My
+Projects\nava-otp\nava-otp\node_modules\@supabase\auth-js\src\GoTrueClient.ts
+C:\Users\Sire-F\OneDrive\Desktop\My
+Projects\nava-otp\nava-otp\node_modules\@supabase\auth-js\src\GoTrueClient.ts
+C:\Users\Sire-F\OneDrive\Desktop\My
+Projects\nava-otp\nava-otp\node_modules\@supabase\auth-js\src\GoTrueClient.ts
+C:\Users\Sire-F\OneDrive\Desktop\My Projects\nava-otp\nava-otp\node_modules\@su
+pabase\postgrest-js\src\PostgrestBuilder.ts
+C:\Users\Sire-F\OneDrive\Desktop\My Projects\nava-otp\nava-otp\node_modules\@su
+pabase\postgrest-js\src\PostgrestBuilder.ts
+C:\Users\Sire-F\OneDrive\Desktop\My Projects\nava-otp\nava-otp\node_modules\@su
+pabase\postgrest-js\src\PostgrestBuilder.ts
+C:\Users\Sire-F\OneDrive\Desktop\My Projects\nava-otp\nava-otp\node_modules\@su
+pabase\postgrest-js\src\PostgrestBuilder.ts
+C:\Users\Sire-F\OneDrive\Desktop\My Projects\nava-otp\nava-otp\node_modules\@su
+pabase\postgrest-js\src\PostgrestBuilder.ts
+C:\Users\Sire-F\OneDrive\Desktop\My Projects\nava-otp\nava-otp\node_modules\@su
+pabase\postgrest-js\src\PostgrestBuilder.ts
+C:\Users\Sire-F\OneDrive\Desktop\My Projects\nava-otp\nava-otp\node_modules\@su
+pabase\postgrest-js\src\PostgrestClient.ts
+C:\Users\Sire-F\OneDrive\Desktop\My Projects\nava-otp\nava-otp\node_modules\@su
+pabase\postgrest-js\src\PostgrestFilterBuilder.ts
+C:\Users\Sire-F\OneDrive\Desktop\My Projects\nava-otp\nava-otp\node_modules\@su
+pabase\postgrest-js\src\PostgrestFilterBuilder.ts
+C:\Users\Sire-F\OneDrive\Desktop\My Projects\nava-otp\nava-otp\node_modules\@su
+pabase\postgrest-js\src\PostgrestQueryBuilder.ts
+C:\Users\Sire-F\OneDrive\Desktop\My Projects\nava-otp\nava-otp\node_modules\@su
+pabase\postgrest-js\src\PostgrestQueryBuilder.ts
+C:\Users\Sire-F\OneDrive\Desktop\My Projects\nava-otp\nava-otp\node_modules\@su
+pabase\postgrest-js\src\PostgrestQueryBuilder.ts
+C:\Users\Sire-F\OneDrive\Desktop\My Projects\nava-otp\nava-otp\node_modules\@su
+pabase\postgrest-js\src\PostgrestQueryBuilder.ts
+C:\Users\Sire-F\OneDrive\Desktop\My Projects\nava-otp\nava-otp\node_modules\@su
+pabase\postgrest-js\src\PostgrestQueryBuilder.ts
+C:\Users\Sire-F\OneDrive\Desktop\My Projects\nava-otp\nava-otp\node_modules\@su
+pabase\postgrest-js\src\PostgrestQueryBuilder.ts
+C:\Users\Sire-F\OneDrive\Desktop\My Projects\nava-otp\nava-otp\node_modules\@su
+pabase\postgrest-js\src\PostgrestQueryBuilder.ts
+C:\Users\Sire-F\OneDrive\Desktop\My Projects\nava-otp\nava-otp\node_modules\@su
+pabase\postgrest-js\src\PostgrestQueryBuilder.ts
+C:\Users\Sire-F\OneDrive\Desktop\My Projects\nava-otp\nava-otp\node_modules\@su
+pabase\postgrest-js\src\PostgrestQueryBuilder.ts
+C:\Users\Sire-F\OneDrive\Desktop\My Projects\nava-otp\nava-otp\node_modules\@su
+pabase\postgrest-js\src\PostgrestQueryBuilder.ts
+C:\Users\Sire-F\OneDrive\Desktop\My Projects\nava-otp\nava-otp\node_modules\@su
+pabase\postgrest-js\src\PostgrestQueryBuilder.ts
+C:\Users\Sire-F\OneDrive\Desktop\My Projects\nava-otp\nava-otp\node_modules\@su
+pabase\postgrest-js\src\PostgrestQueryBuilder.ts
+C:\Users\Sire-F\OneDrive\Desktop\My Projects\nava-otp\nava-otp\node_modules\@su
+pabase\postgrest-js\src\PostgrestQueryBuilder.ts
+C:\Users\Sire-F\OneDrive\Desktop\My Projects\nava-otp\nava-otp\node_modules\@su
+pabase\postgrest-js\src\PostgrestQueryBuilder.ts
+C:\Users\Sire-F\OneDrive\Desktop\My Projects\nava-otp\nava-otp\node_modules\@su
+pabase\postgrest-js\src\PostgrestQueryBuilder.ts
+C:\Users\Sire-F\OneDrive\Desktop\My Projects\nava-otp\nava-otp\node_modules\@su
+pabase\postgrest-js\src\PostgrestQueryBuilder.ts
+C:\Users\Sire-F\OneDrive\Desktop\My Projects\nava-otp\nava-otp\node_modules\@su
+pabase\postgrest-js\src\PostgrestQueryBuilder.ts
+C:\Users\Sire-F\OneDrive\Desktop\My Projects\nava-otp\nava-otp\node_modules\@su
+pabase\postgrest-js\src\PostgrestQueryBuilder.ts
+C:\Users\Sire-F\OneDrive\Desktop\My Projects\nava-otp\nava-otp\node_modules\@su
+pabase\postgrest-js\src\PostgrestQueryBuilder.ts
+C:\Users\Sire-F\OneDrive\Desktop\My Projects\nava-otp\nava-otp\node_modules\@su
+pabase\realtime-js\dist\main\RealtimeChannel.d.ts
+C:\Users\Sire-F\OneDrive\Desktop\My Projects\nava-otp\nava-otp\node_modules\@su
+pabase\realtime-js\dist\main\RealtimePostgresFilterBuilder.d.ts
+C:\Users\Sire-F\OneDrive\Desktop\My Projects\nava-otp\nava-otp\node_modules\@su
+pabase\realtime-js\dist\module\RealtimeChannel.d.ts
+C:\Users\Sire-F\OneDrive\Desktop\My Projects\nava-otp\nava-otp\node_modules\@su
+pabase\realtime-js\dist\module\RealtimePostgresFilterBuilder.d.ts
+C:\Users\Sire-F\OneDrive\Desktop\My Projects\nava-otp\nava-otp\node_modules\@su
+pabase\realtime-js\src\RealtimeChannel.ts
+C:\Users\Sire-F\OneDrive\Desktop\My Projects\nava-otp\nava-otp\node_modules\@su
+pabase\realtime-js\src\RealtimePostgresFilterBuilder.ts
+C:\Users\Sire-F\OneDrive\Desktop\My
+Projects\nava-otp\nava-otp\node_modules\@supabase\supabase-js\src\lib\types.ts
+C:\Users\Sire-F\OneDrive\Desktop\My
+Projects\nava-otp\nava-otp\node_modules\@supabase\supabase-js\src\index.ts
+C:\Users\Sire-F\OneDrive\Desktop\My Projects\nava-otp\nava-otp\node_modules\@su
+pabase\supabase-js\src\SupabaseClient.ts
+C:\Users\Sire-F\OneDrive\Desktop\My Projects\nava-otp\nava-otp\node_modules\@su
+pabase\supabase-js\src\SupabaseClient.ts
+C:\Users\Sire-F\OneDrive\Desktop\My
+Projects\nava-otp\nava-otp\node_modules\@types\node\http.d.ts
+C:\Users\Sire-F\OneDrive\Desktop\My
+Projects\nava-otp\nava-otp\node_modules\@types\node\http2.d.ts
+C:\Users\Sire-F\OneDrive\Desktop\My
+Projects\nava-otp\nava-otp\node_modules\@types\node\os.d.ts
+C:\Users\Sire-F\OneDrive\Desktop\My
+Projects\nava-otp\nava-otp\node_modules\@types\node\os.d.ts
+C:\Users\Sire-F\OneDrive\Desktop\My
+Projects\nava-otp\nava-otp\node_modules\@types\node\os.d.ts
+C:\Users\Sire-F\OneDrive\Desktop\My
+Projects\nava-otp\nava-otp\node_modules\@types\node\process.d.ts
+C:\Users\Sire-F\OneDrive\Desktop\My
+Projects\nava-otp\nava-otp\node_modules\@types\node\process.d.ts
+C:\Users\Sire-F\OneDrive\Desktop\My
+Projects\nava-otp\nava-otp\node_modules\@types\node\process.d.ts
+C:\Users\Sire-F\OneDrive\Desktop\My
+Projects\nava-otp\nava-otp\node_modules\@types\node\process.d.ts
+C:\Users\Sire-F\OneDrive\Desktop\My
+Projects\nava-otp\nava-otp\node_modules\@types\node\url.d.ts
+C:\Users\Sire-F\OneDrive\Desktop\My
+Projects\nava-otp\nava-otp\node_modules\@types\node\url.d.ts
+C:\Users\Sire-F\OneDrive\Desktop\My
+Projects\nava-otp\nava-otp\node_modules\@types\node\url.d.ts
+C:\Users\Sire-F\OneDrive\Desktop\My
+Projects\nava-otp\nava-otp\node_modules\@types\node\url.d.ts
+C:\Users\Sire-F\OneDrive\Desktop\My
+Projects\nava-otp\nava-otp\node_modules\@types\node\url.d.ts
+C:\Users\Sire-F\OneDrive\Desktop\My
+Projects\nava-otp\nava-otp\node_modules\@types\node\url.d.ts
+C:\Users\Sire-F\OneDrive\Desktop\My
+Projects\nava-otp\nava-otp\node_modules\@types\node\url.d.ts
+C:\Users\Sire-F\OneDrive\Desktop\My
+Projects\nava-otp\nava-otp\node_modules\@types\react\ts5.0\index.d.ts
+C:\Users\Sire-F\OneDrive\Desktop\My
+Projects\nava-otp\nava-otp\node_modules\@types\react\index.d.ts
+C:\Users\Sire-F\OneDrive\Desktop\My
+Projects\nava-otp\node_modules\@supabase\auth-js\dist\main\lib\types.d.ts
+C:\Users\Sire-F\OneDrive\Desktop\My
+Projects\nava-otp\node_modules\@supabase\auth-js\dist\main\lib\types.d.ts
+C:\Users\Sire-F\OneDrive\Desktop\My
+Projects\nava-otp\node_modules\@supabase\auth-js\dist\main\lib\types.d.ts
+C:\Users\Sire-F\OneDrive\Desktop\My
+Projects\nava-otp\node_modules\@supabase\auth-js\dist\main\lib\types.d.ts
+C:\Users\Sire-F\OneDrive\Desktop\My
+Projects\nava-otp\node_modules\@supabase\auth-js\dist\main\lib\types.d.ts
+C:\Users\Sire-F\OneDrive\Desktop\My
+Projects\nava-otp\node_modules\@supabase\auth-js\dist\main\lib\types.d.ts
+C:\Users\Sire-F\OneDrive\Desktop\My
+Projects\nava-otp\node_modules\@supabase\auth-js\dist\main\lib\types.d.ts
+C:\Users\Sire-F\OneDrive\Desktop\My Projects\nava-otp\node_modules\@supabase\au
+th-js\dist\main\lib\webauthn.dom.d.ts
+C:\Users\Sire-F\OneDrive\Desktop\My Projects\nava-otp\node_modules\@supabase\au
+th-js\dist\main\lib\webauthn.dom.d.ts
+C:\Users\Sire-F\OneDrive\Desktop\My
+Projects\nava-otp\node_modules\@supabase\auth-js\dist\main\GoTrueAdminApi.d.ts
+C:\Users\Sire-F\OneDrive\Desktop\My
+Projects\nava-otp\node_modules\@supabase\auth-js\dist\main\GoTrueAdminApi.d.ts
+C:\Users\Sire-F\OneDrive\Desktop\My
+Projects\nava-otp\node_modules\@supabase\auth-js\dist\main\GoTrueAdminApi.d.ts
+C:\Users\Sire-F\OneDrive\Desktop\My
+Projects\nava-otp\node_modules\@supabase\auth-js\dist\main\GoTrueAdminApi.d.ts
+C:\Users\Sire-F\OneDrive\Desktop\My
+Projects\nava-otp\node_modules\@supabase\auth-js\dist\main\GoTrueAdminApi.d.ts
+C:\Users\Sire-F\OneDrive\Desktop\My
+Projects\nava-otp\node_modules\@supabase\auth-js\dist\main\GoTrueAdminApi.d.ts
+C:\Users\Sire-F\OneDrive\Desktop\My
+Projects\nava-otp\node_modules\@supabase\auth-js\dist\main\GoTrueAdminApi.d.ts
+C:\Users\Sire-F\OneDrive\Desktop\My
+Projects\nava-otp\node_modules\@supabase\auth-js\dist\main\GoTrueAdminApi.d.ts
+C:\Users\Sire-F\OneDrive\Desktop\My
+Projects\nava-otp\node_modules\@supabase\auth-js\dist\main\GoTrueAdminApi.d.ts
+C:\Users\Sire-F\OneDrive\Desktop\My
+Projects\nava-otp\node_modules\@supabase\auth-js\dist\main\GoTrueClient.d.ts
+C:\Users\Sire-F\OneDrive\Desktop\My
+Projects\nava-otp\node_modules\@supabase\auth-js\dist\main\GoTrueClient.d.ts
+C:\Users\Sire-F\OneDrive\Desktop\My
+Projects\nava-otp\node_modules\@supabase\auth-js\dist\main\GoTrueClient.d.ts
+C:\Users\Sire-F\OneDrive\Desktop\My
+Projects\nava-otp\node_modules\@supabase\auth-js\dist\main\GoTrueClient.d.ts
+C:\Users\Sire-F\OneDrive\Desktop\My
+Projects\nava-otp\node_modules\@supabase\auth-js\dist\main\GoTrueClient.d.ts
+C:\Users\Sire-F\OneDrive\Desktop\My
+Projects\nava-otp\node_modules\@supabase\auth-js\dist\main\GoTrueClient.d.ts
+C:\Users\Sire-F\OneDrive\Desktop\My
+Projects\nava-otp\node_modules\@supabase\auth-js\dist\main\GoTrueClient.d.ts
+C:\Users\Sire-F\OneDrive\Desktop\My
+Projects\nava-otp\node_modules\@supabase\auth-js\dist\main\GoTrueClient.d.ts
+C:\Users\Sire-F\OneDrive\Desktop\My
+Projects\nava-otp\node_modules\@supabase\auth-js\dist\main\GoTrueClient.d.ts
+C:\Users\Sire-F\OneDrive\Desktop\My
+Projects\nava-otp\node_modules\@supabase\auth-js\dist\main\GoTrueClient.d.ts
+C:\Users\Sire-F\OneDrive\Desktop\My
+Projects\nava-otp\node_modules\@supabase\auth-js\dist\main\GoTrueClient.d.ts
+C:\Users\Sire-F\OneDrive\Desktop\My
+Projects\nava-otp\node_modules\@supabase\auth-js\dist\main\GoTrueClient.d.ts
+C:\Users\Sire-F\OneDrive\Desktop\My
+Projects\nava-otp\node_modules\@supabase\auth-js\dist\main\GoTrueClient.d.ts
+C:\Users\Sire-F\OneDrive\Desktop\My
+Projects\nava-otp\node_modules\@supabase\auth-js\dist\main\GoTrueClient.d.ts
+C:\Users\Sire-F\OneDrive\Desktop\My
+Projects\nava-otp\node_modules\@supabase\auth-js\dist\main\GoTrueClient.d.ts
+C:\Users\Sire-F\OneDrive\Desktop\My
+Projects\nava-otp\node_modules\@supabase\auth-js\dist\main\GoTrueClient.d.ts
+C:\Users\Sire-F\OneDrive\Desktop\My
+Projects\nava-otp\node_modules\@supabase\auth-js\dist\main\GoTrueClient.d.ts
+C:\Users\Sire-F\OneDrive\Desktop\My
+Projects\nava-otp\node_modules\@supabase\auth-js\dist\main\GoTrueClient.d.ts
+C:\Users\Sire-F\OneDrive\Desktop\My
+Projects\nava-otp\node_modules\@supabase\auth-js\dist\main\GoTrueClient.d.ts
+C:\Users\Sire-F\OneDrive\Desktop\My
+Projects\nava-otp\node_modules\@supabase\auth-js\dist\main\GoTrueClient.d.ts
+C:\Users\Sire-F\OneDrive\Desktop\My
+Projects\nava-otp\node_modules\@supabase\auth-js\dist\main\GoTrueClient.d.ts
+C:\Users\Sire-F\OneDrive\Desktop\My
+Projects\nava-otp\node_modules\@supabase\auth-js\dist\main\GoTrueClient.d.ts
+C:\Users\Sire-F\OneDrive\Desktop\My
+Projects\nava-otp\node_modules\@supabase\auth-js\dist\module\lib\types.d.ts
+C:\Users\Sire-F\OneDrive\Desktop\My
+Projects\nava-otp\node_modules\@supabase\auth-js\dist\module\lib\types.d.ts
+C:\Users\Sire-F\OneDrive\Desktop\My
+Projects\nava-otp\node_modules\@supabase\auth-js\dist\module\lib\types.d.ts
+C:\Users\Sire-F\OneDrive\Desktop\My
+Projects\nava-otp\node_modules\@supabase\auth-js\dist\module\lib\types.d.ts
+C:\Users\Sire-F\OneDrive\Desktop\My
+Projects\nava-otp\node_modules\@supabase\auth-js\dist\module\lib\types.d.ts
+C:\Users\Sire-F\OneDrive\Desktop\My
+Projects\nava-otp\node_modules\@supabase\auth-js\dist\module\lib\types.d.ts
+C:\Users\Sire-F\OneDrive\Desktop\My
+Projects\nava-otp\node_modules\@supabase\auth-js\dist\module\lib\types.d.ts
+C:\Users\Sire-F\OneDrive\Desktop\My Projects\nava-otp\node_modules\@supabase\au
+th-js\dist\module\lib\webauthn.dom.d.ts
+C:\Users\Sire-F\OneDrive\Desktop\My Projects\nava-otp\node_modules\@supabase\au
+th-js\dist\module\lib\webauthn.dom.d.ts
+C:\Users\Sire-F\OneDrive\Desktop\My Projects\nava-otp\node_modules\@supabase\au
+th-js\dist\module\GoTrueAdminApi.d.ts
+C:\Users\Sire-F\OneDrive\Desktop\My Projects\nava-otp\node_modules\@supabase\au
+th-js\dist\module\GoTrueAdminApi.d.ts
+C:\Users\Sire-F\OneDrive\Desktop\My Projects\nava-otp\node_modules\@supabase\au
+th-js\dist\module\GoTrueAdminApi.d.ts
+C:\Users\Sire-F\OneDrive\Desktop\My Projects\nava-otp\node_modules\@supabase\au
+th-js\dist\module\GoTrueAdminApi.d.ts
+C:\Users\Sire-F\OneDrive\Desktop\My Projects\nava-otp\node_modules\@supabase\au
+th-js\dist\module\GoTrueAdminApi.d.ts
+C:\Users\Sire-F\OneDrive\Desktop\My Projects\nava-otp\node_modules\@supabase\au
+th-js\dist\module\GoTrueAdminApi.d.ts
+C:\Users\Sire-F\OneDrive\Desktop\My Projects\nava-otp\node_modules\@supabase\au
+th-js\dist\module\GoTrueAdminApi.d.ts
+C:\Users\Sire-F\OneDrive\Desktop\My Projects\nava-otp\node_modules\@supabase\au
+th-js\dist\module\GoTrueAdminApi.d.ts
+C:\Users\Sire-F\OneDrive\Desktop\My Projects\nava-otp\node_modules\@supabase\au
+th-js\dist\module\GoTrueAdminApi.d.ts
+C:\Users\Sire-F\OneDrive\Desktop\My
+Projects\nava-otp\node_modules\@supabase\auth-js\dist\module\GoTrueClient.d.ts
+C:\Users\Sire-F\OneDrive\Desktop\My
+Projects\nava-otp\node_modules\@supabase\auth-js\dist\module\GoTrueClient.d.ts
+C:\Users\Sire-F\OneDrive\Desktop\My
+Projects\nava-otp\node_modules\@supabase\auth-js\dist\module\GoTrueClient.d.ts
+C:\Users\Sire-F\OneDrive\Desktop\My
+Projects\nava-otp\node_modules\@supabase\auth-js\dist\module\GoTrueClient.d.ts
+C:\Users\Sire-F\OneDrive\Desktop\My
+Projects\nava-otp\node_modules\@supabase\auth-js\dist\module\GoTrueClient.d.ts
+C:\Users\Sire-F\OneDrive\Desktop\My
+Projects\nava-otp\node_modules\@supabase\auth-js\dist\module\GoTrueClient.d.ts
+C:\Users\Sire-F\OneDrive\Desktop\My
+Projects\nava-otp\node_modules\@supabase\auth-js\dist\module\GoTrueClient.d.ts
+C:\Users\Sire-F\OneDrive\Desktop\My
+Projects\nava-otp\node_modules\@supabase\auth-js\dist\module\GoTrueClient.d.ts
+C:\Users\Sire-F\OneDrive\Desktop\My
+Projects\nava-otp\node_modules\@supabase\auth-js\dist\module\GoTrueClient.d.ts
+C:\Users\Sire-F\OneDrive\Desktop\My
+Projects\nava-otp\node_modules\@supabase\auth-js\dist\module\GoTrueClient.d.ts
+C:\Users\Sire-F\OneDrive\Desktop\My
+Projects\nava-otp\node_modules\@supabase\auth-js\dist\module\GoTrueClient.d.ts
+C:\Users\Sire-F\OneDrive\Desktop\My
+Projects\nava-otp\node_modules\@supabase\auth-js\dist\module\GoTrueClient.d.ts
+C:\Users\Sire-F\OneDrive\Desktop\My
+Projects\nava-otp\node_modules\@supabase\auth-js\dist\module\GoTrueClient.d.ts
+C:\Users\Sire-F\OneDrive\Desktop\My
+Projects\nava-otp\node_modules\@supabase\auth-js\dist\module\GoTrueClient.d.ts
+C:\Users\Sire-F\OneDrive\Desktop\My
+Projects\nava-otp\node_modules\@supabase\auth-js\dist\module\GoTrueClient.d.ts
+C:\Users\Sire-F\OneDrive\Desktop\My
+Projects\nava-otp\node_modules\@supabase\auth-js\dist\module\GoTrueClient.d.ts
+C:\Users\Sire-F\OneDrive\Desktop\My
+Projects\nava-otp\node_modules\@supabase\auth-js\dist\module\GoTrueClient.d.ts
+C:\Users\Sire-F\OneDrive\Desktop\My
+Projects\nava-otp\node_modules\@supabase\auth-js\dist\module\GoTrueClient.d.ts
+C:\Users\Sire-F\OneDrive\Desktop\My
+Projects\nava-otp\node_modules\@supabase\auth-js\dist\module\GoTrueClient.d.ts
+C:\Users\Sire-F\OneDrive\Desktop\My
+Projects\nava-otp\node_modules\@supabase\auth-js\dist\module\GoTrueClient.d.ts
+C:\Users\Sire-F\OneDrive\Desktop\My
+Projects\nava-otp\node_modules\@supabase\auth-js\dist\module\GoTrueClient.d.ts
+C:\Users\Sire-F\OneDrive\Desktop\My
+Projects\nava-otp\node_modules\@supabase\auth-js\dist\module\GoTrueClient.d.ts
+C:\Users\Sire-F\OneDrive\Desktop\My
+Projects\nava-otp\node_modules\@supabase\auth-js\src\lib\types.ts
+C:\Users\Sire-F\OneDrive\Desktop\My
+Projects\nava-otp\node_modules\@supabase\auth-js\src\lib\types.ts
+C:\Users\Sire-F\OneDrive\Desktop\My
+Projects\nava-otp\node_modules\@supabase\auth-js\src\lib\types.ts
+C:\Users\Sire-F\OneDrive\Desktop\My
+Projects\nava-otp\node_modules\@supabase\auth-js\src\lib\types.ts
+C:\Users\Sire-F\OneDrive\Desktop\My
+Projects\nava-otp\node_modules\@supabase\auth-js\src\lib\types.ts
+C:\Users\Sire-F\OneDrive\Desktop\My
+Projects\nava-otp\node_modules\@supabase\auth-js\src\lib\types.ts
+C:\Users\Sire-F\OneDrive\Desktop\My
+Projects\nava-otp\node_modules\@supabase\auth-js\src\lib\types.ts
+C:\Users\Sire-F\OneDrive\Desktop\My
+Projects\nava-otp\node_modules\@supabase\auth-js\src\lib\webauthn.dom.ts
+C:\Users\Sire-F\OneDrive\Desktop\My
+Projects\nava-otp\node_modules\@supabase\auth-js\src\lib\webauthn.dom.ts
+C:\Users\Sire-F\OneDrive\Desktop\My
+Projects\nava-otp\node_modules\@supabase\auth-js\src\lib\webauthn.ts
+C:\Users\Sire-F\OneDrive\Desktop\My
+Projects\nava-otp\node_modules\@supabase\auth-js\src\GoTrueAdminApi.ts
+C:\Users\Sire-F\OneDrive\Desktop\My
+Projects\nava-otp\node_modules\@supabase\auth-js\src\GoTrueAdminApi.ts
+C:\Users\Sire-F\OneDrive\Desktop\My
+Projects\nava-otp\node_modules\@supabase\auth-js\src\GoTrueAdminApi.ts
+C:\Users\Sire-F\OneDrive\Desktop\My
+Projects\nava-otp\node_modules\@supabase\auth-js\src\GoTrueAdminApi.ts
+C:\Users\Sire-F\OneDrive\Desktop\My
+Projects\nava-otp\node_modules\@supabase\auth-js\src\GoTrueAdminApi.ts
+C:\Users\Sire-F\OneDrive\Desktop\My
+Projects\nava-otp\node_modules\@supabase\auth-js\src\GoTrueAdminApi.ts
+C:\Users\Sire-F\OneDrive\Desktop\My
+Projects\nava-otp\node_modules\@supabase\auth-js\src\GoTrueAdminApi.ts
+C:\Users\Sire-F\OneDrive\Desktop\My
+Projects\nava-otp\node_modules\@supabase\auth-js\src\GoTrueAdminApi.ts
+C:\Users\Sire-F\OneDrive\Desktop\My
+Projects\nava-otp\node_modules\@supabase\auth-js\src\GoTrueAdminApi.ts
+C:\Users\Sire-F\OneDrive\Desktop\My
+Projects\nava-otp\node_modules\@supabase\auth-js\src\GoTrueClient.ts
+C:\Users\Sire-F\OneDrive\Desktop\My
+Projects\nava-otp\node_modules\@supabase\auth-js\src\GoTrueClient.ts
+C:\Users\Sire-F\OneDrive\Desktop\My
+Projects\nava-otp\node_modules\@supabase\auth-js\src\GoTrueClient.ts
+C:\Users\Sire-F\OneDrive\Desktop\My
+Projects\nava-otp\node_modules\@supabase\auth-js\src\GoTrueClient.ts
+C:\Users\Sire-F\OneDrive\Desktop\My
+Projects\nava-otp\node_modules\@supabase\auth-js\src\GoTrueClient.ts
+C:\Users\Sire-F\OneDrive\Desktop\My
+Projects\nava-otp\node_modules\@supabase\auth-js\src\GoTrueClient.ts
+C:\Users\Sire-F\OneDrive\Desktop\My
+Projects\nava-otp\node_modules\@supabase\auth-js\src\GoTrueClient.ts
+C:\Users\Sire-F\OneDrive\Desktop\My
+Projects\nava-otp\node_modules\@supabase\auth-js\src\GoTrueClient.ts
+C:\Users\Sire-F\OneDrive\Desktop\My
+Projects\nava-otp\node_modules\@supabase\auth-js\src\GoTrueClient.ts
+C:\Users\Sire-F\OneDrive\Desktop\My
+Projects\nava-otp\node_modules\@supabase\auth-js\src\GoTrueClient.ts
+C:\Users\Sire-F\OneDrive\Desktop\My
+Projects\nava-otp\node_modules\@supabase\auth-js\src\GoTrueClient.ts
+C:\Users\Sire-F\OneDrive\Desktop\My
+Projects\nava-otp\node_modules\@supabase\auth-js\src\GoTrueClient.ts
+C:\Users\Sire-F\OneDrive\Desktop\My
+Projects\nava-otp\node_modules\@supabase\auth-js\src\GoTrueClient.ts
+C:\Users\Sire-F\OneDrive\Desktop\My
+Projects\nava-otp\node_modules\@supabase\auth-js\src\GoTrueClient.ts
+C:\Users\Sire-F\OneDrive\Desktop\My
+Projects\nava-otp\node_modules\@supabase\auth-js\src\GoTrueClient.ts
+C:\Users\Sire-F\OneDrive\Desktop\My
+Projects\nava-otp\node_modules\@supabase\auth-js\src\GoTrueClient.ts
+C:\Users\Sire-F\OneDrive\Desktop\My
+Projects\nava-otp\node_modules\@supabase\auth-js\src\GoTrueClient.ts
+C:\Users\Sire-F\OneDrive\Desktop\My
+Projects\nava-otp\node_modules\@supabase\auth-js\src\GoTrueClient.ts
+C:\Users\Sire-F\OneDrive\Desktop\My
+Projects\nava-otp\node_modules\@supabase\auth-js\src\GoTrueClient.ts
+C:\Users\Sire-F\OneDrive\Desktop\My
+Projects\nava-otp\node_modules\@supabase\auth-js\src\GoTrueClient.ts
+C:\Users\Sire-F\OneDrive\Desktop\My
+Projects\nava-otp\node_modules\@supabase\auth-js\src\GoTrueClient.ts
+C:\Users\Sire-F\OneDrive\Desktop\My
+Projects\nava-otp\node_modules\@supabase\auth-js\src\GoTrueClient.ts
+C:\Users\Sire-F\OneDrive\Desktop\My
+Projects\nava-otp\node_modules\@supabase\postgrest-js\src\PostgrestBuilder.ts
+C:\Users\Sire-F\OneDrive\Desktop\My
+Projects\nava-otp\node_modules\@supabase\postgrest-js\src\PostgrestBuilder.ts
+C:\Users\Sire-F\OneDrive\Desktop\My
+Projects\nava-otp\node_modules\@supabase\postgrest-js\src\PostgrestBuilder.ts
+C:\Users\Sire-F\OneDrive\Desktop\My
+Projects\nava-otp\node_modules\@supabase\postgrest-js\src\PostgrestBuilder.ts
+C:\Users\Sire-F\OneDrive\Desktop\My
+Projects\nava-otp\node_modules\@supabase\postgrest-js\src\PostgrestBuilder.ts
+C:\Users\Sire-F\OneDrive\Desktop\My
+Projects\nava-otp\node_modules\@supabase\postgrest-js\src\PostgrestBuilder.ts
+C:\Users\Sire-F\OneDrive\Desktop\My
+Projects\nava-otp\node_modules\@supabase\postgrest-js\src\PostgrestClient.ts
+C:\Users\Sire-F\OneDrive\Desktop\My Projects\nava-otp\node_modules\@supabase\po
+stgrest-js\src\PostgrestFilterBuilder.ts
+C:\Users\Sire-F\OneDrive\Desktop\My Projects\nava-otp\node_modules\@supabase\po
+stgrest-js\src\PostgrestFilterBuilder.ts
+C:\Users\Sire-F\OneDrive\Desktop\My Projects\nava-otp\node_modules\@supabase\po
+stgrest-js\src\PostgrestQueryBuilder.ts
+C:\Users\Sire-F\OneDrive\Desktop\My Projects\nava-otp\node_modules\@supabase\po
+stgrest-js\src\PostgrestQueryBuilder.ts
+C:\Users\Sire-F\OneDrive\Desktop\My Projects\nava-otp\node_modules\@supabase\po
+stgrest-js\src\PostgrestQueryBuilder.ts
+C:\Users\Sire-F\OneDrive\Desktop\My Projects\nava-otp\node_modules\@supabase\po
+stgrest-js\src\PostgrestQueryBuilder.ts
+C:\Users\Sire-F\OneDrive\Desktop\My Projects\nava-otp\node_modules\@supabase\po
+stgrest-js\src\PostgrestQueryBuilder.ts
+C:\Users\Sire-F\OneDrive\Desktop\My Projects\nava-otp\node_modules\@supabase\po
+stgrest-js\src\PostgrestQueryBuilder.ts
+C:\Users\Sire-F\OneDrive\Desktop\My Projects\nava-otp\node_modules\@supabase\po
+stgrest-js\src\PostgrestQueryBuilder.ts
+C:\Users\Sire-F\OneDrive\Desktop\My Projects\nava-otp\node_modules\@supabase\po
+stgrest-js\src\PostgrestQueryBuilder.ts
+C:\Users\Sire-F\OneDrive\Desktop\My Projects\nava-otp\node_modules\@supabase\po
+stgrest-js\src\PostgrestQueryBuilder.ts
+C:\Users\Sire-F\OneDrive\Desktop\My Projects\nava-otp\node_modules\@supabase\po
+stgrest-js\src\PostgrestQueryBuilder.ts
+C:\Users\Sire-F\OneDrive\Desktop\My Projects\nava-otp\node_modules\@supabase\po
+stgrest-js\src\PostgrestQueryBuilder.ts
+C:\Users\Sire-F\OneDrive\Desktop\My Projects\nava-otp\node_modules\@supabase\po
+stgrest-js\src\PostgrestQueryBuilder.ts
+C:\Users\Sire-F\OneDrive\Desktop\My Projects\nava-otp\node_modules\@supabase\po
+stgrest-js\src\PostgrestQueryBuilder.ts
+C:\Users\Sire-F\OneDrive\Desktop\My Projects\nava-otp\node_modules\@supabase\po
+stgrest-js\src\PostgrestQueryBuilder.ts
+C:\Users\Sire-F\OneDrive\Desktop\My Projects\nava-otp\node_modules\@supabase\po
+stgrest-js\src\PostgrestQueryBuilder.ts
+C:\Users\Sire-F\OneDrive\Desktop\My Projects\nava-otp\node_modules\@supabase\po
+stgrest-js\src\PostgrestQueryBuilder.ts
+C:\Users\Sire-F\OneDrive\Desktop\My Projects\nava-otp\node_modules\@supabase\po
+stgrest-js\src\PostgrestQueryBuilder.ts
+C:\Users\Sire-F\OneDrive\Desktop\My Projects\nava-otp\node_modules\@supabase\po
+stgrest-js\src\PostgrestQueryBuilder.ts
+C:\Users\Sire-F\OneDrive\Desktop\My Projects\nava-otp\node_modules\@supabase\po
+stgrest-js\src\PostgrestQueryBuilder.ts
+C:\Users\Sire-F\OneDrive\Desktop\My Projects\nava-otp\node_modules\@supabase\re
+altime-js\dist\main\RealtimeChannel.d.ts
+C:\Users\Sire-F\OneDrive\Desktop\My Projects\nava-otp\node_modules\@supabase\re
+altime-js\dist\main\RealtimePostgresFilterBuilder.d.ts
+C:\Users\Sire-F\OneDrive\Desktop\My Projects\nava-otp\node_modules\@supabase\re
+altime-js\dist\module\RealtimeChannel.d.ts
+C:\Users\Sire-F\OneDrive\Desktop\My Projects\nava-otp\node_modules\@supabase\re
+altime-js\dist\module\RealtimePostgresFilterBuilder.d.ts
+C:\Users\Sire-F\OneDrive\Desktop\My
+Projects\nava-otp\node_modules\@supabase\realtime-js\src\RealtimeChannel.ts
+C:\Users\Sire-F\OneDrive\Desktop\My Projects\nava-otp\node_modules\@supabase\re
+altime-js\src\RealtimePostgresFilterBuilder.ts
+C:\Users\Sire-F\OneDrive\Desktop\My
+Projects\nava-otp\node_modules\@supabase\supabase-js\src\lib\types.ts
+C:\Users\Sire-F\OneDrive\Desktop\My
+Projects\nava-otp\node_modules\@supabase\supabase-js\src\index.ts
+C:\Users\Sire-F\OneDrive\Desktop\My
+Projects\nava-otp\node_modules\@supabase\supabase-js\src\SupabaseClient.ts
+C:\Users\Sire-F\OneDrive\Desktop\My
+Projects\nava-otp\node_modules\@supabase\supabase-js\src\SupabaseClient.ts
+C:\Users\Sire-F\OneDrive\Desktop\My
+Projects\nava-otp\node_modules\@types\node\http.d.ts
+C:\Users\Sire-F\OneDrive\Desktop\My
+Projects\nava-otp\node_modules\@types\node\http2.d.ts
+C:\Users\Sire-F\OneDrive\Desktop\My
+Projects\nava-otp\node_modules\@types\node\os.d.ts
+C:\Users\Sire-F\OneDrive\Desktop\My
+Projects\nava-otp\node_modules\@types\node\os.d.ts
+C:\Users\Sire-F\OneDrive\Desktop\My
+Projects\nava-otp\node_modules\@types\node\os.d.ts
+C:\Users\Sire-F\OneDrive\Desktop\My
+Projects\nava-otp\node_modules\@types\node\process.d.ts
+C:\Users\Sire-F\OneDrive\Desktop\My
+Projects\nava-otp\node_modules\@types\node\process.d.ts
+C:\Users\Sire-F\OneDrive\Desktop\My
+Projects\nava-otp\node_modules\@types\node\process.d.ts
+C:\Users\Sire-F\OneDrive\Desktop\My
+Projects\nava-otp\node_modules\@types\node\process.d.ts
+C:\Users\Sire-F\OneDrive\Desktop\My
+Projects\nava-otp\node_modules\@types\node\url.d.ts
+C:\Users\Sire-F\OneDrive\Desktop\My
+Projects\nava-otp\node_modules\@types\node\url.d.ts
+C:\Users\Sire-F\OneDrive\Desktop\My
+Projects\nava-otp\node_modules\@types\node\url.d.ts
+C:\Users\Sire-F\OneDrive\Desktop\My
+Projects\nava-otp\node_modules\@types\node\url.d.ts
+C:\Users\Sire-F\OneDrive\Desktop\My
+Projects\nava-otp\node_modules\@types\node\url.d.ts
+C:\Users\Sire-F\OneDrive\Desktop\My
+Projects\nava-otp\node_modules\@types\node\url.d.ts
+C:\Users\Sire-F\OneDrive\Desktop\My
+Projects\nava-otp\node_modules\@types\node\url.d.ts
+C:\Users\Sire-F\OneDrive\Desktop\My
+Projects\nava-otp\node_modules\@types\nodemailer\lib\smtp-connection\index.d.ts
+C:\Users\Sire-F\OneDrive\Desktop\My
+Projects\nava-otp\node_modules\@types\react\ts5.0\index.d.ts
+C:\Users\Sire-F\OneDrive\Desktop\My
+Projects\nava-otp\node_modules\@types\react\index.d.ts
+C:\Users\Sire-F\OneDrive\Desktop\My
+Projects\nava-otp\node_modules\drizzle-orm\column-builder.d.ts
+C:\Users\Sire-F\OneDrive\Desktop\My
+Projects\nava-otp\node_modules\drizzle-orm\table.d.ts
+C:\Users\Sire-F\OneDrive\Desktop\My
+Projects\nava-otp\node_modules\env-paths\index.d.ts
+C:\Users\Sire-F\OneDrive\Desktop\My
+Projects\nava-otp\node_modules\env-paths\index.d.ts
+C:\Users\Sire-F\OneDrive\Desktop\My
+Projects\nava-otp\node_modules\env-paths\index.d.ts
+C:\Users\Sire-F\OneDrive\Desktop\My
+Projects\nava-otp\node_modules\env-paths\index.d.ts
+C:\Users\Sire-F\OneDrive\Desktop\My
+Projects\nava-otp\node_modules\env-paths\index.d.ts
+C:\Users\Sire-F\OneDrive\Desktop\My
+Projects\nava-otp\node_modules\env-paths\index.d.ts
+C:\Users\Sire-F\OneDrive\Desktop\My Projects\nava-otp\node_modules\next\dist\co
+mpiled\@edge-runtime\primitives\url.d.ts
+C:\Users\Sire-F\OneDrive\Desktop\My Projects\nava-otp\node_modules\next\dist\co
+mpiled\@edge-runtime\primitives\url.d.ts
+C:\Users\Sire-F\OneDrive\Desktop\My Projects\nava-otp\node_modules\next\dist\co
+mpiled\@edge-runtime\primitives\url.d.ts
+C:\Users\Sire-F\OneDrive\Desktop\My Projects\nava-otp\node_modules\next\dist\li
+b\metadata\types\opengraph-types.d.ts
+C:\Users\Sire-F\OneDrive\Desktop\My Projects\nava-otp\node_modules\next\dist\li
+b\metadata\types\opengraph-types.d.ts
+C:\Users\Sire-F\OneDrive\Desktop\My
+Projects\nava-otp\node_modules\next\dist\server\web\next-url.d.ts
+C:\Users\Sire-F\OneDrive\Desktop\My
+Projects\nava-otp\node_modules\next\dist\server\web\next-url.d.ts
+C:\Users\Sire-F\OneDrive\Desktop\My
+Projects\nava-otp\node_modules\nodemailer\dist\cjs\shared\url.d.ts
+C:\Users\Sire-F\OneDrive\Desktop\My
+Projects\nava-otp\node_modules\nodemailer\dist\cjs\smtp-transport\index.d.ts
+C:\Users\Sire-F\OneDrive\Desktop\My
+Projects\nava-otp\node_modules\nodemailer\dist\cjs\xoauth2\index.d.ts
+C:\Users\Sire-F\OneDrive\Desktop\My
+Projects\nava-otp\node_modules\nodemailer\dist\esm\shared\url.d.ts
+C:\Users\Sire-F\OneDrive\Desktop\My
+Projects\nava-otp\node_modules\nodemailer\dist\esm\smtp-transport\index.d.ts
+C:\Users\Sire-F\OneDrive\Desktop\My
+Projects\nava-otp\node_modules\nodemailer\dist\esm\xoauth2\index.d.ts
+C:\Users\Sire-F\OneDrive\Desktop\My Projects\nava-otp\node_modules\ts-jest\node
+_modules\type-fest\source\camel-cased-properties-deep.d.ts
+C:\Users\Sire-F\OneDrive\Desktop\My Projects\nava-otp\node_modules\ts-jest\node
+_modules\type-fest\source\camel-cased-properties-deep.d.ts
+C:\Users\Sire-F\OneDrive\Desktop\My Projects\nava-otp\node_modules\ts-jest\node
+_modules\type-fest\source\camel-cased-properties-deep.d.ts
+C:\Users\Sire-F\OneDrive\Desktop\My Projects\nava-otp\node_modules\ts-jest\node
+_modules\type-fest\source\camel-cased-properties-deep.d.ts
+C:\Users\Sire-F\OneDrive\Desktop\My Projects\nava-otp\node_modules\ts-jest\node
+_modules\type-fest\source\camel-cased-properties.d.ts
+C:\Users\Sire-F\OneDrive\Desktop\My Projects\nava-otp\node_modules\ts-jest\node
+_modules\type-fest\source\camel-cased-properties.d.ts
+C:\Users\Sire-F\OneDrive\Desktop\My Projects\nava-otp\node_modules\ts-jest\node
+_modules\type-fest\source\delimiter-cased-properties-deep.d.ts
+C:\Users\Sire-F\OneDrive\Desktop\My Projects\nava-otp\node_modules\ts-jest\node
+_modules\type-fest\source\delimiter-cased-properties.d.ts
+C:\Users\Sire-F\OneDrive\Desktop\My Projects\nava-otp\node_modules\ts-jest\node
+_modules\type-fest\source\kebab-cased-properties-deep.d.ts
+C:\Users\Sire-F\OneDrive\Desktop\My Projects\nava-otp\node_modules\ts-jest\node
+_modules\type-fest\source\kebab-cased-properties.d.ts
+C:\Users\Sire-F\OneDrive\Desktop\My Projects\nava-otp\node_modules\ts-jest\node
+_modules\type-fest\source\pascal-cased-properties-deep.d.ts
+C:\Users\Sire-F\OneDrive\Desktop\My Projects\nava-otp\node_modules\ts-jest\node
+_modules\type-fest\source\pascal-cased-properties-deep.d.ts
+C:\Users\Sire-F\OneDrive\Desktop\My Projects\nava-otp\node_modules\ts-jest\node
+_modules\type-fest\source\pascal-cased-properties-deep.d.ts
+C:\Users\Sire-F\OneDrive\Desktop\My Projects\nava-otp\node_modules\ts-jest\node
+_modules\type-fest\source\pascal-cased-properties-deep.d.ts
+C:\Users\Sire-F\OneDrive\Desktop\My Projects\nava-otp\node_modules\ts-jest\node
+_modules\type-fest\source\pascal-cased-properties.d.ts
+C:\Users\Sire-F\OneDrive\Desktop\My Projects\nava-otp\node_modules\ts-jest\node
+_modules\type-fest\source\pascal-cased-properties.d.ts
+C:\Users\Sire-F\OneDrive\Desktop\My Projects\nava-otp\node_modules\ts-jest\node
+_modules\type-fest\source\replace.d.ts
+C:\Users\Sire-F\OneDrive\Desktop\My Projects\nava-otp\node_modules\ts-jest\node
+_modules\type-fest\source\replace.d.ts
+C:\Users\Sire-F\OneDrive\Desktop\My Projects\nava-otp\node_modules\ts-jest\node
+_modules\type-fest\source\snake-cased-properties-deep.d.ts
+C:\Users\Sire-F\OneDrive\Desktop\My Projects\nava-otp\node_modules\ts-jest\node
+_modules\type-fest\source\snake-cased-properties-deep.d.ts
+C:\Users\Sire-F\OneDrive\Desktop\My Projects\nava-otp\node_modules\ts-jest\node
+_modules\type-fest\source\snake-cased-properties-deep.d.ts
+C:\Users\Sire-F\OneDrive\Desktop\My Projects\nava-otp\node_modules\ts-jest\node
+_modules\type-fest\source\snake-cased-properties-deep.d.ts
+C:\Users\Sire-F\OneDrive\Desktop\My Projects\nava-otp\node_modules\ts-jest\node
+_modules\type-fest\source\snake-cased-properties.d.ts
+C:\Users\Sire-F\OneDrive\Desktop\My Projects\nava-otp\node_modules\ts-jest\node
+_modules\type-fest\source\snake-cased-properties.d.ts
+C:\Users\Sire-F\OneDrive\Desktop\My
+Projects\nava-otp\node_modules\typescript\lib\lib.dom.d.ts
+C:\Users\Sire-F\OneDrive\Desktop\My
+Projects\nava-otp\node_modules\typescript\lib\lib.dom.d.ts
+C:\Users\Sire-F\OneDrive\Desktop\My
+Projects\nava-otp\node_modules\typescript\lib\lib.dom.d.ts
+C:\Users\Sire-F\OneDrive\Desktop\My
+Projects\nava-otp\node_modules\typescript\lib\lib.dom.d.ts
+C:\Users\Sire-F\OneDrive\Desktop\My
+Projects\nava-otp\node_modules\typescript\lib\lib.dom.d.ts
+C:\Users\Sire-F\OneDrive\Desktop\My
+Projects\nava-otp\node_modules\typescript\lib\lib.dom.d.ts
+C:\Users\Sire-F\OneDrive\Desktop\My
+Projects\nava-otp\node_modules\typescript\lib\lib.dom.d.ts
+C:\Users\Sire-F\OneDrive\Desktop\My
+Projects\nava-otp\node_modules\typescript\lib\lib.dom.d.ts
+C:\Users\Sire-F\OneDrive\Desktop\My
+Projects\nava-otp\node_modules\typescript\lib\lib.dom.d.ts
+C:\Users\Sire-F\OneDrive\Desktop\My
+Projects\nava-otp\node_modules\typescript\lib\lib.dom.d.ts
+C:\Users\Sire-F\OneDrive\Desktop\My
+Projects\nava-otp\node_modules\typescript\lib\lib.dom.d.ts
+C:\Users\Sire-F\OneDrive\Desktop\My
+Projects\nava-otp\node_modules\typescript\lib\lib.dom.d.ts
+C:\Users\Sire-F\OneDrive\Desktop\My
+Projects\nava-otp\node_modules\typescript\lib\lib.dom.d.ts
+C:\Users\Sire-F\OneDrive\Desktop\My
+Projects\nava-otp\node_modules\typescript\lib\lib.dom.d.ts
+C:\Users\Sire-F\OneDrive\Desktop\My
+Projects\nava-otp\node_modules\typescript\lib\lib.dom.d.ts
+C:\Users\Sire-F\OneDrive\Desktop\My
+Projects\nava-otp\node_modules\typescript\lib\lib.webworker.d.ts
+C:\Users\Sire-F\OneDrive\Desktop\My
+Projects\nava-otp\node_modules\typescript\lib\lib.webworker.d.ts
+C:\Users\Sire-F\OneDrive\Desktop\My
+Projects\nava-otp\node_modules\typescript\lib\lib.webworker.d.ts
+C:\Users\Sire-F\OneDrive\Desktop\My
+Projects\nava-otp\node_modules\typescript\lib\lib.webworker.d.ts
+C:\Users\Sire-F\OneDrive\Desktop\My
+Projects\nava-otp\node_modules\zod\src\v3\tests\string.test.ts
+C:\Users\Sire-F\OneDrive\Desktop\My
+Projects\nava-otp\node_modules\zod\src\v4\classic\tests\error-utils.test.ts
+C:\Users\Sire-F\OneDrive\Desktop\My
+Projects\nava-otp\node_modules\zod\src\v4\classic\tests\error-utils.test.ts
+C:\Users\Sire-F\OneDrive\Desktop\My
+Projects\nava-otp\node_modules\zod\src\v4\classic\tests\error-utils.test.ts
+C:\Users\Sire-F\OneDrive\Desktop\My
+Projects\nava-otp\node_modules\zod\src\v4\classic\tests\error-utils.test.ts
+C:\Users\Sire-F\OneDrive\Desktop\My
+Projects\nava-otp\node_modules\zod\src\v4\classic\tests\error-utils.test.ts
+C:\Users\Sire-F\OneDrive\Desktop\My
+Projects\nava-otp\node_modules\zod\src\v4\classic\tests\string.test.ts
+C:\Users\Sire-F\OneDrive\Desktop\My Projects\nava-otp\node_modules\zod\src\v4\c
+lassic\tests\template-literal.test.ts
+C:\Users\Sire-F\OneDrive\Desktop\My Projects\nava-otp\node_modules\zod\src\v4\c
+lassic\tests\template-literal.test.ts
+C:\Users\Sire-F\OneDrive\Desktop\My Projects\nava-otp\node_modules\zod\src\v4\c
+lassic\tests\template-literal.test.ts
+C:\Users\Sire-F\OneDrive\Desktop\My Projects\nava-otp\node_modules\zod\src\v4\c
+lassic\tests\template-literal.test.ts
+C:\Users\Sire-F\OneDrive\Desktop\My Projects\nava-otp\node_modules\zod\src\v4\c
+lassic\tests\template-literal.test.ts
+C:\Users\Sire-F\OneDrive\Desktop\My Projects\nava-otp\node_modules\zod\src\v4\c
+lassic\tests\template-literal.test.ts
+C:\Users\Sire-F\OneDrive\Desktop\My Projects\nava-otp\node_modules\zod\src\v4\c
+lassic\tests\template-literal.test.ts
+C:\Users\Sire-F\OneDrive\Desktop\My Projects\nava-otp\node_modules\zod\src\v4\c
+lassic\tests\template-literal.test.ts
+C:\Users\Sire-F\OneDrive\Desktop\My Projects\nava-otp\node_modules\zod\src\v4\c
+lassic\tests\template-literal.test.ts
+C:\Users\Sire-F\OneDrive\Desktop\My Projects\nava-otp\node_modules\zod\src\v4\c
+lassic\tests\template-literal.test.ts
+C:\Users\Sire-F\OneDrive\Desktop\My
+Projects\nava-otp\node_modules\zod\src\v4\core\errors.ts
+C:\Users\Sire-F\OneDrive\Desktop\My
+Projects\nava-otp\node_modules\zod\src\v4\core\errors.ts
+C:\Users\Sire-F\OneDrive\Desktop\My
+Projects\nava-otp\node_modules\zod\src\v4\core\errors.ts
+C:\Users\Sire-F\OneDrive\Desktop\My
+Projects\nava-otp\node_modules\zod\v4\core\errors.d.ts
+C:\Users\Sire-F\OneDrive\Desktop\My
+Projects\nava-otp\node_modules\zod\v4\core\errors.d.ts
+C:\Users\Sire-F\OneDrive\Desktop\My
+Projects\nava-otp\node_modules\zod\v4\core\errors.d.ts
+C:\Users\Sire-F\OneDrive\Desktop\My
+Projects\nava-otp\src\app\admin\rentals\page.tsx
+C:\Users\Sire-F\OneDrive\Desktop\My
+Projects\nava-otp\src\app\admin\rentals\page.tsx
+C:\Users\Sire-F\OneDrive\Desktop\My
+Projects\nava-otp\src\app\admin\rentals\page.tsx
+C:\Users\Sire-F\OneDrive\Desktop\My
+Projects\nava-otp\src\app\api\admin\approve-crypto\route.ts
+C:\Users\Sire-F\OneDrive\Desktop\My
+Projects\nava-otp\src\app\api\admin\approve-crypto\route.ts
+C:\Users\Sire-F\OneDrive\Desktop\My
+Projects\nava-otp\src\app\api\crypto\deposit\route.ts
+C:\Users\Sire-F\OneDrive\Desktop\My
+Projects\nava-otp\src\app\api\crypto\deposit\route.ts
+C:\Users\Sire-F\OneDrive\Desktop\My
+Projects\nava-otp\src\app\api\otp\cancel\route.ts
+C:\Users\Sire-F\OneDrive\Desktop\My
+Projects\nava-otp\src\app\api\otp\cancel\route.ts
+C:\Users\Sire-F\OneDrive\Desktop\My
+Projects\nava-otp\src\app\api\otp\cancel\route.ts
+C:\Users\Sire-F\OneDrive\Desktop\My Projects\nava-otp\src\app\api\otp\route.ts
+C:\Users\Sire-F\OneDrive\Desktop\My Projects\nava-otp\src\app\api\otp\route.ts
+C:\Users\Sire-F\OneDrive\Desktop\My Projects\nava-otp\src\app\api\otp\route.ts
+C:\Users\Sire-F\OneDrive\Desktop\My Projects\nava-otp\src\app\api\otp\route.ts
+C:\Users\Sire-F\OneDrive\Desktop\My Projects\nava-otp\src\app\api\otp\route.ts
+C:\Users\Sire-F\OneDrive\Desktop\My Projects\nava-otp\src\app\api\otp\route.ts
+C:\Users\Sire-F\OneDrive\Desktop\My Projects\nava-otp\src\app\api\otp\route.ts
+C:\Users\Sire-F\OneDrive\Desktop\My Projects\nava-otp\src\app\api\otp\route.ts
+C:\Users\Sire-F\OneDrive\Desktop\My
+Projects\nava-otp\src\app\api\paystack\verify\route.ts
+C:\Users\Sire-F\OneDrive\Desktop\My
+Projects\nava-otp\src\app\api\paystack\verify\route.ts
+C:\Users\Sire-F\OneDrive\Desktop\My
+Projects\nava-otp\src\app\api\rentals\expire\route.ts
+C:\Users\Sire-F\OneDrive\Desktop\My
+Projects\nava-otp\src\app\api\rentals\expire\route.ts
+C:\Users\Sire-F\OneDrive\Desktop\My
+Projects\nava-otp\src\app\api\rentals\expire\route.ts
+C:\Users\Sire-F\OneDrive\Desktop\My
+Projects\nava-otp\src\app\api\rentals\route.ts
+C:\Users\Sire-F\OneDrive\Desktop\My
+Projects\nava-otp\src\app\api\rentals\route.ts
+C:\Users\Sire-F\OneDrive\Desktop\My
+Projects\nava-otp\src\app\dashboard\rentals\page.tsx
+C:\Users\Sire-F\OneDrive\Desktop\My
+Projects\nava-otp\src\app\dashboard\rentals\page.tsx
+C:\Users\Sire-F\OneDrive\Desktop\My
+Projects\nava-otp\src\app\dashboard\rentals\page.tsx
+C:\Users\Sire-F\OneDrive\Desktop\My
+Projects\nava-otp\src\app\dashboard\wallet\page.tsx
+C:\Users\Sire-F\OneDrive\Desktop\My
+Projects\nava-otp\src\app\dashboard\layout.tsx
+C:\Users\Sire-F\OneDrive\Desktop\My
+Projects\nava-otp\src\app\dashboard\page.tsx
+C:\Users\Sire-F\OneDrive\Desktop\My
+Projects\nava-otp\src\app\dashboard\page.tsx
+C:\Users\Sire-F\OneDrive\Desktop\My
+Projects\nava-otp\src\components\WelcomeModal.tsx
+C:\Users\Sire-F\OneDrive\Desktop\My
+Projects\nava-otp\src\components\WelcomeModal.tsx
+C:\Users\Sire-F\OneDrive\Desktop\My
+Projects\nava-otp\src\components\WelcomeModal.tsx
+C:\Users\Sire-F\OneDrive\Desktop\My Projects\nava-otp\src\db\schema.ts
+C:\Users\Sire-F\OneDrive\Desktop\My
+Projects\nava-otp\_BACKUPS\password-recovery_20261005_121448\schema.ts
+C:\Users\Sire-F\OneDrive\Desktop\My Projects\nava-otp\lookup-admin.ts
+C:\Users\Sire-F\OneDrive\Desktop\My Projects\nava-otp\lookup-admin.ts
 
-PS C:\Users\Sire-F> Write-Host "========================================"
-========================================
-PS C:\Users\Sire-F> Write-Host " NAVA OTP COPY - FULL STRUCTURE SCAN"
- NAVA OTP COPY - FULL STRUCTURE SCAN
-PS C:\Users\Sire-F> Write-Host "========================================"
-========================================
-PS C:\Users\Sire-F> Write-Host ""
 
-PS C:\Users\Sire-F>
-PS C:\Users\Sire-F> if (-not (Test-Path $Root)) {
->>     Write-Host "ERROR: Folder not found:"
->>     Write-Host $Root
->>     exit 1
->> }
-PS C:\Users\Sire-F>
-PS C:\Users\Sire-F> Set-Location $Root
-PS C:\Users\Sire-F\OneDrive\Desktop\nava-otp - Copy>
-PS C:\Users\Sire-F\OneDrive\Desktop\nava-otp - Copy> Write-Host "ROOT:"
-ROOT:
-PS C:\Users\Sire-F\OneDrive\Desktop\nava-otp - Copy> Write-Host (Get-Location).Path
-C:\Users\Sire-F\OneDrive\Desktop\nava-otp - Copy
-PS C:\Users\Sire-F\OneDrive\Desktop\nava-otp - Copy> Write-Host ""
-
-PS C:\Users\Sire-F\OneDrive\Desktop\nava-otp - Copy>
-PS C:\Users\Sire-F\OneDrive\Desktop\nava-otp - Copy> Write-Host "=== TOP LEVEL ==="
-=== TOP LEVEL ===
-PS C:\Users\Sire-F\OneDrive\Desktop\nava-otp - Copy> Get-ChildItem -Force |
->>     Where-Object { $_.Name -notin @(".git","node_modules",".next") } |
->>     Select-Object Mode,Length,Name,LastWriteTime
-
-Mode   Length Name     LastWriteTime
-----   ------ ----     -------------
-d-----        nava-otp 10/5/2026 1:58:17 PM
-
-
-PS C:\Users\Sire-F\OneDrive\Desktop\nava-otp - Copy>
-PS C:\Users\Sire-F\OneDrive\Desktop\nava-otp - Copy> Write-Host ""
-
-PS C:\Users\Sire-F\OneDrive\Desktop\nava-otp - Copy> Write-Host "=== PACKAGE.JSON ==="
-=== PACKAGE.JSON ===
-PS C:\Users\Sire-F\OneDrive\Desktop\nava-otp - Copy> Get-ChildItem $Root -Recurse -Filter "package.json" -File -ErrorAction SilentlyContinue |
->>     Where-Object { $_.FullName -notmatch "\\node_modules\\" } |
->>     Select-Object FullName,Length,LastWriteTime
-
-FullName                                                                                                          Length LastWriteTime
---------                                                                                                          ------ -------------
-C:\Users\Sire-F\OneDrive\Desktop\nava-otp - Copy\nava-otp\package.json                                              1022 10/5/2026 12:15:02 PM
-C:\Users\Sire-F\OneDrive\Desktop\nava-otp - Copy\nava-otp\.next\package.json                                          20 10/5/2026 2:16:26 PM
-C:\Users\Sire-F\OneDrive\Desktop\nava-otp - Copy\nava-otp\.next\types\package.json                                    18 10/5/2026 2:16:39 PM
-C:\Users\Sire-F\OneDrive\Desktop\nava-otp - Copy\nava-otp\nava-otp\.next\package.json                                 20 10/3/2026 4:49:22 PM
-C:\Users\Sire-F\OneDrive\Desktop\nava-otp - Copy\nava-otp\nava-otp\.next\types\package.json                           18 10/3/2026 4:49:55 PM
-C:\Users\Sire-F\OneDrive\Desktop\nava-otp - Copy\nava-otp\_BACKUPS\password-recovery_20261005_121448\package.json    987 10/5/2026 12:00:09 PM
-
-
-PS C:\Users\Sire-F\OneDrive\Desktop\nava-otp - Copy>
-PS C:\Users\Sire-F\OneDrive\Desktop\nava-otp - Copy> Write-Host ""
-
-PS C:\Users\Sire-F\OneDrive\Desktop\nava-otp - Copy> Write-Host "=== NEXT APP ROOTS ==="
-=== NEXT APP ROOTS ===
-PS C:\Users\Sire-F\OneDrive\Desktop\nava-otp - Copy> foreach ($p in @(
->>     "$Root\app",
->>     "$Root\src\app",
->>     "$Root\nava-otp\app",
->>     "$Root\nava-otp\src\app"
->> )) {
->>     if (Test-Path $p) {
->>         Write-Host "FOUND: $p"
->>     }
->> }
-FOUND: C:\Users\Sire-F\OneDrive\Desktop\nava-otp - Copy\nava-otp\app
-FOUND: C:\Users\Sire-F\OneDrive\Desktop\nava-otp - Copy\nava-otp\src\app
-PS C:\Users\Sire-F\OneDrive\Desktop\nava-otp - Copy>
-PS C:\Users\Sire-F\OneDrive\Desktop\nava-otp - Copy> Write-Host ""
-
-PS C:\Users\Sire-F\OneDrive\Desktop\nava-otp - Copy> Write-Host "=== IMPORTANT ROUTES ==="
-=== IMPORTANT ROUTES ===
-PS C:\Users\Sire-F\OneDrive\Desktop\nava-otp - Copy>
-PS C:\Users\Sire-F\OneDrive\Desktop\nava-otp - Copy> $RouteNames = @(
->>     "page.tsx",
->>     "page.jsx",
->>     "page.js"
->> )
-PS C:\Users\Sire-F\OneDrive\Desktop\nava-otp - Copy>
-PS C:\Users\Sire-F\OneDrive\Desktop\nava-otp - Copy> foreach ($Route in $RouteNames) {
->>     Get-ChildItem $Root -Recurse -Filter $Route -File -ErrorAction SilentlyContinue |
->>         Where-Object {
->>             $_.FullName -notmatch "\\node_modules\\|\\.next\\"
->>         } |
->>         Where-Object {
->>             $_.FullName -match "\\(signup|forgot-password|reset-password|login|dashboard)\\"
->>         } |
->>         Select-Object FullName,Length,LastWriteTime
->> }
-
-FullName                                                                                            Length LastWriteTime
---------                                                                                            ------ -------------
-C:\Users\Sire-F\OneDrive\Desktop\nava-otp - Copy\nava-otp\src\app\dashboard\page.tsx                 16815 10/5/2026 9:23:33 AM
-C:\Users\Sire-F\OneDrive\Desktop\nava-otp - Copy\nava-otp\src\app\dashboard\admin\page.tsx            1300 9/29/2026 2:51:31 PM
-C:\Users\Sire-F\OneDrive\Desktop\nava-otp - Copy\nava-otp\src\app\dashboard\developer\page.tsx        1887 9/29/2026 2:51:31 PM
-C:\Users\Sire-F\OneDrive\Desktop\nava-otp - Copy\nava-otp\src\app\dashboard\history\page.tsx         21121 10/6/2026 10:22:59 PM
-C:\Users\Sire-F\OneDrive\Desktop\nava-otp - Copy\nava-otp\src\app\dashboard\messages\page.tsx         1031 9/29/2026 2:51:31 PM
-C:\Users\Sire-F\OneDrive\Desktop\nava-otp - Copy\nava-otp\src\app\dashboard\orders\page.tsx           1039 9/29/2026 2:51:31 PM
-C:\Users\Sire-F\OneDrive\Desktop\nava-otp - Copy\nava-otp\src\app\dashboard\otp\page.tsx             23852 9/30/2026 8:05:21 PM
-C:\Users\Sire-F\OneDrive\Desktop\nava-otp - Copy\nava-otp\src\app\dashboard\rentals\page.tsx         25349 10/6/2026 11:11:49 PM
-C:\Users\Sire-F\OneDrive\Desktop\nava-otp - Copy\nava-otp\src\app\dashboard\rentals\browse\page.tsx   1989 9/29/2026 2:51:31 PM
-C:\Users\Sire-F\OneDrive\Desktop\nava-otp - Copy\nava-otp\src\app\dashboard\sms\page.tsx              2989 9/29/2026 7:33:28 PM
-C:\Users\Sire-F\OneDrive\Desktop\nava-otp - Copy\nava-otp\src\app\dashboard\support\page.tsx         12315 9/30/2026 8:09:01 PM
-C:\Users\Sire-F\OneDrive\Desktop\nava-otp - Copy\nava-otp\src\app\dashboard\wallet\page.tsx          10839 10/5/2026 10:21:13 AM
-C:\Users\Sire-F\OneDrive\Desktop\nava-otp - Copy\nava-otp\src\app\forgot-password\page.tsx            5714 9/30/2026 2:33:46 PM
-C:\Users\Sire-F\OneDrive\Desktop\nava-otp - Copy\nava-otp\src\app\login\page.tsx                      3870 9/30/2026 6:49:06 PM
-C:\Users\Sire-F\OneDrive\Desktop\nava-otp - Copy\nava-otp\src\app\reset-password\page.tsx             6438 9/30/2026 2:34:08 PM
-C:\Users\Sire-F\OneDrive\Desktop\nava-otp - Copy\nava-otp\src\app\signup\page.tsx                     6641 9/30/2026 2:33:23 PM
-
-
-PS C:\Users\Sire-F\OneDrive\Desktop\nava-otp - Copy>
-PS C:\Users\Sire-F\OneDrive\Desktop\nava-otp - Copy> Write-Host ""
-
-PS C:\Users\Sire-F\OneDrive\Desktop\nava-otp - Copy> Write-Host "=== ROOT LANDING PAGES ==="
-=== ROOT LANDING PAGES ===
-PS C:\Users\Sire-F\OneDrive\Desktop\nava-otp - Copy>
-PS C:\Users\Sire-F\OneDrive\Desktop\nava-otp - Copy> Get-ChildItem $Root -Recurse -File -ErrorAction SilentlyContinue |
->>     Where-Object {
->>         $_.FullName -notmatch "\\node_modules\\|\\.next\\" -and
->>         $_.Name -match "^page\.(tsx|jsx|js)$"
->>     } |
->>     Select-Object FullName,Length,LastWriteTime
-
-FullName                                                                                                             Length LastWriteTime
---------                                                                                                             ------ -------------
-C:\Users\Sire-F\OneDrive\Desktop\nava-otp - Copy\nava-otp\src\app\page.tsx                                            30981 10/3/2026 11:43:22 AM
-C:\Users\Sire-F\OneDrive\Desktop\nava-otp - Copy\nava-otp\src\app\admin\rentals\page.tsx                              16647 9/30/2026 4:59:34 PM
-C:\Users\Sire-F\OneDrive\Desktop\nava-otp - Copy\nava-otp\src\app\dashboard\page.tsx                                  16815 10/5/2026 9:23:33 AM
-C:\Users\Sire-F\OneDrive\Desktop\nava-otp - Copy\nava-otp\src\app\dashboard\admin\page.tsx                             1300 9/29/2026 2:51:31 PM
-C:\Users\Sire-F\OneDrive\Desktop\nava-otp - Copy\nava-otp\src\app\dashboard\developer\page.tsx                         1887 9/29/2026 2:51:31 PM
-C:\Users\Sire-F\OneDrive\Desktop\nava-otp - Copy\nava-otp\src\app\dashboard\history\page.tsx                          21121 10/6/2026 10:22:59 PM
-C:\Users\Sire-F\OneDrive\Desktop\nava-otp - Copy\nava-otp\src\app\dashboard\messages\page.tsx                          1031 9/29/2026 2:51:31 PM
-C:\Users\Sire-F\OneDrive\Desktop\nava-otp - Copy\nava-otp\src\app\dashboard\orders\page.tsx                            1039 9/29/2026 2:51:31 PM
-C:\Users\Sire-F\OneDrive\Desktop\nava-otp - Copy\nava-otp\src\app\dashboard\otp\page.tsx                              23852 9/30/2026 8:05:21 PM
-C:\Users\Sire-F\OneDrive\Desktop\nava-otp - Copy\nava-otp\src\app\dashboard\rentals\page.tsx                          25349 10/6/2026 11:11:49 PM
-C:\Users\Sire-F\OneDrive\Desktop\nava-otp - Copy\nava-otp\src\app\dashboard\rentals\browse\page.tsx                    1989 9/29/2026 2:51:31 PM
-C:\Users\Sire-F\OneDrive\Desktop\nava-otp - Copy\nava-otp\src\app\dashboard\sms\page.tsx                               2989 9/29/2026 7:33:28 PM
-C:\Users\Sire-F\OneDrive\Desktop\nava-otp - Copy\nava-otp\src\app\dashboard\support\page.tsx                          12315 9/30/2026 8:09:01 PM
-C:\Users\Sire-F\OneDrive\Desktop\nava-otp - Copy\nava-otp\src\app\dashboard\wallet\page.tsx                           10839 10/5/2026 10:21:13 AM
-C:\Users\Sire-F\OneDrive\Desktop\nava-otp - Copy\nava-otp\src\app\forgot-password\page.tsx                             5714 9/30/2026 2:33:46 PM
-C:\Users\Sire-F\OneDrive\Desktop\nava-otp - Copy\nava-otp\src\app\login\page.tsx                                       3870 9/30/2026 6:49:06 PM
-C:\Users\Sire-F\OneDrive\Desktop\nava-otp - Copy\nava-otp\src\app\reset-password\page.tsx                              6438 9/30/2026 2:34:08 PM
-C:\Users\Sire-F\OneDrive\Desktop\nava-otp - Copy\nava-otp\src\app\signup\page.tsx                                      6641 9/30/2026 2:33:23 PM
-C:\Users\Sire-F\OneDrive\Desktop\nava-otp - Copy\nava-otp\_BACKUPS\forgot-password-buildfix_20261005_130743\page.tsx   4673 10/5/2026 1:00:21 PM
-C:\Users\Sire-F\OneDrive\Desktop\nava-otp - Copy\nava-otp\_BACKUPS\forgot-password_20261005_131119\page.tsx            4678 10/5/2026 1:07:44 PM
-C:\Users\Sire-F\OneDrive\Desktop\nava-otp - Copy\nava-otp\_BACKUPS\password-recovery_20261005_121448\page.tsx          6438 9/30/2026 2:34:08 PM
-
-
-PS C:\Users\Sire-F\OneDrive\Desktop\nava-otp - Copy>
-PS C:\Users\Sire-F\OneDrive\Desktop\nava-otp - Copy> Write-Host ""
-
-PS C:\Users\Sire-F\OneDrive\Desktop\nava-otp - Copy> Write-Host "=== AUTH API ROUTES ==="
-=== AUTH API ROUTES ===
-PS C:\Users\Sire-F\OneDrive\Desktop\nava-otp - Copy>
-PS C:\Users\Sire-F\OneDrive\Desktop\nava-otp - Copy> Get-ChildItem "$Root" -Recurse -File -ErrorAction SilentlyContinue |
->>     Where-Object {
->>         $_.FullName -notmatch "\\node_modules\\|\\.next\\" -and
->>         $_.FullName -match "\\api\\auth\\"
->>     } |
->>     Select-Object FullName,Length,LastWriteTime
-
-FullName                                                                                     Length LastWriteTime
---------                                                                                     ------ -------------
-C:\Users\Sire-F\OneDrive\Desktop\nava-otp - Copy\nava-otp\src\app\api\auth\login\route.ts      1226 9/29/2026 4:20:16 PM
-C:\Users\Sire-F\OneDrive\Desktop\nava-otp - Copy\nava-otp\src\app\api\auth\logout\route.ts      321 9/30/2026 12:44:18 PM
-C:\Users\Sire-F\OneDrive\Desktop\nava-otp - Copy\nava-otp\src\app\api\auth\Register\route.ts   1588 9/29/2026 2:51:31 PM
-
-
-PS C:\Users\Sire-F\OneDrive\Desktop\nava-otp - Copy>
-PS C:\Users\Sire-F\OneDrive\Desktop\nava-otp - Copy> Write-Host ""
-
-PS C:\Users\Sire-F\OneDrive\Desktop\nava-otp - Copy> Write-Host "=== GIT STATUS ==="
-=== GIT STATUS ===
-PS C:\Users\Sire-F\OneDrive\Desktop\nava-otp - Copy>
-PS C:\Users\Sire-F\OneDrive\Desktop\nava-otp - Copy> if (Test-Path "$Root\.git") {
->>     git status --short
->>     Write-Host ""
->>     git log --all --date=local --pretty=format:"%h | %ad | %d | %s" -15
->> } else {
->>     Write-Host "NO .git DIRECTORY"
->> }
-NO .git DIRECTORY
-PS C:\Users\Sire-F\OneDrive\Desktop\nava-otp - Copy>
-PS C:\Users\Sire-F\OneDrive\Desktop\nava-otp - Copy> Write-Host ""
-
-PS C:\Users\Sire-F\OneDrive\Desktop\nava-otp - Copy> Write-Host ""
-
-PS C:\Users\Sire-F\OneDrive\Desktop\nava-otp - Copy> Write-Host "=== DONE ==="
+PS C:\Users\Sire-F\OneDrive\Desktop\My Projects\nava-otp>
