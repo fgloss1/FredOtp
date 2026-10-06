@@ -1,221 +1,411 @@
 import { NextResponse } from "next/server";
 import { createClient } from "@supabase/supabase-js";
+import { supabaseAdmin } from "@/lib/supabase-admin";
 
-// USDT TRC20 contract address on Tron blockchain
 const USDT_TRC20_CONTRACT = "TR7NHqjeKQxGTCi8q8ZY4pL8otSzgjLj6t";
+const NGN_PER_USD = 1500;
+
+async function getAuthenticatedClient(req: Request) {
+  const authHeader = req.headers.get("Authorization");
+
+  if (!authHeader?.startsWith("Bearer ")) {
+    return { error: NextResponse.json({ error: "Unauthorized. Please log in." }, { status: 401 }) };
+  }
+
+  const accessToken = authHeader.slice(7).trim();
+
+  if (!accessToken) {
+    return { error: NextResponse.json({ error: "Unauthorized. Please log in." }, { status: 401 }) };
+  }
+
+  const client = createClient(
+    process.env.NEXT_PUBLIC_SUPABASE_URL || "",
+    process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY || "",
+    {
+      global: { headers: { Authorization: `Bearer ${accessToken}` } },
+      auth: { autoRefreshToken: false, persistSession: false },
+    }
+  );
+
+  const {
+    data: { user },
+    error,
+  } = await client.auth.getUser();
+
+  if (error || !user) {
+    return { error: NextResponse.json({ error: "Unauthorized. Please log in." }, { status: 401 }) };
+  }
+
+  return { client, user };
+}
+
+function normalizeCoin(value: unknown): "USDT" | "BTC" | "LTC" | null {
+  const coin = String(value || "").trim().toUpperCase();
+  if (coin === "USDT") return "USDT";
+  if (coin === "BTC" || coin === "BITCOIN") return "BTC";
+  if (coin === "LTC" || coin === "LITECOIN") return "LTC";
+  return null;
+}
+
+function parseTokenAmount(amountRaw: unknown, decimalsRaw: unknown): number | null {
+  if (typeof amountRaw !== "string" && typeof amountRaw !== "number") return null;
+
+  const amountText = String(amountRaw);
+  if (!/^\d+$/.test(amountText)) return null;
+
+  const decimals = Number(decimalsRaw);
+  if (!Number.isInteger(decimals) || decimals < 0 || decimals > 18) return null;
+
+  try {
+    const units = BigInt(amountText);
+    const value = Number(units) / 10 ** decimals;
+    if (!Number.isFinite(value) || value <= 0) return null;
+    return value;
+  } catch {
+    return null;
+  }
+}
 
 export async function POST(req: Request) {
   try {
-    // 1. Get Authorization header from request
-    const authHeader = req.headers.get("Authorization");
+    const auth = await getAuthenticatedClient(req);
 
-    if (!authHeader || !authHeader.startsWith("Bearer ")) {
-      return NextResponse.json({ error: "Unauthorized. Please log in." }, { status: 401 });
+    if ("error" in auth) {
+      return auth.error;
     }
 
-    const accessToken = authHeader.substring(7);
+    const { client, user } = auth;
+    const body = await req.json();
+    const intentId = String(body.intentId || "").trim();
+    const cleanHash = String(body.txHash || "").trim();
 
-    // 2. Create Supabase client with the token
-    const supabase = createClient(
-      process.env.NEXT_PUBLIC_SUPABASE_URL!,
-      process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY!,
-      {
-        global: {
-          headers: {
-            Authorization: `Bearer ${accessToken}`,
-          },
-        },
-        auth: {
-          autoRefreshToken: false,
-          persistSession: false,
-        },
+    if (!intentId || !cleanHash || cleanHash.length < 10) {
+      return NextResponse.json(
+        { error: "Deposit session and Transaction Hash are required." },
+        { status: 400 }
+      );
+    }
+
+    // The authenticated server session is the only source of user identity.
+    const { data: intent, error: intentErr } = await supabaseAdmin
+      .from("deposit_intents")
+      .select("*")
+      .eq("id", intentId)
+      .eq("user_id", user.id)
+      .maybeSingle();
+
+    if (intentErr || !intent) {
+      return NextResponse.json({ error: "Deposit session not found." }, { status: 404 });
+    }
+
+    if (intent.status !== "pending") {
+      return NextResponse.json({ error: "This deposit session is no longer pending." }, { status: 400 });
+    }
+
+    if (new Date(intent.expires_at).getTime() <= Date.now()) {
+      await supabaseAdmin
+        .from("deposit_intents")
+        .update({ status: "expired" })
+        .eq("id", intent.id)
+        .eq("status", "pending");
+
+      return NextResponse.json(
+        { error: "This deposit session has expired. Start a new deposit session." },
+        { status: 400 }
+      );
+    }
+
+    // Global replay protection: the TxHash belongs to NAVA once recorded,
+    // regardless of which account submitted it.
+    const { data: existingTx, error: existingErr } = await supabaseAdmin
+      .from("transactions")
+      .select("id, user_id, status")
+      .eq("reference", cleanHash)
+      .maybeSingle();
+
+    if (existingErr) {
+      console.error("Existing transaction lookup failed:", existingErr);
+      return NextResponse.json(
+        { error: "Unable to verify whether this Transaction Hash was already used." },
+        { status: 500 }
+      );
+    }
+
+    if (existingTx) {
+      return NextResponse.json(
+        { error: "This Transaction Hash has already been used in NAVA." },
+        { status: 400 }
+      );
+    }
+
+    const coin = normalizeCoin(intent.coin);
+
+    if (!coin) {
+      return NextResponse.json({ error: "Unsupported cryptocurrency in deposit session." }, { status: 400 });
+    }
+
+    let verifiedAmountUsd: number | null = null;
+    let blockTimestamp: string | null = null;
+    let manualVerification = false;
+
+    if (coin === "USDT") {
+      const expectedAddress = (
+        process.env.CRYPTO_USDT_TRX ||
+        process.env.CRYPTO_USDT_TRC20 ||
+        ""
+      ).trim();
+
+      if (!expectedAddress || intent.destination_address.toLowerCase() !== expectedAddress.toLowerCase()) {
+        return NextResponse.json(
+          { error: "Server configuration changed. Please start a new USDT deposit session." },
+          { status: 500 }
+        );
       }
-    );
 
-    // 3. Get authenticated user
-    const { data: { user }, error: authError } = await supabase.auth.getUser();
-
-    if (authError || !user) {
-      return NextResponse.json({ error: "Unauthorized. Please log in." }, { status: 401 });
-    }
-    const userId = user.id;
-
-    // 4. Parse & Validate Body
-    const { amountUsd, coin, txHash } = await req.json();
-
-    if (!amountUsd || !coin || !txHash) {
-      return NextResponse.json({ error: "Missing required deposit details" }, { status: 400 });
-    }
-
-    if (typeof amountUsd !== "number" || amountUsd <= 0) {
-      return NextResponse.json({ error: "Invalid deposit amount." }, { status: 400 });
-    }
-
-    const cleanHash = txHash.trim();
-    if (cleanHash.length < 10) {
-      return NextResponse.json({ error: "Invalid Transaction Hash format." }, { status: 400 });
-    }
-
-    // 5. Get Expected Destination Address from Environment (SERVER-SIDE ONLY)
-    const expectedAddress = (
-      coin.includes("USDT") || coin.includes("TRX") ? process.env.CRYPTO_USDT_TRX :
-      coin.includes("BTC") ? process.env.CRYPTO_BTC :
-      coin.includes("LTC") ? process.env.CRYPTO_LTC :
-      ""
-    );
-
-    // 6. Automated On-Chain Verification
-    let isVerified = false;
-    let verificationDetails = "";
-
-    // ONLY USDT-TRX can be auto-verified (BTC/LTC require manual admin review)
-    if (coin.includes("USDT") || coin.includes("TRX")) {
       try {
-        const tronRes = await fetch(`https://apilist.tronscanapi.com/api/transaction-info?hash=${cleanHash}`);
+        const tronRes = await fetch(
+          `https://apilist.tronscanapi.com/api/transaction-info?hash=${encodeURIComponent(cleanHash)}`,
+          { cache: "no-store" }
+        );
+
+        if (!tronRes.ok) {
+          return NextResponse.json(
+            { error: "Blockchain verification failed. Please try again." },
+            { status: 502 }
+          );
+        }
+
         const tronData = await tronRes.json();
 
-        if (tronData && tronData.confirmed && tronData.contractRet === "SUCCESS") {
-          const trc20Transfers = tronData.trc20TransferInfo || [];
-
-          // Verify: Correct destination address + Correct USDT TRC20 contract
-          const validTransfer = trc20Transfers.find((t: any) => {
-            const addressMatch = expectedAddress && t.to_address.toLowerCase() === expectedAddress.toLowerCase();
-            const contractMatch = t.contract_addr && t.contract_addr.toLowerCase() === USDT_TRC20_CONTRACT.toLowerCase();
-            return addressMatch && contractMatch;
-          });
-
-          if (validTransfer) {
-            // Verify amount (TronScan returns amount in SUN/decimals)
-            const sentAmount = Number(validTransfer.amount) / 1000000;
-            const amountMatch = Math.abs(sentAmount - amountUsd) < 0.01; // $0.01 tolerance
-
-            if (amountMatch) {
-              isVerified = true;
-              verificationDetails = `TronScan Confirmed + Address Match + USDT Contract + Amount: ${sentAmount}`;
-            } else {
-              return NextResponse.json({
-                error: `Amount mismatch. Sent: ${sentAmount} USDT, Expected: ${amountUsd} USD (±$0.01 tolerance)`
-              }, { status: 400 });
-            }
-          } else if (!expectedAddress) {
-            return NextResponse.json({ error: "Server configuration error: Missing USDT address" }, { status: 500 });
-          } else {
-            return NextResponse.json({
-              error: "Transaction is not a USDT TRC20 transfer to the correct destination address."
-            }, { status: 400 });
-          }
-        } else {
-          return NextResponse.json({ error: "Transaction not confirmed on Tron blockchain." }, { status: 400 });
-        }
-      } catch (err) {
-        console.warn("Tronscan verification failed:", err);
-        return NextResponse.json({ error: "Blockchain verification failed. Please try again." }, { status: 500 });
-      }
-    } else if (coin.includes("BTC") || coin.includes("Bitcoin")) {
-      // BTC: Verify tx exists but NEVER auto-credit (requires manual admin review)
-      try {
-        const btcRes = await fetch(`https://api.blockchair.com/bitcoin/dashboards/transaction/${cleanHash}`);
-        const btcData = await btcRes.json();
-
-        if (btcData?.data?.[cleanHash]?.transaction) {
-          isVerified = false; // Force pending for manual review
-          verificationDetails = "BTC transaction found - requires manual admin verification";
-        } else {
-          return NextResponse.json({ error: "Transaction not found on Bitcoin blockchain." }, { status: 400 });
-        }
-      } catch (err) {
-        console.warn("Bitcoin verification failed:", err);
-        return NextResponse.json({ error: "Blockchain verification failed. Please try again." }, { status: 500 });
-      }
-    } else if (coin.includes("LTC") || coin.includes("Litecoin")) {
-      // LTC: Verify tx exists but NEVER auto-credit (requires manual admin review)
-      try {
-        const ltcRes = await fetch(`https://api.blockchair.com/litecoin/dashboards/transaction/${cleanHash}`);
-        const ltcData = await ltcRes.json();
-
-        if (ltcData?.data?.[cleanHash]?.transaction) {
-          isVerified = false; // Force pending for manual review
-          verificationDetails = "LTC transaction found - requires manual admin verification";
-        } else {
-          return NextResponse.json({ error: "Transaction not found on Litecoin blockchain." }, { status: 400 });
-        }
-      } catch (err) {
-        console.warn("Litecoin verification failed:", err);
-        return NextResponse.json({ error: "Blockchain verification failed. Please try again." }, { status: 500 });
-      }
-    } else {
-      return NextResponse.json({ error: "Unsupported cryptocurrency." }, { status: 400 });
-    }
-
-    const finalStatus = isVerified ? "completed" : "pending";
-
-    // 7. Save Transaction Record (DB UNIQUE constraint prevents duplicates)
-    try {
-      const { data: newTx, error: txErr } = await supabase
-        .from("transactions")
-        .insert({
-          user_id: userId,
-          amount_usd: Number(amountUsd),
-          amount_local: Number(amountUsd) * 1500,
-          currency: "USD",
-          payment_method: `Crypto - ${coin}`,
-          reference: cleanHash,
-          status: finalStatus,
-        })
-        .select()
-        .single();
-
-      if (txErr) {
-        // Check for UNIQUE constraint violation (duplicate TxHash)
-        if (txErr.code === "23505") {
+        if (tronData?.confirmed !== true || tronData?.contractRet !== "SUCCESS") {
           return NextResponse.json(
-            { error: "This Transaction Hash has already been processed." },
+            { error: "Transaction is not confirmed and successful on the Tron blockchain." },
             { status: 400 }
           );
         }
-        throw txErr;
-      }
 
-      // 8. Auto-Credit Wallet ONLY if Verified (USDT-TRX only)
-      if (isVerified) {
-        // Use atomic RPC function (prevents race conditions)
-        const { data: newBalance, error: balanceErr } = await supabase
-          .rpc("add_balance_atomic", {
-            amount_to_add: Number(amountUsd),
-          });
+        const timestampRaw = tronData?.timestamp;
+        const timestampMs = Number(timestampRaw);
 
-        if (balanceErr) {
-          console.error("Balance update failed:", balanceErr);
-          // Transaction saved but credit failed - admin can manually fix
-          return NextResponse.json({
-            success: true,
-            autoCredited: false,
-            message: "Deposit recorded but auto-credit failed. Contact support for manual credit.",
-          });
+        if (!Number.isFinite(timestampMs) || timestampMs <= 0) {
+          return NextResponse.json(
+            { error: "Blockchain transaction timestamp could not be verified." },
+            { status: 400 }
+          );
         }
 
-        return NextResponse.json({
-          success: true,
-          autoCredited: true,
-          newBalance: Number(newBalance),
-          message: `⚡ Payment verified on-chain! $${Number(amountUsd).toFixed(2)} added to your wallet instantly.`,
+        blockTimestamp = new Date(timestampMs).toISOString();
+
+        if (new Date(blockTimestamp).getTime() <= new Date(intent.created_at).getTime()) {
+          return NextResponse.json(
+            {
+              error:
+                "This transaction occurred before the NAVA deposit session was created and cannot be credited.",
+            },
+            { status: 400 }
+          );
+        }
+
+        const transfers = Array.isArray(tronData?.trc20TransferInfo)
+          ? tronData.trc20TransferInfo
+          : [];
+
+        const matchingTransfers = transfers.filter((transfer: any) => {
+          const destinationMatches =
+            typeof transfer?.to_address === "string" &&
+            transfer.to_address.toLowerCase() === intent.destination_address.toLowerCase();
+
+          const contractMatches =
+            typeof transfer?.contract_address === "string" &&
+            transfer.contract_address.toLowerCase() === USDT_TRC20_CONTRACT.toLowerCase();
+
+          const tokenType = String(
+            transfer?.tokenType || transfer?.tokenType2 || ""
+          ).toLowerCase();
+
+          const tokenTypeMatches = !tokenType || tokenType === "trc20";
+          const symbolMatches =
+            !transfer?.symbol || String(transfer.symbol).toUpperCase() === "USDT";
+
+          return destinationMatches && contractMatches && tokenTypeMatches && symbolMatches;
         });
+
+        if (matchingTransfers.length !== 1) {
+          return NextResponse.json(
+            {
+              error:
+                "Transaction does not contain exactly one valid USDT TRC20 payment to the NAVA deposit address.",
+            },
+            { status: 400 }
+          );
+        }
+
+        const transfer = matchingTransfers[0];
+        verifiedAmountUsd = parseTokenAmount(transfer.amount_str, transfer.decimals);
+
+        if (verifiedAmountUsd === null) {
+          return NextResponse.json(
+            { error: "Unable to determine the exact on-chain USDT amount." },
+            { status: 400 }
+          );
+        }
+
+        const expectedAmountUsd = Number(intent.expected_amount_usd);
+
+        if (
+          !Number.isFinite(expectedAmountUsd) ||
+          Math.abs(verifiedAmountUsd - expectedAmountUsd) > 0.01
+        ) {
+          return NextResponse.json(
+            {
+              error: `Amount mismatch. Blockchain payment: ${verifiedAmountUsd.toFixed(
+                6
+              )} USDT; deposit session expected: ${expectedAmountUsd.toFixed(2)} USD (±$0.01).`,
+            },
+            { status: 400 }
+          );
+        }
+      } catch (err) {
+        console.error("TronScan verification failed:", err);
+        return NextResponse.json(
+          { error: "Blockchain verification failed. Please try again." },
+          { status: 502 }
+        );
       }
+    } else if (coin === "BTC") {
+      manualVerification = true;
 
-      // BTC/LTC: Pending manual admin review
-      return NextResponse.json({
-        success: true,
-        autoCredited: false,
-        message: `${coin} deposit submitted! Your transaction requires manual admin verification (15-60 min). You will be credited once verified.`,
-      });
+      try {
+        const btcRes = await fetch(
+          `https://api.blockchair.com/bitcoin/dashboards/transaction/${encodeURIComponent(cleanHash)}`,
+          { cache: "no-store" }
+        );
+        const btcData = await btcRes.json();
 
-    } catch (dbErr: any) {
-      console.error("Database error:", dbErr);
-      return NextResponse.json({ error: "Failed to record transaction. Please contact support." }, { status: 500 });
+        if (!btcRes.ok || !btcData?.data?.[cleanHash]?.transaction) {
+          return NextResponse.json(
+            { error: "Transaction not found on Bitcoin blockchain." },
+            { status: 400 }
+          );
+        }
+      } catch (err) {
+        console.error("Bitcoin verification failed:", err);
+        return NextResponse.json(
+          { error: "Blockchain verification failed. Please try again." },
+          { status: 502 }
+        );
+      }
+    } else if (coin === "LTC") {
+      manualVerification = true;
+
+      try {
+        const ltcRes = await fetch(
+          `https://api.blockchair.com/litecoin/dashboards/transaction/${encodeURIComponent(cleanHash)}`,
+          { cache: "no-store" }
+        );
+        const ltcData = await ltcRes.json();
+
+        if (!ltcRes.ok || !ltcData?.data?.[cleanHash]?.transaction) {
+          return NextResponse.json(
+            { error: "Transaction not found on Litecoin blockchain." },
+            { status: 400 }
+          );
+        }
+      } catch (err) {
+        console.error("Litecoin verification failed:", err);
+        return NextResponse.json(
+          { error: "Blockchain verification failed. Please try again." },
+          { status: 502 }
+        );
+      }
     }
 
+    const transactionAmountUsd =
+      verifiedAmountUsd !== null
+        ? Number(verifiedAmountUsd.toFixed(2))
+        : Number(intent.expected_amount_usd);
+
+    if (!Number.isFinite(transactionAmountUsd) || transactionAmountUsd <= 0) {
+      return NextResponse.json({ error: "Invalid deposit amount." }, { status: 400 });
+    }
+
+    const { data: newTx, error: txErr } = await supabaseAdmin
+      .from("transactions")
+      .insert({
+        user_id: user.id,
+        deposit_intent_id: intent.id,
+        amount_usd: transactionAmountUsd,
+        amount_local: Number((transactionAmountUsd * NGN_PER_USD).toFixed(2)),
+        currency: "USD",
+        payment_method: `Crypto - ${coin}${coin === "USDT" ? " (TRC20)" : ""}`,
+        reference: cleanHash,
+        status: "pending",
+        block_timestamp: blockTimestamp,
+      })
+      .select("id")
+      .single();
+
+    if (txErr || !newTx) {
+      if (txErr?.code === "23505") {
+        return NextResponse.json(
+          { error: "This Transaction Hash has already been used in NAVA." },
+          { status: 400 }
+        );
+      }
+
+      console.error("Crypto transaction insert failed:", txErr);
+      return NextResponse.json(
+        { error: "Failed to record the deposit transaction." },
+        { status: 500 }
+      );
+    }
+
+    if (coin === "USDT" && !manualVerification) {
+      const { data: newBalance, error: balanceErr } = await client.rpc(
+        "complete_deposit_atomic",
+        {
+          p_intent_id: intent.id,
+          p_transaction_id: newTx.id,
+        }
+      );
+
+      if (balanceErr) {
+        console.error("Atomic crypto completion failed:", balanceErr);
+
+        return NextResponse.json(
+          {
+            success: true,
+            autoCredited: false,
+            pending: true,
+            message:
+              "Payment verified and recorded, but automatic wallet credit is temporarily pending admin review.",
+          },
+          { status: 202 }
+        );
+      }
+
+      return NextResponse.json({
+        success: true,
+        autoCredited: true,
+        newBalance: Number(newBalance),
+        creditedAmountUsd: transactionAmountUsd,
+        message: `⚡ Payment verified on-chain! $${transactionAmountUsd.toFixed(
+          2
+        )} added to your NAVA wallet instantly.`,
+      });
+    }
+
+    return NextResponse.json({
+      success: true,
+      autoCredited: false,
+      pending: true,
+      message: `${coin} deposit recorded. It requires manual admin verification before wallet credit.`,
+    });
   } catch (err: any) {
     console.error("Deposit API Error:", err);
-    return NextResponse.json({ error: err.message }, { status: 500 });
+    return NextResponse.json(
+      { error: err?.message || "Failed to process deposit." },
+      { status: 500 }
+    );
   }
 }
