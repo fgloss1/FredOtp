@@ -34,6 +34,23 @@ async function adjustOtpBalance(userId: string, delta: number) {
   return Number(data);
 }
 
+export function resolveFiveSimOtpStatus(
+  providerStatus: string,
+  hasCode: boolean
+): "pending" | "completed" | "canceled" | "expired" | "banned" {
+  const normalized = providerStatus.toUpperCase();
+
+  if (normalized === "CANCELED") return "canceled";
+  if (normalized === "TIMEOUT") return "expired";
+  if (normalized === "BANNED") return "banned";
+
+  // A verification is only complete once an actual SMS/code is present.
+  // 5SIM's FINISHED state alone must never make NAVA claim a code arrived.
+  if (hasCode) return "completed";
+
+  return "pending";
+}
+
 export async function GET(req: Request) {
   try {
     const user = await getAuthenticatedSupabaseUser(req);
@@ -87,22 +104,56 @@ export async function GET(req: Request) {
           const apiData = await apiRes.json();
           const providerStatus = String(apiData.status || "").toUpperCase();
 
-          if (providerStatus === "RECEIVED" || providerStatus === "FINISHED") {
-            status = "completed";
-          } else if (providerStatus === "CANCELED") {
-            status = "canceled";
-          } else if (providerStatus === "BANNED") {
-            status = "banned";
-          } else if (providerStatus === "TIMEOUT") {
-            status = "expired";
-          } else if (providerStatus === "PENDING") {
-            status = "pending";
-          }
-
-          const smsEntry = Array.isArray(apiData.sms) && apiData.sms.length > 0 ? apiData.sms[apiData.sms.length - 1] : null;
+          const smsEntry = Array.isArray(apiData.sms) && apiData.sms.length > 0
+            ? apiData.sms[apiData.sms.length - 1]
+            : null;
           code = smsEntry?.code || apiData.code || code;
           sms = smsEntry?.text || apiData.sms_text || sms;
           expiresAt = apiData.expires || null;
+
+          status = resolveFiveSimOtpStatus(providerStatus, Boolean(code));
+
+          if (status === "canceled" || status === "expired") {
+            const { data: closeData, error: closeError } = await supabaseAdmin.rpc("otp_close_order_atomic", {
+              p_order_id: order.id,
+              p_user_id: user.id,
+              p_final_status: status,
+            });
+
+            if (closeError) throw closeError;
+
+            const closeResult = Array.isArray(closeData) ? closeData[0] : closeData;
+            const closeStatus = String(closeResult?.status || status).toLowerCase();
+            const refundedAmountUSD = Number(closeResult?.refunded_amount || 0);
+            const newBalance = Number(closeResult?.new_balance || 0);
+
+            status = closeStatus as typeof status;
+
+            return NextResponse.json({
+              success: true,
+              id: order.id,
+              orderId: order.id,
+              supplier_order_id: order.supplier_order_id,
+              number: order.phone_number,
+              phone_number: order.phone_number,
+              service: order.service_name,
+              service_name: order.service_name,
+              country: order.country_code,
+              country_code: order.country_code,
+              price_usd: Number(order.price_usd || 0),
+              status,
+              code,
+              sms_code: code,
+              sms,
+              sms_text: sms,
+              expires_at:
+                expiresAt ||
+                new Date(new Date(order.created_at).getTime() + 15 * 60_000).toISOString(),
+              created_at: order.created_at,
+              refundedAmountUSD,
+              newBalance,
+            });
+          }
 
           const shouldPersist = status !== String(order.status || "").toLowerCase() || code !== order.sms_code || sms !== order.sms_text;
 
