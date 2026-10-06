@@ -466,7 +466,7 @@ export default function AntiFlashLayout({ children }: { children: React.ReactNod
                     <GlassIcon name={item.icon} isActive={isActive} />
                     <span>{item.label}</span>
                   </Link>
-                )}
+                )
               );
             })}
           </nav>
@@ -549,7 +549,7 @@ export default function AntiFlashLayout({ children }: { children: React.ReactNod
                     <GlassIcon name={item.icon} isActive={isActive} />
                     <span>{item.label}</span>
                   </Link>
-                )}
+                )
               );
             })}
           </nav>
