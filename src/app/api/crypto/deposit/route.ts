@@ -1,6 +1,5 @@
 import { NextResponse } from "next/server";
 import { createClient } from "@supabase/supabase-js";
-import { supabaseAdmin } from "@/lib/supabase-admin";
 
 const USDT_TRC20_CONTRACT = "TR7NHqjeKQxGTCi8q8ZY4pL8otSzgjLj6t";
 const NGN_PER_USD = 1500;
@@ -87,7 +86,7 @@ export async function POST(req: Request) {
     }
 
     // The authenticated server session is the only source of user identity.
-    const { data: intent, error: intentErr } = await supabaseAdmin
+    const { data: intent, error: intentErr } = await client
       .from("deposit_intents")
       .select("*")
       .eq("id", intentId)
@@ -103,12 +102,6 @@ export async function POST(req: Request) {
     }
 
     if (new Date(intent.expires_at).getTime() <= Date.now()) {
-      await supabaseAdmin
-        .from("deposit_intents")
-        .update({ status: "expired" })
-        .eq("id", intent.id)
-        .eq("status", "pending");
-
       return NextResponse.json(
         { error: "This deposit session has expired. Start a new deposit session." },
         { status: 400 }
@@ -117,7 +110,7 @@ export async function POST(req: Request) {
 
     // Global replay protection: the TxHash belongs to NAVA once recorded,
     // regardless of which account submitted it.
-    const { data: existingTx, error: existingErr } = await supabaseAdmin
+    const { data: existingTx, error: existingErr } = await client
       .from("transactions")
       .select("id, user_id, status")
       .eq("reference", cleanHash)
@@ -329,7 +322,7 @@ export async function POST(req: Request) {
       return NextResponse.json({ error: "Invalid deposit amount." }, { status: 400 });
     }
 
-    const { data: newTx, error: txErr } = await supabaseAdmin
+    const { data: newTx, error: txErr } = await client
       .from("transactions")
       .insert({
         user_id: user.id,
