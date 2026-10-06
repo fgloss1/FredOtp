@@ -381,7 +381,7 @@ export default function AdminRentalsDesk() {
             <h2 className="text-base font-bold text-white flex items-center gap-2">
               <span>🛟 Crypto Payment Recovery</span>
               <span className="bg-amber-500/20 text-amber-400 text-xs px-2.5 py-0.5 rounded-full font-bold">
-                ${cryptoRecoveryReports.length}
+                {cryptoRecoveryReports.length}
               </span>
             </h2>
             <p className="text-[11px] text-gray-500 mt-1">
