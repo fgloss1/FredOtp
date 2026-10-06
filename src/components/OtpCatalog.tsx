@@ -1008,6 +1008,6 @@ export default function OtpCatalog({ onBalanceRefresh, userBalance }: OtpCatalog
           </div>
         )}
       </div>
-    </div>
+    </section>
   );
 }
