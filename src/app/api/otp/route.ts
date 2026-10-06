@@ -1,77 +1,237 @@
 import { NextResponse } from "next/server";
-import { supabase } from "@/lib/supabase";
+import { supabaseAdmin } from "@/lib/supabase-admin";
+import { getAuthenticatedSupabaseUser } from "@/lib/supabase-request-auth";
 import { calculateNavaPrice } from "@/lib/pricing";
 
-export async function POST(req: Request) {
+async function cancelSupplierOrder(supplier: string, supplierOrderId: string) {
+  if (!supplierOrderId || supplierOrderId.startsWith("MOCK-")) return;
+
+  const fivesimToken = process.env.FIVESIM_API_TOKEN || process.env.FIVESIM_API_KEY;
+
+  if (supplier === "5sim" && fivesimToken && fivesimToken !== "your_5sim_key_here") {
+    try {
+      await fetch(`https://5sim.net/v1/user/cancel/${encodeURIComponent(supplierOrderId)}`, {
+        method: "GET",
+        headers: {
+          Authorization: `Bearer ${fivesimToken}`,
+          Accept: "application/json",
+        },
+      });
+    } catch (error) {
+      console.warn("5SIM cancellation failed after NAVA purchase rollback:", error);
+    }
+  }
+}
+
+async function adjustOtpBalance(userId: string, delta: number) {
+  const { data, error } = await supabaseAdmin.rpc("otp_balance_adjust_atomic", {
+    p_user_id: userId,
+    p_delta: delta,
+  });
+
+  if (error) throw error;
+
+  return Number(data);
+}
+
+export async function GET(req: Request) {
   try {
-    const { userId, serviceSlug, countryCode, priceUSD } = await req.json();
-
-    if (!userId || !serviceSlug || !countryCode || priceUSD === undefined) {
-      return NextResponse.json(
-        { error: "Missing required order parameters." },
-        { status: 400 }
-      );
+    const user = await getAuthenticatedSupabaseUser(req);
+    if (!user) {
+      return NextResponse.json({ error: "Unauthorized. Please log in." }, { status: 401 });
     }
 
-    const countryUpper = countryCode.toUpperCase();
-    const isUuid = /^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/i.test(userId);
+    const { searchParams } = new URL(req.url);
+    const orderId = searchParams.get("orderId")?.trim();
 
-    let currentBalance = 0.0;
-    let actualUserId: string | null = isUuid ? userId : null;
-
-    // 1. Fetch Profile & Check Wallet Balance
-    if (actualUserId) {
-      const { data: profile, error: profileErr } = await supabase
-        .from("profiles")
-        .select("balance")
-        .eq("id", actualUserId)
-        .single();
-
-      if (profileErr || !profile) {
-        return NextResponse.json({ error: "User profile not found." }, { status: 404 });
-      }
-
-      currentBalance = Number(profile.balance);
+    if (!orderId) {
+      return NextResponse.json({ error: "Missing order ID." }, { status: 400 });
     }
 
-    // 2. Provider Routing (5SIM is primary when FIVESIM_API_TOKEN / FIVESIM_API_KEY is present)
-    const fivesimToken = process.env.FIVESIM_API_TOKEN || process.env.FIVESIM_API_KEY;
-    const smspoolApiKey = process.env.SMSPOOL_API_KEY;
+    const { data: order, error: orderErr } = await supabaseAdmin
+      .from("orders")
+      .select("id, user_id, service_name, country_code, phone_number, price_usd, status, supplier, supplier_order_id, created_at, sms_code, sms_text")
+      .eq("id", orderId)
+      .eq("user_id", user.id)
+      .maybeSingle();
 
-    let assignedPhone = "";
-    let supplierOrderId = "";
-    let supplierName = "";
-    let actualSupplierCost = 0.0;
+    if (orderErr) {
+      return NextResponse.json({ error: "Unable to load order status." }, { status: 500 });
+    }
 
-    const countrySlug = countryCode.toLowerCase();
-    const serviceQuery = serviceSlug.toLowerCase().includes("chatgpt") ? "openai" : serviceSlug.toLowerCase();
+    if (!order) {
+      return NextResponse.json({ error: "Order not found." }, { status: 404 });
+    }
 
-    if (fivesimToken && fivesimToken !== "your_5sim_key_here") {
-      supplierName = "5sim";
-      try {
+    let status = String(order.status || "pending").toLowerCase();
+    let code = order.sms_code || null;
+    let sms = order.sms_text || null;
+    let expiresAt: string | null = null;
+
+    if (order.supplier === "5sim" && order.supplier_order_id) {
+      const fivesimToken = process.env.FIVESIM_API_TOKEN || process.env.FIVESIM_API_KEY;
+
+      if (fivesimToken && fivesimToken !== "your_5sim_key_here") {
         const apiRes = await fetch(
-          `https://5sim.net/v1/user/buy/activation/${countrySlug}/any/${serviceQuery}`,
+          `https://5sim.net/v1/user/check/${encodeURIComponent(order.supplier_order_id)}`,
           {
             headers: {
               Authorization: `Bearer ${fivesimToken}`,
               Accept: "application/json",
             },
+            cache: "no-store",
           }
         );
 
         if (apiRes.ok) {
           const apiData = await apiRes.json();
-          if (apiData.phone) {
-            assignedPhone = apiData.phone;
-            supplierOrderId = String(apiData.id);
-            actualSupplierCost = Number(apiData.price || 0.85);
+          const providerStatus = String(apiData.status || "").toUpperCase();
+
+          if (providerStatus === "RECEIVED" || providerStatus === "FINISHED") {
+            status = "completed";
+          } else if (providerStatus === "CANCELED") {
+            status = "canceled";
+          } else if (providerStatus === "BANNED") {
+            status = "banned";
+          } else if (providerStatus === "TIMEOUT") {
+            status = "expired";
+          } else if (providerStatus === "PENDING") {
+            status = "pending";
+          }
+
+          const smsEntry = Array.isArray(apiData.sms) && apiData.sms.length > 0 ? apiData.sms[apiData.sms.length - 1] : null;
+          code = smsEntry?.code || apiData.code || code;
+          sms = smsEntry?.text || apiData.sms_text || sms;
+          expiresAt = apiData.expires || null;
+
+          const shouldPersist = status !== String(order.status || "").toLowerCase() || code !== order.sms_code || sms !== order.sms_text;
+
+          if (shouldPersist) {
+            const update: Record<string, string | null> = {
+              status,
+              sms_code: code,
+              sms_text: sms,
+            };
+
+            await supabaseAdmin.from("orders").update(update).eq("id", order.id);
           }
         }
-      } catch (e) {
-        console.warn("5SIM API purchase call failed:", e);
+      }
+    }
+
+    return NextResponse.json({
+      success: true,
+      id: order.id,
+      orderId: order.id,
+      supplier_order_id: order.supplier_order_id,
+      number: order.phone_number,
+      phone_number: order.phone_number,
+      service: order.service_name,
+      service_name: order.service_name,
+      country: order.country_code,
+      country_code: order.country_code,
+      price_usd: Number(order.price_usd || 0),
+      status,
+      code,
+      sms_code: code,
+      sms,
+      sms_text: sms,
+      expires_at:
+        expiresAt ||
+        new Date(new Date(order.created_at).getTime() + 15 * 60_000).toISOString(),
+      created_at: order.created_at,
+    });
+  } catch (err: any) {
+    console.error("OTP status error:", err);
+    return NextResponse.json(
+      { error: err?.message || "Failed to load order status." },
+      { status: 500 }
+    );
+  }
+}
+
+export async function POST(req: Request) {
+  let chargedUserId: string | null = null;
+  let chargedAmount = 0;
+  let walletDebited = false;
+  let supplierName = "";
+  let supplierOrderId = "";
+
+  try {
+    const user = await getAuthenticatedSupabaseUser(req);
+    if (!user) {
+      return NextResponse.json({ error: "Unauthorized. Please log in." }, { status: 401 });
+    }
+
+    chargedUserId = user.id;
+
+    const body = await req.json();
+    const serviceSlug = String(body.serviceSlug || body.service || "").trim().toLowerCase();
+    const countryCode = String(body.countryCode || body.country || "").trim();
+    const priceUSD = Number(body.priceUSD);
+
+    if (!serviceSlug || !countryCode || !Number.isFinite(priceUSD) || priceUSD <= 0) {
+      return NextResponse.json(
+        { error: "Missing or invalid order parameters." },
+        { status: 400 }
+      );
+    }
+
+    const countryUpper = countryCode.toUpperCase();
+
+    const { data: profile, error: profileErr } = await supabaseAdmin
+      .from("profiles")
+      .select("balance")
+      .eq("id", user.id)
+      .single();
+
+    if (profileErr || !profile) {
+      return NextResponse.json({ error: "User profile not found." }, { status: 404 });
+    }
+
+    const currentBalance = Number(profile.balance || 0);
+
+    const fivesimToken = process.env.FIVESIM_API_TOKEN || process.env.FIVESIM_API_KEY;
+    const smspoolApiKey = process.env.SMSPOOL_API_KEY;
+
+    let assignedPhone = "";
+    let actualSupplierCost = 0;
+
+    const countrySlug = countryCode.toLowerCase();
+    const serviceQuery = serviceSlug.includes("chatgpt") ? "openai" : serviceSlug;
+
+    if (fivesimToken && fivesimToken !== "your_5sim_key_here") {
+      supplierName = "5sim";
+
+      try {
+        const apiRes = await fetch(
+          `https://5sim.net/v1/user/buy/activation/${encodeURIComponent(countrySlug)}/any/${encodeURIComponent(serviceQuery)}`,
+          {
+            headers: {
+              Authorization: `Bearer ${fivesimToken}`,
+              Accept: "application/json",
+            },
+            cache: "no-store",
+          }
+        );
+
+        if (apiRes.ok) {
+          const apiData = await apiRes.json();
+
+          if (apiData.phone) {
+            assignedPhone = String(apiData.phone);
+            supplierOrderId = String(apiData.id);
+            actualSupplierCost = Number(apiData.price || 0);
+          }
+        } else {
+          console.warn("5SIM purchase failed:", await apiRes.text().catch(() => ""));
+        }
+      } catch (error) {
+        console.warn("5SIM API purchase call failed:", error);
       }
     } else if (countryUpper === "US" && smspoolApiKey && smspoolApiKey !== "your_smspool_key_here") {
       supplierName = "smspool";
+
       try {
         const formData = new FormData();
         formData.append("key", smspoolApiKey);
@@ -85,119 +245,134 @@ export async function POST(req: Request) {
         const apiData = await apiRes.json();
 
         if (apiData.success === 1 || apiData.phonenumber) {
-          assignedPhone = apiData.cc ? `+${apiData.cc}${apiData.phonenumber}` : `+1${apiData.phonenumber}`;
+          assignedPhone = apiData.cc
+            ? `+${apiData.cc}${apiData.phonenumber}`
+            : `+1${apiData.phonenumber}`;
           supplierOrderId = String(apiData.order_id);
-          actualSupplierCost = Number(apiData.cost || 0.85);
+          actualSupplierCost = Number(apiData.cost || 0);
         }
-      } catch (e) {
-        console.warn("SmsPool API purchase call failed:", e);
+      } catch (error) {
+        console.warn("SmsPool API purchase call failed:", error);
       }
     }
 
-    // 3. FAIL-SAFE: If a provider is configured but purchase failed, DO NOT fall back to mock numbers
     const isProviderConfigured = Boolean(fivesimToken || smspoolApiKey);
 
     if (isProviderConfigured && !assignedPhone) {
       return NextResponse.json(
-        { error: "Provider currently has no available lines for this service/country. Wallet was not charged." },
+        {
+          error: "Provider currently has no available lines for this service/country. Wallet was not charged.",
+        },
         { status: 503 }
       );
     }
 
-    // Fallback Mock Number Generator ONLY for unconfigured local dev environments
-    if (!assignedPhone) {
+    if (!assignedPhone && process.env.NODE_ENV !== "production") {
       supplierName = "mock";
       const areaCode = Math.floor(200 + Math.random() * 700);
       const prefix = Math.floor(100 + Math.random() * 800);
       const line = Math.floor(1000 + Math.random() * 9000);
+
       assignedPhone = countryUpper === "US"
         ? `+1${areaCode}${prefix}${line}`
         : `+447${Math.floor(100000000 + Math.random() * 900000000)}`;
+
       supplierOrderId = `MOCK-${Date.now()}-${Math.floor(Math.random() * 1000)}`;
-      actualSupplierCost = Number(priceUSD) / 1.5;
+      actualSupplierCost = priceUSD / 1.5;
     }
 
-    // 4. Calculate exact NAVA customer price from supplier cost using single pricing engine
+    if (!assignedPhone) {
+      return NextResponse.json(
+        { error: "OTP provider is unavailable. No number was assigned and your wallet was not charged." },
+        { status: 503 }
+      );
+    }
+
     const pricingResult = calculateNavaPrice(
-      actualSupplierCost > 0 ? actualSupplierCost : Number(priceUSD) / 1.5,
+      actualSupplierCost > 0 ? actualSupplierCost : priceUSD / 1.5,
       serviceSlug,
       countryCode
     );
 
-    const finalChargedPrice = pricingResult.retailPriceUSD > 0 ? pricingResult.retailPriceUSD : Number(priceUSD);
+    const finalChargedPrice = pricingResult.retailPriceUSD > 0
+      ? pricingResult.retailPriceUSD
+      : priceUSD;
 
-    // Check user balance against exact calculated retail price
-    if (actualUserId && currentBalance < finalChargedPrice) {
+    chargedAmount = finalChargedPrice;
+
+    if (currentBalance < finalChargedPrice) {
+      await cancelSupplierOrder(supplierName, supplierOrderId);
       return NextResponse.json(
         {
-          error: `Insufficient wallet balance ($${currentBalance.toFixed(2)} available, $${finalChargedPrice.toFixed(
-            2
-          )} required). Please top up.`,
+          error: `Insufficient wallet balance ($${currentBalance.toFixed(2)} available, $${finalChargedPrice.toFixed(2)} required). Please top up.`,
         },
         { status: 400 }
       );
     }
 
-    // 5. Deduct User Wallet Balance
-    let newBalance = currentBalance;
-    if (actualUserId) {
-      newBalance = Number((currentBalance - finalChargedPrice).toFixed(2));
-      await supabase
-        .from("profiles")
-        .update({ balance: newBalance })
-        .eq("id", actualUserId);
-    }
+    const newBalance = await adjustOtpBalance(user.id, -finalChargedPrice);
+    walletDebited = true;
 
-    // 6. Save Order in Database
-    const nowIso = new Date().toISOString();
-    let savedOrder = {
-      id: supplierOrderId,
-      phone_number: assignedPhone,
-      service_name: serviceSlug,
-      country_code: countryUpper,
-      price_usd: finalChargedPrice,
-      status: "Waiting for SMS...",
-      created_at: nowIso,
-    };
+    const { data: dbOrder, error: dbErr } = await supabaseAdmin
+      .from("orders")
+      .insert({
+        user_id: user.id,
+        service_name: serviceSlug,
+        country_code: countryUpper,
+        phone_number: assignedPhone,
+        price_usd: finalChargedPrice,
+        status: "Waiting for SMS...",
+        supplier: supplierName,
+        supplier_order_id: supplierOrderId,
+      })
+      .select()
+      .single();
 
-    if (actualUserId) {
-      const { data: dbOrder, error: dbErr } = await supabase
-        .from("orders")
-        .insert({
-          user_id: actualUserId,
-          service_name: serviceSlug,
-          country_code: countryUpper,
-          phone_number: assignedPhone,
-          price_usd: finalChargedPrice,
-          status: "Waiting for SMS...",
-          supplier: supplierName,
-          supplier_order_id: supplierOrderId,
-        })
-        .select()
-        .single();
-
-      if (!dbErr && dbOrder) {
-        savedOrder = dbOrder;
+    if (dbErr || !dbOrder) {
+      try {
+        await adjustOtpBalance(user.id, finalChargedPrice);
+      } catch (refundError) {
+        console.error("CRITICAL: OTP wallet refund failed after order insert error:", refundError);
       }
+      await cancelSupplierOrder(supplierName, supplierOrderId);
+
+      return NextResponse.json(
+        { error: "Order could not be recorded. Your wallet charge was rolled back." },
+        { status: 500 }
+      );
     }
 
-    // 7. Clean JSON Response Payload
     return NextResponse.json({
       success: true,
       newBalance,
       order: {
-        id: savedOrder.id,
-        phone_number: savedOrder.phone_number,
+        id: dbOrder.id,
+        supplier_order_id: supplierOrderId,
+        phone_number: assignedPhone,
         service_name: serviceSlug,
         country_code: countryUpper,
         price_usd: finalChargedPrice,
-        status: "Waiting for SMS...",
-        created_at: savedOrder.created_at || nowIso,
+        status: "pending",
+        created_at: dbOrder.created_at,
+        expires_at: new Date(new Date(dbOrder.created_at).getTime() + 15 * 60_000).toISOString(),
       },
     });
   } catch (err: any) {
+    if (walletDebited && chargedUserId && chargedAmount > 0) {
+      try {
+        await adjustOtpBalance(chargedUserId, chargedAmount);
+      } catch (refundError) {
+        console.error("CRITICAL: OTP wallet refund failed after purchase error:", refundError);
+      }
+    }
+
+    if (supplierName && supplierOrderId) {
+      await cancelSupplierOrder(supplierName, supplierOrderId);
+    }
+
+    console.error("OTP purchase error:", err);
     return NextResponse.json(
-      { error: err.message || "Failed to process rental request." },
+      { error: err?.message || "Failed to process OTP purchase." },
       { status: 500 }
     );
   }

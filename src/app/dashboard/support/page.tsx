@@ -2,6 +2,7 @@
 
 import { useEffect, useState } from "react";
 import Link from "next/link";
+import { supabase } from "@/lib/supabase";
 
 interface GuideItem {
   id: string;
@@ -15,6 +16,17 @@ export default function SupportCenterPage() {
   const [darkMode, setDarkMode] = useState(true);
   const [openGuideId, setOpenGuideId] = useState<string | null>("guide-1");
   const [activeCategory, setActiveCategory] = useState<string>("All");
+  const [recoverySessions, setRecoverySessions] = useState<any[]>([]);
+  const [recoveryReports, setRecoveryReports] = useState<any[]>([]);
+  const [recoveryIntentId, setRecoveryIntentId] = useState("");
+  const [recoveryCoin, setRecoveryCoin] = useState("USDT");
+  const [recoveryTxHash, setRecoveryTxHash] = useState("");
+  const [recoveryAmount, setRecoveryAmount] = useState("");
+  const [recoveryReason, setRecoveryReason] = useState("late_payment");
+  const [recoveryNotes, setRecoveryNotes] = useState("");
+  const [recoverySubmitting, setRecoverySubmitting] = useState(false);
+  const [recoveryMessage, setRecoveryMessage] = useState("");
+  const [recoveryError, setRecoveryError] = useState("");
 
   // Sync Nava Theme
   useEffect(() => {
@@ -26,6 +38,81 @@ export default function SupportCenterPage() {
     window.addEventListener("nava-theme-change", checkTheme);
     return () => window.removeEventListener("nava-theme-change", checkTheme);
   }, []);
+
+  useEffect(() => {
+    const loadRecoveryData = async () => {
+      try {
+        const { data: sessionData } = await supabase.auth.getSession();
+        const accessToken = sessionData?.session?.access_token;
+        if (!accessToken) return;
+
+        const res = await fetch("/api/crypto/recovery", {
+          headers: { Authorization: `Bearer ${accessToken}` },
+          cache: "no-store",
+        });
+        if (!res.ok) return;
+
+        const data = await res.json();
+        setRecoverySessions(data.sessions || []);
+        setRecoveryReports(data.reports || []);
+      } catch {
+        // Recovery reporting remains available even if history loading fails.
+      }
+    };
+
+    loadRecoveryData();
+  }, []);
+
+  const handleCryptoRecoverySubmit = async (e: React.FormEvent) => {
+    e.preventDefault();
+    setRecoverySubmitting(true);
+    setRecoveryMessage("");
+    setRecoveryError("");
+
+    try {
+      const { data: sessionData } = await supabase.auth.getSession();
+      const accessToken = sessionData?.session?.access_token;
+      if (!accessToken) throw new Error("Session expired. Please log in again.");
+
+      const res = await fetch("/api/crypto/recovery", {
+        method: "POST",
+        headers: {
+          "Content-Type": "application/json",
+          Authorization: `Bearer ${accessToken}`,
+        },
+        body: JSON.stringify({
+          depositIntentId: recoveryIntentId || undefined,
+          coin: recoveryCoin,
+          txHash: recoveryTxHash,
+          claimedAmountUsd: recoveryAmount || undefined,
+          reason: recoveryReason,
+          notes: recoveryNotes,
+        }),
+      });
+
+      const data = await res.json();
+      if (!res.ok) throw new Error(data.error || "Unable to submit crypto payment report.");
+
+      setRecoveryMessage(data.message || "Report submitted for admin review.");
+      setRecoveryTxHash("");
+      setRecoveryAmount("");
+      setRecoveryNotes("");
+
+      const refresh = await fetch("/api/crypto/recovery", {
+        headers: { Authorization: `Bearer ${accessToken}` },
+        cache: "no-store",
+      });
+      if (refresh.ok) {
+        const refreshed = await refresh.json();
+        setRecoverySessions(refreshed.sessions || []);
+        setRecoveryReports(refreshed.reports || []);
+      }
+    } catch (err: any) {
+      setRecoveryError(err?.message || "Unable to submit crypto payment report.");
+    } finally {
+      setRecoverySubmitting(false);
+    }
+  };
 
   // Quick 10-Second Guides
   const guides: GuideItem[] = [
@@ -194,6 +281,132 @@ export default function SupportCenterPage() {
             View Wallet Balance →
           </Link>
         </div>
+      </div>
+
+      {/* Crypto Payment Recovery */}
+      <div className={`${theme.card} rounded-2xl p-5 sm:p-6 space-y-4`}>
+        <div>
+          <span className="text-[10px] font-bold uppercase tracking-wider bg-amber-500/10 text-amber-400 px-2.5 py-0.5 rounded-md border border-amber-500/30">
+            Exceptional Payment Help
+          </span>
+          <h2 className={`text-base font-bold ${theme.text} mt-2`}>🛟 Report a Crypto Payment</h2>
+          <p className={`text-xs ${theme.textMuted} mt-1 leading-relaxed`}>
+            Use this only for a late, duplicate, or otherwise unmatched payment. Normal deposits should always be made from a fresh active deposit session.
+          </p>
+        </div>
+
+        <form onSubmit={handleCryptoRecoverySubmit} className="space-y-3">
+          <select
+            value={recoveryIntentId}
+            onChange={(e) => {
+              const id = e.target.value;
+              setRecoveryIntentId(id);
+              const selected = recoverySessions.find((session) => session.id === id);
+              if (selected) {
+                setRecoveryCoin(String(selected.coin).toUpperCase());
+                setRecoveryAmount(Number(selected.expected_amount_usd).toFixed(2));
+              }
+            }}
+            className="w-full bg-[#152035] border border-slate-700 rounded-xl px-3 py-2.5 text-xs text-white"
+          >
+            <option value="">No specific deposit session (unmatched payment)</option>
+            {recoverySessions.map((session) => (
+              <option key={session.id} value={session.id}>
+                {session.coin} • ${Number(session.expected_amount_usd).toFixed(2)} • {session.status} • {new Date(session.created_at).toLocaleString()}
+              </option>
+            ))}
+          </select>
+
+          {!recoveryIntentId && (
+            <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
+              <select
+                value={recoveryCoin}
+                onChange={(e) => setRecoveryCoin(e.target.value)}
+                className="w-full bg-[#152035] border border-slate-700 rounded-xl px-3 py-2.5 text-xs text-white"
+              >
+                <option value="USDT">USDT / TRC20</option>
+                <option value="BTC">BTC / Bitcoin</option>
+                <option value="LTC">LTC / Litecoin</option>
+              </select>
+              <input
+                type="number"
+                min="0.01"
+                step="0.01"
+                placeholder="Amount you paid (USD)"
+                value={recoveryAmount}
+                onChange={(e) => setRecoveryAmount(e.target.value)}
+                className="w-full bg-[#152035] border border-slate-700 rounded-xl px-3 py-2.5 text-xs text-white"
+                required
+              />
+            </div>
+          )}
+
+          <select
+            value={recoveryReason}
+            onChange={(e) => setRecoveryReason(e.target.value)}
+            className="w-full bg-[#152035] border border-slate-700 rounded-xl px-3 py-2.5 text-xs text-white"
+          >
+            <option value="late_payment">I paid after my deposit session expired</option>
+            <option value="duplicate_payment">I accidentally paid twice</option>
+            <option value="unmatched_payment">My payment is not showing in my wallet</option>
+            <option value="other">Other crypto payment issue</option>
+          </select>
+
+          <input
+            type="text"
+            placeholder="Transaction Hash"
+            value={recoveryTxHash}
+            onChange={(e) => setRecoveryTxHash(e.target.value.trim())}
+            className="w-full bg-[#152035] border border-slate-700 rounded-xl px-3 py-2.5 text-xs text-white font-mono"
+            required
+          />
+
+          <textarea
+            placeholder="Optional details for support..."
+            value={recoveryNotes}
+            onChange={(e) => setRecoveryNotes(e.target.value)}
+            rows={3}
+            maxLength={2000}
+            className="w-full bg-[#152035] border border-slate-700 rounded-xl px-3 py-2.5 text-xs text-white resize-y"
+          />
+
+          {recoveryMessage && (
+            <p className="text-xs text-emerald-400 bg-emerald-500/10 border border-emerald-500/20 rounded-xl px-3 py-2">
+              {recoveryMessage}
+            </p>
+          )}
+
+          {recoveryError && (
+            <p className="text-xs text-red-400 bg-red-500/10 border border-red-500/20 rounded-xl px-3 py-2">
+              {recoveryError}
+            </p>
+          )}
+
+          <button
+            type="submit"
+            disabled={recoverySubmitting}
+            className="w-full bg-amber-400 hover:bg-amber-300 text-black font-black text-xs py-2.5 rounded-xl transition-all disabled:opacity-50"
+          >
+            {recoverySubmitting ? "Submitting Report..." : "Report Payment for Review"}
+          </button>
+        </form>
+
+        {recoveryReports.length > 0 && (
+          <div className="space-y-2 pt-2">
+            <p className="text-[10px] font-bold uppercase tracking-wider text-gray-400">Your Recent Crypto Reports</p>
+            {recoveryReports.slice(0, 5).map((report) => (
+              <div key={report.id} className={`${theme.innerCard} rounded-xl p-3 text-xs`}>
+                <div className="flex items-center justify-between gap-3">
+                  <span className="font-bold">{report.coin} • {report.tx_hash}</span>
+                  <span className="uppercase text-[9px] font-black text-amber-400">{report.status}</span>
+                </div>
+                <p className={`text-[10px] ${theme.textSubtle} mt-1`}>
+                  {report.reason.replaceAll("_", " ")} • {new Date(report.created_at).toLocaleString()}
+                </p>
+              </div>
+            ))}
+          </div>
+        )}
       </div>
 
       {/* Interactive Quick Guides Accordion */}

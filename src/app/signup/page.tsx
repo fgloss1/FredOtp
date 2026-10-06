@@ -7,11 +7,13 @@ import { supabase } from "@/lib/supabase";
 
 export default function SignupPage() {
   const router = useRouter();
+  const [username, setUsername] = useState("");
   const [email, setEmail] = useState("");
   const [password, setPassword] = useState("");
   const [confirmPassword, setConfirmPassword] = useState("");
   const [loading, setLoading] = useState(false);
   const [errorMessage, setErrorMessage] = useState("");
+  const [successMessage, setSuccessMessage] = useState("");
   const [darkMode, setDarkMode] = useState(true);
 
   const applyTheme = (isDark: boolean) => {
@@ -44,6 +46,17 @@ export default function SignupPage() {
     e.preventDefault();
     setLoading(true);
     setErrorMessage("");
+    setSuccessMessage("");
+
+    const normalizedUsername = username.trim().toLowerCase();
+
+    if (!/^[a-z0-9_]{3,24}$/.test(normalizedUsername)) {
+      setErrorMessage(
+        "Username must be 3-24 characters and use only letters, numbers, or underscores."
+      );
+      setLoading(false);
+      return;
+    }
 
     if (password !== confirmPassword) {
       setErrorMessage("Passwords do not match.");
@@ -59,8 +72,13 @@ export default function SignupPage() {
 
     try {
       const { data, error } = await supabase.auth.signUp({
-        email,
+        email: email.trim(),
         password,
+        options: {
+          data: {
+            username: normalizedUsername,
+          },
+        },
       });
 
       if (error) {
@@ -69,10 +87,16 @@ export default function SignupPage() {
         return;
       }
 
-      if (data.user) {
+      if (data.session) {
         router.push("/dashboard");
         router.refresh();
+        return;
       }
+
+      setSuccessMessage(
+        "Account created successfully. Please check your email to confirm your account before signing in."
+      );
+      setLoading(false);
     } catch (err: any) {
       setErrorMessage("Registration failed. Please try again.");
       setLoading(false);
@@ -100,7 +124,7 @@ export default function SignupPage() {
   return (
     <div className={`min-h-screen ${theme.pageBg} ${theme.text} flex items-center justify-center p-4 transition-colors duration-150`}>
       <div className={`w-full max-w-md ${theme.cardBg} border rounded-2xl p-6 sm:p-8 shadow-2xl space-y-6`}>
-        
+
         <div className="text-center space-y-2">
           <Link href="/" className="inline-flex items-center gap-2">
             <span className="w-10 h-10 rounded-xl bg-emerald-500 text-black font-black flex items-center justify-center text-xl shadow-lg shadow-emerald-500/20">
@@ -120,7 +144,31 @@ export default function SignupPage() {
           </div>
         )}
 
+        {successMessage && (
+          <div className="p-3 border border-emerald-500/30 rounded-xl text-xs font-semibold text-center bg-emerald-500/10 text-emerald-400">
+            {successMessage}
+          </div>
+        )}
+
         <form onSubmit={handleSignup} className="space-y-4">
+          <div className="space-y-1.5">
+            <label className={`text-xs font-bold uppercase tracking-wider ${theme.muted} block`}>
+              Username
+            </label>
+            <input
+              type="text"
+              required
+              minLength={3}
+              maxLength={24}
+              pattern="[A-Za-z0-9_]{3,24}"
+              placeholder="your_username"
+              value={username}
+              onChange={(e) => setUsername(e.target.value)}
+              autoComplete="username"
+              className={`w-full border rounded-xl px-4 py-3 text-xs outline-none transition ${theme.input}`}
+            />
+          </div>
+
           <div className="space-y-1.5">
             <label className={`text-xs font-bold uppercase tracking-wider ${theme.muted} block`}>
               Email Address

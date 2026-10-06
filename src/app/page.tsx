@@ -1,7 +1,7 @@
 "use client";
 
 import Link from "next/link";
-import { useEffect, useState } from "react";
+import { useEffect, useState, useRef } from "react";
 import ThemeToggle from "@/components/ThemeToggle";
 import Footer from "@/components/Footer";
 import NotificationFeed from "@/components/NotificationFeed";
@@ -10,7 +10,7 @@ import HeroConsole from "@/components/HeroConsole";
 const featuredServices = [
   { name: "WhatsApp", priceUsd: 0.9, stock: "820 left", color: "#25D366", logo: "https://api.iconify.design/simple-icons:whatsapp.svg?color=%2325D366", fallback: "💬", category: "Messaging" },
   { name: "Telegram", priceUsd: 0.75, stock: "412 left", color: "#26A5E4", logo: "https://api.iconify.design/simple-icons:telegram.svg?color=%2326A5E4", fallback: "✈️", category: "Messaging" },
-  { name: "Gmail / Google", priceUsd: 0.4, stock: "177 left", color: "#4285F4", logo: "https://api.iconify.design/simple-icons:google.svg?color=%234285F4", fallback: "🔍", category: "Email" },
+  { name: "Gmail / Google", priceUsd: 0.4, stock: "177 left", color: "#4285F4", logo: "https://api.iconify.design/logos:google-icon.svg", fallback: "🔍", category: "Email" },
   { name: "Amazon", priceUsd: 0.4, stock: "665 left", color: "#FF9900", logo: "https://api.iconify.design/simple-icons:amazon.svg?color=%23FF9900", fallback: "🛒", category: "Shopping" },
   { name: "Instagram", priceUsd: 0.55, stock: "622 left", color: "#E4405F", logo: "https://api.iconify.design/simple-icons:instagram.svg?color=%23E4405F", fallback: "📸", category: "Social" },
   { name: "Discord", priceUsd: 0.25, stock: "64 left", color: "#5865F2", logo: "https://api.iconify.design/simple-icons:discord.svg?color=%235865F2", fallback: "👾", category: "Social" },
@@ -23,14 +23,15 @@ const featuredServices = [
 ];
 
 const countries = [
-  { name: "Nigeria", code: "NG", dial: "+234", flag: "https://flagcdn.com/w40/ng.png" },
-  { name: "United States", code: "US", dial: "+1", flag: "https://flagcdn.com/w40/us.png" },
-  { name: "United Kingdom", code: "GB", dial: "+44", flag: "https://flagcdn.com/w40/gb.png" },
-  { name: "Canada", code: "CA", dial: "+1", flag: "https://flagcdn.com/w40/ca.png" },
-  { name: "Ghana", code: "GH", dial: "+233", flag: "https://flagcdn.com/w40/gh.png" },
-  { name: "Kenya", code: "KE", dial: "+254", flag: "https://flagcdn.com/w40/ke.png" },
-  { name: "India", code: "IN", dial: "+91", flag: "https://flagcdn.com/w40/in.png" },
-  { name: "Germany", code: "DE", dial: "+49", flag: "https://flagcdn.com/w40/de.png" },
+  { name: "Nigeria", code: "NG", dial: "+234", flag: "https://flagcdn.com/w160/ng.png" },
+  { name: "United States", code: "US", dial: "+1", flag: "https://flagcdn.com/w160/us.png" },
+  { name: "United Kingdom", code: "GB", dial: "+44", flag: "https://flagcdn.com/w160/gb.png" },
+  { name: "Canada", code: "CA", dial: "+1", flag: "https://flagcdn.com/w160/ca.png" },
+  { name: "Ghana", code: "GH", dial: "+233", flag: "https://flagcdn.com/w160/gh.png" },
+  { name: "Kenya", code: "KE", dial: "+254", flag: "https://flagcdn.com/w160/ke.png" },
+  { name: "India", code: "IN", dial: "+91", flag: "https://flagcdn.com/w160/in.png" },
+  { name: "Germany", code: "DE", dial: "+49", flag: "https://flagcdn.com/w160/de.png" },
+  { name: "Australia", code: "AU", dial: "+61", flag: "https://flagcdn.com/w160/au.png" },
 ];
 
 const paymentMethods = [
@@ -44,14 +45,26 @@ export default function HomePage() {
   const [darkMode, setDarkMode] = useState(true);
   const [loggedIn, setLoggedIn] = useState(false);
   const [currency, setCurrency] = useState<"USD" | "NGN">("USD");
+  const [selectedCountryCode, setSelectedCountryCode] = useState<string>("US");
+  const [dropdownOpen, setDropdownOpen] = useState(false);
   const [imgErrors, setImgErrors] = useState<{ [key: string]: boolean }>({});
+  const dropdownRef = useRef<HTMLDivElement>(null);
+
+  const selectedCountry = countries.find((c) => c.code === selectedCountryCode) || countries[1];
 
   useEffect(() => {
     const savedTheme = localStorage.getItem("nava-theme");
     setDarkMode(savedTheme !== "light");
 
+    const savedCountry = localStorage.getItem("nava-country");
     const savedCurrency = localStorage.getItem("nava-currency");
-    if (savedCurrency === "NGN" || savedCurrency === "USD") setCurrency(savedCurrency);
+
+    if (savedCountry && countries.some((c) => c.code === savedCountry)) {
+      setSelectedCountryCode(savedCountry);
+    }
+    if (savedCurrency === "NGN" || savedCurrency === "USD") {
+      setCurrency(savedCurrency);
+    }
 
     const checkTheme = () => {
       const t = localStorage.getItem("nava-theme");
@@ -71,10 +84,34 @@ export default function HomePage() {
     return () => window.removeEventListener("nava-theme-change", checkTheme);
   }, []);
 
-  const toggleCurrency = () => {
-    const next = currency === "USD" ? "NGN" : "USD";
-    setCurrency(next);
-    localStorage.setItem("nava-currency", next);
+  useEffect(() => {
+    const handleClickOutside = (e: MouseEvent) => {
+      if (dropdownRef.current && !dropdownRef.current.contains(e.target as Node)) {
+        setDropdownOpen(false);
+      }
+    };
+    document.addEventListener("mousedown", handleClickOutside);
+    return () => document.removeEventListener("mousedown", handleClickOutside);
+  }, []);
+
+  const handleSelectCountry = (c: (typeof countries)[number]) => {
+    setSelectedCountryCode(c.code);
+    localStorage.setItem("nava-country", c.code);
+
+    // Auto-switch currency to NGN if Nigeria selected
+    if (c.code === "NG") {
+      setCurrency("NGN");
+      localStorage.setItem("nava-currency", "NGN");
+    }
+
+    window.dispatchEvent(new Event("nava-currency-change"));
+    window.dispatchEvent(new Event("nava-country-change"));
+    setDropdownOpen(false);
+  };
+
+  const handleSetCurrency = (newCurrency: "USD" | "NGN") => {
+    setCurrency(newCurrency);
+    localStorage.setItem("nava-currency", newCurrency);
     window.dispatchEvent(new Event("nava-currency-change"));
   };
 
@@ -154,41 +191,87 @@ export default function HomePage() {
           </Link>
 
           <div className={`hidden md:flex items-center gap-6 text-sm ${theme.navText} font-medium`}>
-            <a href="#services" className="hover:text-emerald-500 transition-colors">
-              Services
-            </a>
-            <a href="#countries" className="hover:text-emerald-500 transition-colors">
-              Countries
-            </a>
-            <a href="#how" className="hover:text-emerald-500 transition-colors">
-              How it works
-            </a>
-            <a href="#pricing" className="hover:text-emerald-500 transition-colors">
-              Pricing
-            </a>
-            <a href="#payments" className="hover:text-emerald-500 transition-colors">
-              Payments
-            </a>
+            <a href="#services" className="hover:text-emerald-500 transition-colors">Services</a>
+            <a href="#countries" className="hover:text-emerald-500 transition-colors">Countries</a>
+            <a href="#how" className="hover:text-emerald-500 transition-colors">How it works</a>
+            <a href="#pricing" className="hover:text-emerald-500 transition-colors">Pricing</a>
+            <a href="#payments" className="hover:text-emerald-500 transition-colors">Payments</a>
           </div>
 
           <div className="flex items-center gap-2 sm:gap-3">
-            <button
-              type="button"
-              onClick={toggleCurrency}
-              className={`text-xs font-bold px-2.5 py-1.5 rounded-lg border transition-all ${
-                darkMode ? "bg-slate-900 border-slate-700 text-gray-300" : "bg-white border-slate-300 text-slate-800 shadow-sm"
-              }`}
-            >
-              {currency === "USD" ? "🇺🇸 USD" : "🇳🇬 NGN"}
-            </button>
+            {/* COUNTRY + CURRENCY DROPDOWN */}
+            <div className="relative" ref={dropdownRef}>
+              <button
+                type="button"
+                onClick={() => setDropdownOpen((prev) => !prev)}
+                className={`flex items-center gap-1.5 text-xs font-bold px-2.5 py-1.5 rounded-lg border transition-all ${
+                  darkMode ? "bg-slate-900 border-slate-700 text-gray-300" : "bg-white border-slate-300 text-slate-800 shadow-sm"
+                }`}
+              >
+                <img src={selectedCountry.flag} alt={selectedCountry.code} className="w-4 h-3 object-cover rounded-[2px]" />
+                <span>{selectedCountry.code} {currency}</span>
+                <span className={`text-[9px] transition-transform ${dropdownOpen ? "rotate-180" : ""}`}>▼</span>
+              </button>
+
+              {dropdownOpen && (
+                <div className={`absolute right-0 top-full mt-2 w-64 rounded-xl border shadow-2xl overflow-hidden z-50 ${
+                  darkMode ? "bg-[#0b1120] border-slate-700" : "bg-white border-slate-200"
+                }`}>
+                  {/* DIRECT CURRENCY TOGGLE */}
+                  <div className={`p-2.5 border-b flex items-center justify-between ${darkMode ? "border-slate-800 bg-slate-900/60" : "border-slate-100 bg-slate-50"}`}>
+                    <span className="text-[10px] font-black uppercase tracking-wider text-slate-400">Display Currency:</span>
+                    <div className="flex gap-1">
+                      <button
+                        type="button"
+                        onClick={() => handleSetCurrency("USD")}
+                        className={`px-2.5 py-1 rounded-md text-[11px] font-black transition-all ${
+                          currency === "USD" ? "bg-emerald-500 text-black shadow" : "bg-slate-800/80 text-slate-400 hover:text-white"
+                        }`}
+                      >
+                        USD ($)
+                      </button>
+                      <button
+                        type="button"
+                        onClick={() => handleSetCurrency("NGN")}
+                        className={`px-2.5 py-1 rounded-md text-[11px] font-black transition-all ${
+                          currency === "NGN" ? "bg-emerald-500 text-black shadow" : "bg-slate-800/80 text-slate-400 hover:text-white"
+                        }`}
+                      >
+                        NGN (₦)
+                      </button>
+                    </div>
+                  </div>
+
+                  <div className="px-3 py-2 text-[10px] font-black uppercase tracking-wider text-slate-500">
+                    Select Country
+                  </div>
+                  <div className="max-h-[280px] overflow-y-auto pb-1">
+                    {countries.map((c) => (
+                      <button
+                        key={c.code}
+                        type="button"
+                        onClick={() => handleSelectCountry(c)}
+                        className={`w-full flex items-center gap-3 px-3 py-2.5 text-left transition-colors ${
+                          darkMode ? "hover:bg-slate-800/80" : "hover:bg-slate-100"
+                        } ${c.code === selectedCountryCode ? (darkMode ? "bg-slate-800/60" : "bg-slate-100") : ""}`}
+                      >
+                        <img src={c.flag} alt={c.name} className="w-6 h-4 object-cover rounded-[3px] shadow-sm shrink-0" />
+                        <div className="flex-1 min-w-0">
+                          <p className={`text-xs font-bold truncate ${darkMode ? "text-white" : "text-slate-900"}`}>{c.name}</p>
+                          <p className={`text-[10px] ${darkMode ? "text-slate-400" : "text-slate-500"}`}>{c.code} {c.dial}</p>
+                        </div>
+                        {c.code === selectedCountryCode && <span className="text-emerald-500 text-xs font-black">✓</span>}
+                      </button>
+                    ))}
+                  </div>
+                </div>
+              )}
+            </div>
 
             <ThemeToggle />
 
             {loggedIn ? (
-              <Link
-                href="/dashboard"
-                className="bg-emerald-500 hover:bg-emerald-400 text-black font-black px-4 py-2 rounded-lg text-sm transition-all shadow"
-              >
+              <Link href="/dashboard" className="bg-emerald-500 hover:bg-emerald-400 text-black font-black px-4 py-2 rounded-lg text-sm transition-all shadow">
                 Open Console →
               </Link>
             ) : (
@@ -205,16 +288,15 @@ export default function HomePage() {
         </div>
       </header>
 
-      {/* HERO */}
-      <section className="relative pt-16 pb-12 overflow-hidden">
+      {/* HERO SECTION WITH TOP ALIGNMENT */}
+      <section className="relative pt-8 pb-12 overflow-hidden">
         <div className="absolute inset-0 bg-[radial-gradient(circle_at_top,_rgba(16,185,129,0.12),_transparent_55%)]" />
         <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 relative z-10">
-          {/* Changed items-center to items-start here for top alignment */}
           <div className="grid grid-cols-1 lg:grid-cols-2 gap-10 items-start">
-            <div>
+            <div className="self-start pt-2">
               <div className={`inline-flex items-center gap-2 px-3 py-1 rounded-full ${theme.heroBadge} border text-xs font-bold mb-5`}>
                 <span className="w-2 h-2 rounded-full bg-emerald-500 animate-pulse" />
-                Live OTP marketplace • 20+ services • 16 countries
+                Live OTP marketplace • 20+ services • {countries.length} countries
               </div>
 
               <h1 className="text-4xl sm:text-5xl lg:text-6xl font-black tracking-tight leading-[1.08]">
@@ -236,10 +318,7 @@ export default function HomePage() {
                 >
                   {loggedIn ? "Go to Dashboard" : "Start Renting Free"}
                 </Link>
-                <a
-                  href="#services"
-                  className={`${theme.secondary} border px-7 py-3.5 rounded-xl text-sm transition-all text-center`}
-                >
+                <a href="#services" className={`${theme.secondary} border px-7 py-3.5 rounded-xl text-sm transition-all text-center`}>
                   Browse Services
                 </a>
               </div>
@@ -250,7 +329,7 @@ export default function HomePage() {
                   <p>OTP services</p>
                 </div>
                 <div>
-                  <p className={`${theme.text} font-black text-lg`}>16</p>
+                  <p className={`${theme.text} font-black text-lg`}>{countries.length}</p>
                   <p>countries</p>
                 </div>
                 <div>
@@ -264,8 +343,8 @@ export default function HomePage() {
               </div>
             </div>
 
-            {/* Right Column: 3D Elevator Alert Feed & Live Console */}
-            <div className="space-y-6">
+            {/* Right Column */}
+            <div className="space-y-6 self-start">
               <NotificationFeed />
               <HeroConsole />
             </div>
@@ -283,34 +362,23 @@ export default function HomePage() {
                 Choose a service, rent a disposable number, and receive verification codes in seconds.
               </p>
             </div>
-            <Link
-              href={loggedIn ? "/dashboard" : "/signup"}
-              className="text-sm text-emerald-500 hover:text-emerald-400 font-bold"
-            >
+            <Link href={loggedIn ? "/dashboard" : "/signup"} className="text-sm text-emerald-500 hover:text-emerald-400 font-bold">
               Open full catalog →
             </Link>
           </div>
 
           <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4 gap-3">
             {featuredServices.map((svc) => (
-              <div
-                key={svc.name}
-                className={`${theme.card} border hover:border-emerald-500/50 rounded-2xl p-4 transition-all group`}
-              >
+              <div key={svc.name} className={`${theme.card} border hover:border-emerald-500/50 rounded-2xl p-4 transition-all group`}>
                 <div className="flex items-center justify-between mb-4">
                   {renderLogo(svc, "w-6 h-6")}
                   <span className={`text-[10px] px-2 py-1 rounded-md ${theme.chip} border`}>{svc.category}</span>
                 </div>
-
                 <h3 className={`font-bold text-sm ${darkMode ? "text-white" : "text-slate-900"}`}>{svc.name}</h3>
                 <p className={`text-[11px] ${theme.textSubtle} mt-1`}>{svc.stock}</p>
-
                 <div className={`flex items-center justify-between mt-5 pt-4 border-t ${theme.section}`}>
                   <span className="text-emerald-500 font-black text-base">{formatPrice(svc.priceUsd)}</span>
-                  <Link
-                    href={loggedIn ? "/dashboard" : "/signup"}
-                    className="text-[11px] font-bold bg-emerald-500/10 text-emerald-600 dark:text-emerald-400 group-hover:bg-emerald-500 group-hover:text-black px-3 py-1.5 rounded-lg transition-all"
-                  >
+                  <Link href={loggedIn ? "/dashboard" : "/signup"} className="text-[11px] font-bold bg-emerald-500/10 text-emerald-600 dark:text-emerald-400 group-hover:bg-emerald-500 group-hover:text-black px-3 py-1.5 rounded-lg transition-all">
                     Rent
                   </Link>
                 </div>
@@ -324,21 +392,40 @@ export default function HomePage() {
       <section id="countries" className={`py-16 border-t ${theme.section} ${theme.sectionMuted}`}>
         <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
           <div className="text-center max-w-2xl mx-auto mb-10">
-            <h2 className="text-3xl font-black">Numbers from 16 countries</h2>
+            <h2 className="text-3xl font-black">Numbers from {countries.length} countries</h2>
             <p className={`${theme.textMuted} text-sm mt-2`}>
               Switch country in the console. Prices show in USD or NGN (baseline 1 USD = ₦1,500).
             </p>
           </div>
 
-          <div className="grid grid-cols-2 sm:grid-cols-4 lg:grid-cols-8 gap-3">
+          <div className="grid grid-cols-2 sm:grid-cols-3 lg:grid-cols-5 xl:grid-cols-9 gap-3">
             {countries.map((c) => (
               <div
                 key={c.code}
-                className={`${theme.card} border rounded-2xl p-4 text-center hover:border-emerald-500/40 transition-all`}
+                className="relative overflow-hidden rounded-xl border border-slate-700/70 bg-gradient-to-b from-[#3a4456] via-[#232b3c] to-[#12151d] shadow-[0_10px_30px_rgba(0,0,0,0.5)] hover:border-emerald-500/50 hover:-translate-y-1 transition-all duration-300"
               >
-                <img src={c.flag} alt={c.name} className="w-8 h-5 object-cover rounded-sm mx-auto shadow-sm" />
-                <p className={`text-xs font-bold mt-3 ${darkMode ? "text-white" : "text-slate-900"}`}>{c.code}</p>
-                <p className={`text-[10px] ${theme.textSubtle} mt-1`}>{c.dial}</p>
+                <img src={c.flag} alt="" className="absolute top-2 right-2 w-5 h-4 object-cover rounded-[3px] shadow-md border border-white/20 z-10" />
+                <div className="px-3 pt-6 pb-1">
+                  <div
+                    className="relative rounded-[8px] overflow-hidden"
+                    style={{
+                      boxShadow: '0 8px 16px rgba(0,0,0,0.6), inset 0 1px 1px rgba(255,255,255,0.4), inset 0 -2px 4px rgba(0,0,0,0.4)',
+                      transform: 'perspective(400px) rotateX(6deg)',
+                      filter: 'saturate(1.25) contrast(1.05)',
+                    }}
+                  >
+                    <img src={c.flag} alt={c.name} className="w-full h-[62px] object-cover" />
+                    <div className="absolute inset-0 pointer-events-none" style={{ background: 'linear-gradient(105deg, rgba(0,0,0,0.28) 0%, rgba(255,255,255,0.28) 18%, rgba(0,0,0,0.22) 36%, rgba(255,255,255,0.22) 53%, rgba(0,0,0,0.26) 69%, rgba(255,255,255,0.16) 85%, rgba(0,0,0,0.32) 100%)' }} />
+                    <div className="absolute top-0 left-0 right-0 h-[45%] bg-gradient-to-b from-white/25 to-transparent pointer-events-none" />
+                  </div>
+                </div>
+                <div className="text-center px-2 pb-4 pt-2">
+                  <p className="text-[12px] font-black tracking-wide text-white uppercase leading-tight truncate" style={{ textShadow: '0 2px 4px rgba(0,0,0,0.8)' }}>
+                    {c.name}
+                  </p>
+                  <p className="text-[10px] font-mono font-bold text-slate-300 mt-1 tracking-wider">{c.code} • ACTIVE</p>
+                  <p className="text-[10px] text-slate-400 mt-0.5">{c.dial}</p>
+                </div>
               </div>
             ))}
           </div>
@@ -352,28 +439,21 @@ export default function HomePage() {
             <h2 className="text-3xl font-black">How NAVA works</h2>
             <p className={`${theme.textMuted} text-sm mt-2`}>Three steps from signup to OTP delivery.</p>
           </div>
-
           <div className="grid grid-cols-1 md:grid-cols-3 gap-5">
             <div className={`${theme.card} border rounded-2xl p-6`}>
               <div className="w-10 h-10 rounded-xl bg-emerald-500 text-black font-black flex items-center justify-center mb-4">1</div>
               <h3 className={`font-bold text-lg mb-2 ${darkMode ? "text-white" : "text-slate-900"}`}>Top up wallet</h3>
-              <p className={`text-sm ${theme.textMuted} leading-relaxed`}>
-                Fund once with Paystack (NGN bank transfer / cards) or crypto (USDT TRX, BTC, LTC). Every rental is charged from the same wallet.
-              </p>
+              <p className={`text-sm ${theme.textMuted} leading-relaxed`}>Fund once with Paystack (NGN bank transfer / cards) or crypto (USDT TRX, BTC, LTC). Every rental is charged from the same wallet.</p>
             </div>
             <div className={`${theme.card} border rounded-2xl p-6`}>
               <div className="w-10 h-10 rounded-xl bg-emerald-500 text-black font-black flex items-center justify-center mb-4">2</div>
               <h3 className={`font-bold text-lg mb-2 ${darkMode ? "text-white" : "text-slate-900"}`}>Choose service + country</h3>
-              <p className={`text-sm ${theme.textMuted} leading-relaxed`}>
-                Pick WhatsApp, Telegram, ChatGPT, Google, TikTok, and more. Quick Code, 4-hour Web Line, or 30-day T-Mobile USA eSIM.
-              </p>
+              <p className={`text-sm ${theme.textMuted} leading-relaxed`}>Pick WhatsApp, Telegram, ChatGPT, Google, TikTok, and more. Quick Code, 4-hour Web Line, or 30-day T-Mobile USA eSIM.</p>
             </div>
             <div className={`${theme.card} border rounded-2xl p-6`}>
               <div className="w-10 h-10 rounded-xl bg-emerald-500 text-black font-black flex items-center justify-center mb-4">3</div>
               <h3 className={`font-bold text-lg mb-2 ${darkMode ? "text-white" : "text-slate-900"}`}>Receive OTP automatically</h3>
-              <p className={`text-sm ${theme.textMuted} leading-relaxed`}>
-                Your number appears instantly. Codes land in the live monitor. If no SMS in 10 minutes, auto-refund applies.
-              </p>
+              <p className={`text-sm ${theme.textMuted} leading-relaxed`}>Your number appears instantly. Codes land in the live monitor. If no SMS in 10 minutes, auto-refund applies.</p>
             </div>
           </div>
         </div>
@@ -384,9 +464,7 @@ export default function HomePage() {
         <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
           <div className="text-center max-w-2xl mx-auto mb-10">
             <h2 className="text-3xl font-black">Accepted payments</h2>
-            <p className={`${theme.textMuted} text-sm mt-2`}>
-              Instant Naira via Paystack. Zero-fee crypto deposits with on-chain verification.
-            </p>
+            <p className={`${theme.textMuted} text-sm mt-2`}>Instant Naira via Paystack. Zero-fee crypto deposits with on-chain verification.</p>
           </div>
           <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-3">
             {paymentMethods.map((p) => (
@@ -401,9 +479,7 @@ export default function HomePage() {
               </div>
             ))}
           </div>
-          <p className={`text-center text-xs ${theme.textSubtle} mt-6`}>
-            Baseline rate 1 USD = ₦1,500 · Crypto auto-verified on-chain · Paystack instant NGN
-          </p>
+          <p className={`text-center text-xs ${theme.textSubtle} mt-6`}>Baseline rate 1 USD = ₦1,500 · Crypto auto-verified on-chain · Paystack instant NGN</p>
         </div>
       </section>
 
@@ -413,58 +489,27 @@ export default function HomePage() {
           <div className="grid grid-cols-1 lg:grid-cols-2 gap-8 items-center">
             <div>
               <h2 className="text-3xl font-black mb-4">One platform for OTP, eSIM & wallet</h2>
-              <p className={`${theme.textMuted} text-sm leading-relaxed mb-6`}>
-                NAVA combines disposable verification numbers, 30-day T-Mobile USA eSIMs, wallet billing, and a
-                white-labeled console — without exposing suppliers.
-              </p>
-
+              <p className={`${theme.textMuted} text-sm leading-relaxed mb-6`}>NAVA combines disposable verification numbers, 30-day T-Mobile USA eSIMs, wallet billing, and a white-labeled console — without exposing suppliers.</p>
               <ul className="space-y-3 text-sm">
-                {[
-                  "Disposable OTP numbers with auto-refund",
-                  "4-hour multi-SMS web lines",
-                  "30-day T-Mobile USA eSIM (QR activation)",
-                  "Paystack NGN + USDT TRX / BTC / LTC",
-                  "Wallet top-ups and usage history",
-                  "Dark / light console theme",
-                ].map((item) => (
+                {["Disposable OTP numbers with auto-refund","4-hour multi-SMS web lines","30-day T-Mobile USA eSIM (QR activation)","Paystack NGN + USDT TRX / BTC / LTC","Wallet top-ups and usage history","Dark / light console theme"].map((item) => (
                   <li key={item} className={`flex items-center gap-3 ${theme.text}`}>
-                    <span className="w-5 h-5 rounded-full bg-emerald-500/15 text-emerald-500 flex items-center justify-center text-xs font-bold">
-                      ✓
-                    </span>
+                    <span className="w-5 h-5 rounded-full bg-emerald-500/15 text-emerald-500 flex items-center justify-center text-xs font-bold">✓</span>
                     {item}
                   </li>
                 ))}
               </ul>
             </div>
-
             <div className={`${theme.card} border rounded-2xl p-6`}>
               <p className={`text-xs font-bold tracking-wider ${theme.textMuted} uppercase mb-2`}>Starting from</p>
               <p className="text-5xl font-black text-emerald-500">{formatPrice(0.25)}</p>
               <p className={`text-sm ${theme.textMuted} mt-2 mb-6`}>per verification code on selected services</p>
-
               <div className={`space-y-3 text-sm border-t ${theme.section} pt-5`}>
-                <div className="flex justify-between">
-                  <span className={theme.textMuted}>Discord OTP</span>
-                  <span className={`font-bold ${darkMode ? "text-white" : "text-slate-900"}`}>{formatPrice(0.25)}</span>
-                </div>
-                <div className="flex justify-between">
-                  <span className={theme.textMuted}>Gmail / Google</span>
-                  <span className={`font-bold ${darkMode ? "text-white" : "text-slate-900"}`}>{formatPrice(0.4)}</span>
-                </div>
-                <div className="flex justify-between">
-                  <span className={theme.textMuted}>WhatsApp</span>
-                  <span className={`font-bold ${darkMode ? "text-white" : "text-slate-900"}`}>{formatPrice(0.9)}</span>
-                </div>
-                <div className="flex justify-between">
-                  <span className={theme.textMuted}>T-Mobile 30-day eSIM</span>
-                  <span className={`font-bold ${darkMode ? "text-white" : "text-slate-900"}`}>{formatPrice(30)}</span>
-                </div>
+                <div className="flex justify-between"><span className={theme.textMuted}>Discord OTP</span><span className={`font-bold ${darkMode ? "text-white" : "text-slate-900"}`}>{formatPrice(0.25)}</span></div>
+                <div className="flex justify-between"><span className={theme.textMuted}>Gmail / Google</span><span className={`font-bold ${darkMode ? "text-white" : "text-slate-900"}`}>{formatPrice(0.4)}</span></div>
+                <div className="flex justify-between"><span className={theme.textMuted}>WhatsApp</span><span className={`font-bold ${darkMode ? "text-white" : "text-slate-900"}`}>{formatPrice(0.9)}</span></div>
+                <div className="flex justify-between"><span className={theme.textMuted}>T-Mobile 30-day eSIM</span><span className={`font-bold ${darkMode ? "text-white" : "text-slate-900"}`}>{formatPrice(30)}</span></div>
               </div>
-
-              <Link
-                href={loggedIn ? "/dashboard" : "/signup"}
-                className="mt-6 w-full inline-flex justify-center bg-emerald-500 hover:bg-emerald-400 text-black font-black py-3.5 rounded-xl text-sm transition-all shadow"
-              >
+              <Link href={loggedIn ? "/dashboard" : "/signup"} className="mt-6 w-full inline-flex justify-center bg-emerald-500 hover:bg-emerald-400 text-black font-black py-3.5 rounded-xl text-sm transition-all shadow">
                 {loggedIn ? "Open Dashboard" : "Create free account"}
               </Link>
             </div>
@@ -476,24 +521,16 @@ export default function HomePage() {
       <section className={`py-16 border-t ${theme.section} ${theme.sectionMuted}`}>
         <div className="max-w-3xl mx-auto px-4 text-center">
           <h2 className="text-3xl sm:text-4xl font-black mb-4">Ready to rent your first number?</h2>
-          <p className={`${theme.textMuted} text-sm mb-8`}>
-            Create an account, top up your wallet, and start receiving OTPs in under a minute.
-          </p>
+          <p className={`${theme.textMuted} text-sm mb-8`}>Create an account, top up your wallet, and start receiving OTPs in under a minute.</p>
           <div className="flex flex-col sm:flex-row justify-center gap-3">
-            <Link
-              href={loggedIn ? "/dashboard" : "/signup"}
-              className="bg-emerald-500 hover:bg-emerald-400 text-black font-black px-8 py-3.5 rounded-xl text-sm shadow"
-            >
+            <Link href={loggedIn ? "/dashboard" : "/signup"} className="bg-emerald-500 hover:bg-emerald-400 text-black font-black px-8 py-3.5 rounded-xl text-sm shadow">
               {loggedIn ? "Go to Console" : "Get Started Free"}
             </Link>
-            <Link href="/login" className={`${theme.secondary} border font-bold px-8 py-3.5 rounded-xl text-sm`}>
-              Sign In
-            </Link>
+            <Link href="/login" className={`${theme.secondary} border font-bold px-8 py-3.5 rounded-xl text-sm`}>Sign In</Link>
           </div>
         </div>
       </section>
 
-      {/* OFFICIAL FOOTER COMPONENT */}
       <Footer />
     </div>
   );

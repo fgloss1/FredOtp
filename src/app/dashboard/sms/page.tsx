@@ -34,9 +34,9 @@ export default function SmsComingSoonPage() {
     <div className={`space-y-6 ${theme.text} font-sans`}>
       {/* Header */}
       <div>
-        <h1 className="text-2xl font-bold">Outbound SMS Gateway</h1>
+        <h1 className="text-2xl font-bold">Phone</h1>
         <p className={`${theme.textMuted} text-xs mt-0.5`}>
-          Send individual and bulk SMS messages directly from the web dashboard.
+          Phone services are currently in development and coming soon.
         </p>
       </div>
 

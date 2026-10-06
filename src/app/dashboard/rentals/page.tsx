@@ -23,7 +23,8 @@ export default function RentalsPage() {
   const [userEmail, setUserEmail] = useState<string>("");
 
   // Rental Mode State ('quick' | 'webline' | 'esim')
-  const [rentalMode, setRentalMode] = useState<"quick" | "webline" | "esim">("quick");
+  const [rentalMode, setRentalMode] = useState<"quick" | "webline" | "esim">("webline");
+  const RENTALS_PUBLICLY_ENABLED = false;
 
   // Form State
   const [selectedCountry, setSelectedCountry] = useState<CountryOption>({ name: "United States", code: "US" });
@@ -103,6 +104,11 @@ export default function RentalsPage() {
   };
 
   const handleSelectCard = (mode: "quick" | "webline" | "esim") => {
+    // Block selection for coming soon cards
+    if (mode === "webline" || mode === "esim") {
+      setErrorMessage("This service is coming soon. Please select Quick Code (OTP) for now.");
+      return;
+    }
     setRentalMode(mode);
     setErrorMessage(null);
     setOrderSuccessMsg(null);
@@ -113,6 +119,11 @@ export default function RentalsPage() {
 
   // Order Execution Handler
   const handleOrderNumber = async () => {
+    if (!RENTALS_PUBLICLY_ENABLED) {
+      setErrorMessage("Rental Services are coming soon. Please use Buy OTP from the main dashboard.");
+      return;
+    }
+
     if (!userId) {
       setErrorMessage("Please sign in to rent a phone number.");
       return;
@@ -233,9 +244,9 @@ export default function RentalsPage() {
         </div>
 
         <div className="grid grid-cols-1 md:grid-cols-3 gap-4 sm:gap-5">
-          {/* Card 1: Quick Code */}
+          {/* Card 1: Quick Code (ACTIVE) */}
           <div
-            onClick={() => handleSelectCard("quick")}
+            onClick={() => setErrorMessage("Rental Services are coming soon. Please use Buy OTP from the main dashboard.")}
             className={`cursor-pointer rounded-2xl sm:rounded-3xl p-5 sm:p-6 space-y-4 relative flex flex-col justify-between transition-all border ${
               rentalMode === "quick"
                 ? "bg-emerald-500/10 border-emerald-500 ring-2 ring-emerald-500/30 shadow-lg"
@@ -243,7 +254,7 @@ export default function RentalsPage() {
             }`}
           >
             <span className="absolute top-4 right-4 bg-emerald-500/20 text-emerald-600 dark:text-emerald-400 border border-emerald-500/30 text-[10px] font-bold px-2.5 py-0.5 rounded-full uppercase">
-              Most Popular
+              Coming Soon
             </span>
             <div className="space-y-2">
               <div className={`w-10 h-10 sm:w-12 sm:h-12 rounded-2xl border flex items-center justify-center text-xl sm:text-2xl ${c.iconBox}`}>
@@ -265,22 +276,17 @@ export default function RentalsPage() {
                   rentalMode === "quick" ? "bg-emerald-500 text-black" : c.btnInactive
                 }`}
               >
-                {rentalMode === "quick" ? "Selected ✓" : "Rent Quick Code ↓"}
+                {rentalMode === "quick" ? "Selected ✓" : "Coming Soon"}
               </button>
             </div>
           </div>
 
-          {/* Card 2: Web Line */}
+          {/* Card 2: Web Line (COMING SOON) */}
           <div
-            onClick={() => handleSelectCard("webline")}
-            className={`cursor-pointer rounded-2xl sm:rounded-3xl p-5 sm:p-6 space-y-4 relative flex flex-col justify-between transition-all border ${
-              rentalMode === "webline"
-                ? "bg-blue-500/10 border-blue-500 ring-2 ring-blue-500/30 shadow-lg"
-                : `${c.card} ${c.cardHover}`
-            }`}
+            className={`rounded-2xl sm:rounded-3xl p-5 sm:p-6 space-y-4 relative flex flex-col justify-between transition-all border opacity-60 ${c.card}`}
           >
-            <span className="absolute top-4 right-4 bg-blue-500/20 text-blue-600 dark:text-blue-400 border border-blue-500/30 text-[10px] font-bold px-2.5 py-0.5 rounded-full uppercase">
-              Multi-SMS (4 Hours)
+            <span className="absolute top-4 right-4 bg-amber-500/20 text-amber-600 dark:text-amber-400 border border-amber-500/30 text-[10px] font-bold px-2.5 py-0.5 rounded-full uppercase">
+              Coming Soon
             </span>
             <div className="space-y-2">
               <div className={`w-10 h-10 sm:w-12 sm:h-12 rounded-2xl border flex items-center justify-center text-xl sm:text-2xl ${c.iconBox}`}>
@@ -298,32 +304,26 @@ export default function RentalsPage() {
               </div>
               <button
                 type="button"
-                className={`text-xs font-black px-3.5 sm:px-4 py-2.5 rounded-xl transition-all shadow-md ${
-                  rentalMode === "webline" ? "bg-blue-500 text-black" : c.btnInactive
-                }`}
+                disabled
+                className="text-xs font-black px-3.5 sm:px-4 py-2.5 rounded-xl transition-all shadow-md bg-slate-700 text-gray-400 border border-slate-600 cursor-not-allowed"
               >
-                {rentalMode === "webline" ? "Selected ✓" : "Select Web Line ↓"}
+                Coming Soon
               </button>
             </div>
           </div>
 
-          {/* Card 3: T-Mobile USA 30-Day eSIM */}
+          {/* Card 3: T-Mobile USA 30-Day eSIM (COMING SOON) */}
           <div
-            onClick={() => handleSelectCard("esim")}
-            className={`cursor-pointer rounded-2xl sm:rounded-3xl p-5 sm:p-6 space-y-4 relative flex flex-col justify-between transition-all border ${
-              rentalMode === "esim"
-                ? "bg-amber-500/10 border-amber-500 ring-2 ring-amber-500/30 shadow-lg"
-                : `${c.card} ${c.cardHover}`
-            }`}
+            className={`rounded-2xl sm:rounded-3xl p-5 sm:p-6 space-y-4 relative flex flex-col justify-between transition-all border opacity-60 ${c.card}`}
           >
             <span className="absolute top-4 right-4 bg-amber-500/20 text-amber-600 dark:text-amber-400 border border-amber-500/30 text-[10px] font-bold px-2.5 py-0.5 rounded-full uppercase">
-              30-Day eSIM
+              Coming Soon
             </span>
             <div className="space-y-2">
               <div className={`w-10 h-10 sm:w-12 sm:h-12 rounded-2xl border flex items-center justify-center text-xl sm:text-2xl ${c.iconBox}`}>
                 📲
               </div>
-              <h3 className={`text-base sm:text-lg font-black ${c.title}`}>3. T-Mobile USA (30 Days)</h3>
+              <h3 className={`text-base sm:text-lg font-black ${c.title}`}>3. Original Tier One Premium T-Mobile, AT&T & Verizon</h3>
               <p className={`text-xs leading-relaxed ${c.muted}`}>
                 30-Day dedicated US mobile line provided via QR code eSIM for long-term personal, banking, or business usage.
               </p>
@@ -335,11 +335,10 @@ export default function RentalsPage() {
               </div>
               <button
                 type="button"
-                className={`text-xs font-black px-3.5 sm:px-4 py-2.5 rounded-xl transition-all shadow-md ${
-                  rentalMode === "esim" ? "bg-amber-500 text-black" : c.btnInactive
-                }`}
+                disabled
+                className="text-xs font-black px-3.5 sm:px-4 py-2.5 rounded-xl transition-all shadow-md bg-slate-700 text-gray-400 border border-slate-600 cursor-not-allowed"
               >
-                {rentalMode === "esim" ? "Selected ✓" : "Order T-Mobile eSIM ↓"}
+                Coming Soon
               </button>
             </div>
           </div>
@@ -351,7 +350,7 @@ export default function RentalsPage() {
         <div className="flex items-center justify-between flex-wrap gap-2">
           <div className="space-y-1">
             <h2 className={`text-base sm:text-lg font-black flex items-center gap-2 ${c.title}`}>
-              <span>📞 Configure Instant Rental</span>
+              <span> Configure Instant Rental</span>
             </h2>
             <p className={`text-xs ${c.muted}`}>
               {rentalMode === "quick" && "Mode: Quick Code (1 Single Verification OTP)"}
@@ -533,17 +532,25 @@ export default function RentalsPage() {
 
           <button
             onClick={handleOrderNumber}
-            disabled={isOrdering}
-            className="w-full sm:w-auto bg-emerald-500 hover:bg-emerald-400 text-black font-black text-xs px-8 py-3.5 rounded-xl transition-all shadow-xl flex items-center justify-center gap-2"
+            disabled={isOrdering || rentalMode !== "quick"}
+            className={`w-full sm:w-auto font-black text-xs px-8 py-3.5 rounded-xl transition-all shadow-xl flex items-center justify-center gap-2 ${
+              rentalMode !== "quick"
+                ? "bg-slate-700 text-gray-400 cursor-not-allowed"
+                : isOrdering
+                ? "bg-emerald-600 text-black"
+                : "bg-emerald-500 hover:bg-emerald-400 text-black"
+            }`}
           >
             {isOrdering ? (
               <>
                 <span className="w-4 h-4 border-2 border-black border-t-transparent rounded-full animate-spin"></span>
                 <span>Generating Line...</span>
               </>
+            ) : rentalMode !== "quick" ? (
+              <span>Coming Soon</span>
             ) : (
               <span>
-                {rentalMode === "esim" ? `Order T-Mobile eSIM (${formatAmt(30.00)})` : `Get Number Now (${formatAmt(rentalMode === "webline" ? 3.50 : selectedService.priceUsd)})`} ➔
+                Get Number Now ({formatAmt(selectedService.priceUsd)}) →
               </span>
             )}
           </button>

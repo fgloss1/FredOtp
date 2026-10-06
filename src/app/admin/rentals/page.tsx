@@ -9,6 +9,8 @@ export default function AdminRentalsDesk() {
   const [activeRentals, setActiveRentals] = useState<any[]>([]);
   const [loading, setLoading] = useState(true);
   const [approvingId, setApprovingId] = useState<string | null>(null);
+  const [cryptoRecoveryReports, setCryptoRecoveryReports] = useState<any[]>([]);
+  const [recoveryActionId, setRecoveryActionId] = useState<string | null>(null);
 
   // eSIM Modal State
   const [selectedEsim, setSelectedEsim] = useState<any | null>(null);
@@ -50,6 +52,24 @@ export default function AdminRentalsDesk() {
       .limit(20);
 
     if (txs) setPendingCrypto(txs);
+    const { data: sessionData } = await supabase.auth.getSession();
+    const accessToken = sessionData?.session?.access_token;
+
+    if (accessToken) {
+      try {
+        const recoveryRes = await fetch("/api/admin/crypto-recovery", {
+          headers: { Authorization: `Bearer ${accessToken}` },
+          cache: "no-store",
+        });
+        if (recoveryRes.ok) {
+          const recoveryData = await recoveryRes.json();
+          setCryptoRecoveryReports(recoveryData.reports || []);
+        }
+      } catch {
+        // Keep the rest of the administrator desk usable if the recovery queue fails.
+      }
+    }
+
     if (esims) setPendingEsims(esims);
     if (orders) setActiveRentals(orders);
     setLoading(false);
@@ -58,9 +78,19 @@ export default function AdminRentalsDesk() {
   const handleApproveCrypto = async (txId: string) => {
     setApprovingId(txId);
     try {
+      const { data: sessionData } = await supabase.auth.getSession();
+      const accessToken = sessionData?.session?.access_token;
+
+      if (!accessToken) {
+        throw new Error("Admin session expired. Please log in again.");
+      }
+
       const res = await fetch("/api/admin/approve-crypto", {
         method: "POST",
-        headers: { "Content-Type": "application/json" },
+        headers: {
+          "Content-Type": "application/json",
+          "Authorization": `Bearer ${accessToken}`,
+        },
         body: JSON.stringify({ transactionId: txId }),
       });
       const data = await res.json();
@@ -74,6 +104,118 @@ export default function AdminRentalsDesk() {
       alert("Error approving deposit");
     } finally {
       setApprovingId(null);
+    }
+  };
+
+  const handleApproveCryptoRecovery = async (report: any) => {
+    const defaultAmount =
+      report.claimed_amount_usd !== null && report.claimed_amount_usd !== undefined
+        ? String(Number(report.claimed_amount_usd).toFixed(2))
+        : "";
+
+    const verifiedAmountInput = window.prompt(
+      "Enter the verified on-chain amount in USD:",
+      defaultAmount
+    );
+
+    if (verifiedAmountInput === null) return;
+
+    const verifiedAmountUsd = Number(verifiedAmountInput);
+    if (!Number.isFinite(verifiedAmountUsd) || verifiedAmountUsd <= 0) {
+      alert("Enter a valid verified amount.");
+      return;
+    }
+
+    const verificationNotes = window.prompt(
+      "Describe the blockchain verification you performed:"
+    );
+
+    if (verificationNotes === null || !verificationNotes.trim()) return;
+
+    const verifiedTimestampInput = window.prompt(
+      "Optional: enter the verified blockchain timestamp as ISO 8601 (leave blank if not available):"
+    );
+
+    setRecoveryActionId(report.id);
+
+    try {
+      const { data: sessionData } = await supabase.auth.getSession();
+      const accessToken = sessionData?.session?.access_token;
+
+      if (!accessToken) {
+        throw new Error("Admin session expired. Please log in again.");
+      }
+
+      const res = await fetch("/api/admin/crypto-recovery", {
+        method: "POST",
+        headers: {
+          "Content-Type": "application/json",
+          Authorization: `Bearer ${accessToken}`,
+        },
+        body: JSON.stringify({
+          action: "approve",
+          recoveryId: report.id,
+          verifiedAmountUsd,
+          verifiedBlockTimestamp: verifiedTimestampInput?.trim() || undefined,
+          verificationNotes: verificationNotes.trim(),
+        }),
+      });
+
+      const data = await res.json();
+      if (!res.ok || !data.success) {
+        throw new Error(data.error || "Unable to approve crypto recovery.");
+      }
+
+      alert("Crypto recovery approved and customer wallet credited.");
+      fetchData();
+    } catch (err: any) {
+      alert(err?.message || "Error approving crypto recovery.");
+    } finally {
+      setRecoveryActionId(null);
+    }
+  };
+
+  const handleRejectCryptoRecovery = async (reportId: string) => {
+    const reason = window.prompt(
+      "Reason for rejecting this crypto payment report:"
+    );
+
+    if (reason === null) return;
+
+    setRecoveryActionId(reportId);
+
+    try {
+      const { data: sessionData } = await supabase.auth.getSession();
+      const accessToken = sessionData?.session?.access_token;
+
+      if (!accessToken) {
+        throw new Error("Admin session expired. Please log in again.");
+      }
+
+      const res = await fetch("/api/admin/crypto-recovery", {
+        method: "POST",
+        headers: {
+          "Content-Type": "application/json",
+          Authorization: `Bearer ${accessToken}`,
+        },
+        body: JSON.stringify({
+          action: "reject",
+          recoveryId: reportId,
+          reason: reason.trim(),
+        }),
+      });
+
+      const data = await res.json();
+      if (!res.ok || !data.success) {
+        throw new Error(data.error || "Unable to reject crypto recovery.");
+      }
+
+      alert("Crypto payment report rejected.");
+      fetchData();
+    } catch (err: any) {
+      alert(err?.message || "Error rejecting crypto recovery.");
+    } finally {
+      setRecoveryActionId(null);
     }
   };
 
@@ -228,6 +370,101 @@ export default function AdminRentalsDesk() {
                 </div>
               </div>
             ))}
+          </div>
+        )}
+      </div>
+
+      {/* Crypto Payment Recovery Queue */}
+      <div className="bg-[#0d1526] border border-amber-500/20 rounded-2xl p-6 space-y-4">
+        <div className="flex items-center justify-between gap-3">
+          <div>
+            <h2 className="text-base font-bold text-white flex items-center gap-2">
+              <span>🛟 Crypto Payment Recovery</span>
+              <span className="bg-amber-500/20 text-amber-400 text-xs px-2.5 py-0.5 rounded-full font-bold">
+                {cryptoRecoveryReports.length}
+              </span>
+            </h2>
+            <p className="text-[11px] text-gray-500 mt-1">
+              Exceptional late, duplicate, or unmatched payments. Verify on-chain before approving.
+            </p>
+          </div>
+        </div>
+
+        {cryptoRecoveryReports.length === 0 ? (
+          <p className="text-xs text-gray-500 italic">No crypto payment recovery reports awaiting review.</p>
+        ) : (
+          <div className="space-y-3">
+            {cryptoRecoveryReports.map((report) => {
+              const intent = Array.isArray(report.deposit_intents)
+                ? report.deposit_intents[0]
+                : report.deposit_intents;
+
+              return (
+                <div
+                  key={report.id}
+                  className="bg-[#152035] border border-slate-800 rounded-xl p-4 space-y-3"
+                >
+                  <div className="flex flex-col md:flex-row md:items-start md:justify-between gap-3">
+                    <div className="space-y-1">
+                      <div className="text-xs font-bold text-white">
+                        {report.user_email || "Customer"}
+                      </div>
+                      <div className="text-xs text-amber-300 font-bold">
+                        {report.coin} / {report.network} • Claimed $
+                        {report.claimed_amount_usd === null || report.claimed_amount_usd === undefined
+                          ? "—"
+                          : Number(report.claimed_amount_usd).toFixed(2)}
+                      </div>
+                      <div className="text-[11px] text-gray-400">
+                        Reason: {String(report.reason || "").replaceAll("_", " ")}
+                      </div>
+                      {intent && (
+                        <div className="text-[10px] text-gray-500">
+                          Session: {intent.status} • Expected ${Number(intent.expected_amount_usd).toFixed(2)}
+                          {intent.expires_at ? ` • Expires ${new Date(intent.expires_at).toLocaleString()}` : ""}
+                        </div>
+                      )}
+                      {report.notes && (
+                        <div className="text-[10px] text-gray-400 max-w-2xl">
+                          Customer note: {report.notes}
+                        </div>
+                      )}
+                      <div className="text-[11px] text-gray-400 font-mono break-all">
+                        TxHash: {report.tx_hash}
+                      </div>
+                    </div>
+                    <div className="text-[10px] text-gray-500 whitespace-nowrap">
+                      Reported {new Date(report.created_at).toLocaleString()}
+                    </div>
+                  </div>
+
+                  <div className="flex flex-wrap items-center gap-2">
+                    <a
+                      href={getExplorerUrl(report.coin, report.tx_hash)}
+                      target="_blank"
+                      rel="noreferrer"
+                      className="bg-slate-800 hover:bg-slate-700 text-gray-300 text-xs px-3 py-2 rounded-xl font-bold transition-all"
+                    >
+                      Verify Blockchain ↗
+                    </a>
+                    <button
+                      onClick={() => handleApproveCryptoRecovery(report)}
+                      disabled={recoveryActionId === report.id}
+                      className="bg-emerald-500 hover:bg-emerald-400 text-black text-xs px-4 py-2 rounded-xl font-black transition-all shadow disabled:opacity-50"
+                    >
+                      {recoveryActionId === report.id ? "Processing..." : "Verify & Credit"}
+                    </button>
+                    <button
+                      onClick={() => handleRejectCryptoRecovery(report.id)}
+                      disabled={recoveryActionId === report.id}
+                      className="bg-red-500/10 hover:bg-red-500/20 border border-red-500/30 text-red-300 text-xs px-4 py-2 rounded-xl font-bold transition-all disabled:opacity-50"
+                    >
+                      Reject Report
+                    </button>
+                  </div>
+                </div>
+              );
+            })}
           </div>
         )}
       </div>
