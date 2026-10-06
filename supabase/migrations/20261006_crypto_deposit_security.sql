@@ -81,6 +81,20 @@ END $$;
 
 ALTER TABLE public.deposit_intents ENABLE ROW LEVEL SECURITY;
 
+DROP POLICY IF EXISTS deposit_intents_select_own ON public.deposit_intents;
+CREATE POLICY deposit_intents_select_own
+  ON public.deposit_intents
+  FOR SELECT
+  TO authenticated
+  USING (user_id = auth.uid());
+
+DROP POLICY IF EXISTS deposit_intents_insert_own ON public.deposit_intents;
+CREATE POLICY deposit_intents_insert_own
+  ON public.deposit_intents
+  FOR INSERT
+  TO authenticated
+  WITH CHECK (user_id = auth.uid());
+
 CREATE OR REPLACE FUNCTION public.complete_deposit_atomic(
   p_intent_id UUID,
   p_transaction_id UUID
