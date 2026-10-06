@@ -59,7 +59,7 @@ async function getAuthenticatedUser(req: Request) {
   const {
     data: { user },
     error,
-  } = await supabaseAdmin.auth.getUser();
+  } = await client.auth.getUser();
 
   if (error || !user) {
     return { error: NextResponse.json({ error: "Unauthorized. Please log in." }, { status: 401 }) };
