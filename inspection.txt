@@ -1,48 +1,92 @@
-Thought for 3 seconds
+🔍 READ-ONLY DIAGNOSTIC: NAVA Crypto Deposit System
+Based on our work together and the actual current working branch, here is the corrected design analysis.
 
-The user has identified a critical security vulnerability: Historical Payment Replay Attack.
+A. Current Schema Actually Being Used
+Confirmed Tables (From Our Work):
+Table	Columns	Status
+profiles	id, email, balance, role, created_at	✅ NO updated_at (confirmed from RPC error)
+transactions	id, user_id, amount_usd, amount_local, currency, payment_method, reference, status, created_at	✅ NO block_timestamp (needs to be added)
+deposit_intents	DOES NOT EXIST YET	❌ Needs to be created
+Confirmed Constraints:
+Constraint	Status
+transactions.reference UNIQUE	✅ Exists (we added it)
+complete_deposit_atomic() RPC	❌ DOES NOT EXIST (needs to be created)
+add_balance_atomic() RPC	❌ EXISTS BUT BROKEN (references non-existent updated_at)
+B. Security Problems Found
+#	Vulnerability	Severity	Current State
+1	Historical payment replay	🔴 CRITICAL	Any old TxHash can be submitted (even from before account creation)
+2	No deposit intent tracking	🔴 CRITICAL	No record of user's deposit request before blockchain tx
+3	Non-atomic credit operation	🔴 CRITICAL	Transaction marked "completed" before balance credit succeeds
+4	RPC references non-existent column	CRITICAL	profiles.updated_at doesn't exist (error 42703)
+5	Intent created AFTER verification	🟡 HIGH	My previous proposal had wrong flow order
+6	No blockchain timestamp stored	HIGH	Can't verify tx occurred after intent creation
+7	No row locking on concurrent submissions	🟡 HIGH	Race condition possible on balance credit
+8	"Continue anyway" on intent failure	🟡 HIGH	Should fail safely, not continue
+C. Corrected Deposit Lifecycle
+Proper Flow (Intent BEFORE Payment):
+text
 
-A legitimate USDT-TRC20 transaction that was sent BEFORE the user created a deposit request on NAVA can still be submitted and credited. This is a serious vulnerability because:
+─────────────────────────────────────────────────────────────────────────┐
+│ STEP 1: USER INITIATES DEPOSIT (Before sending crypto)                 │
+├─────────────────────────────────────────────────────────────────────────┤
+│ 1. User selects coin (USDT/BTC/LTC) on wallet page                     │
+│ 2. User enters expected deposit amount (e.g., $50)                     │
+│ 3. User clicks "Start Deposit" button                                  │
+│ 4. Frontend calls: POST /api/crypto/deposit-intent                     │
+│    Body: { coin: "USDT", amountUsd: 50 }                               │
+│ 5. Server validates: authenticated user, valid amount, valid coin      │
+│ 6. Server creates deposit_intent record:                               │
+│    - user_id = auth.uid()                                              │
+│    - coin = "USDT"                                                     │
+│    - expected_amount_usd = 50                                          │
+│    - destination_address = process.env.CRYPTO_USDT_TRX                 │
+│    - status = "pending"                                                │
+│    - created_at = NOW()                                                │
+│    - expires_at = NOW() + 24 hours                                     │
+│ 7. Server returns intent_id + deposit address to frontend              │
+│ 8. Frontend displays: "Send $50 USDT to: [address] within 24 hours"   │
+└─────────────────────────────────────────────────────────────────────────┘
 
-User could send USDT to NAVA address for personal reasons (not a deposit)
-Later, user could submit that same TxHash to NAVA deposit form
-NAVA would credit the balance even though there was no deposit intent
-Required Protection:
+┌─────────────────────────────────────────────────────────────────────────┐
+│ STEP 2: USER SENDS CRYPTO (On their own timeline)                      │
+├─────────────────────────────────────────────────────────────────────────┤
+│ 1. User opens their personal wallet (Exodus, Trust Wallet, etc.)       │
+│ 2. User sends EXACT amount to displayed NAVA address                   │
+│ 3. Blockchain confirms transaction (1-3 min for Tron)                  │
+│ 4. Transaction gets block_timestamp on blockchain                      │
+└─────────────────────────────────────────────────────────────────────────┘
 
-Deposit intent/request must be created BEFORE the blockchain transaction
-Blockchain transaction timestamp must be AFTER deposit intent timestamp
-This prevents replaying old/historical transactions
-Implementation Plan:
-
-Add deposit_intents table to track when a user initiates a deposit request
-Add block_timestamp to transactions table to store when the blockchain transaction occurred
-Verify in API that block_timestamp > deposit_intent.created_at
-Keep UNIQUE constraint on reference (TxHash)
-Create complete_deposit_atomic() RPC as previously designed
-For the historical test transaction:
-
-First inspect the current row (status, amount, user_id, created_at)
-Check user's current balance
-Decide: delete vs. manually reconcile
-Let me propose the complete SQL + API design.
-
-Critical Security Vulnerability Confirmed
-You're absolutely right. A historical payment replay attack is possible:
-
-Attack Scenario	Current Behavior	Required Behavior
-User sends USDT to NAVA address (personal reasons)	Transaction on blockchain	✅ Normal
-User later submits old TxHash to NAVA deposit form	❌ CREDITS BALANCE	❌ REJECT (no deposit intent)
-User submits TxHash from before account creation	❌ CREDITS BALANCE	❌ REJECT (timestamp before account)
-📋 Complete Proposed SQL + API Design
-A. New Database Schema Changes
+┌─────────────────────────────────────────────────────────────────────────┐
+│ STEP 3: USER SUBMITS TXHASH (After blockchain confirmation)            │
+├─────────────────────────────────────────────────────────────────────────┤
+│ 1. User copies TxHash from their wallet/blockchain explorer            │
+│ 2. User pastes TxHash into wallet page form                            │
+│ 3. Form includes intent_id (from Step 1)                               │
+│ 4. Frontend calls: POST /api/crypto/deposit                            │
+│    Body: { intent_id: "...", txHash: "0x..." }                         │
+│ 5. Server validates: authenticated user, intent exists, intent pending │
+│ 6. Server verifies blockchain:                                         │
+│    - TxHash unique (not already used)                                  │
+│    - Destination = NAVA address (from intent)                          │
+│    - Amount matches (±tolerance)                                       │
+│    - Blockchain timestamp > intent.created_at (REPLAY PROTECTION)      │
+│    - Transaction confirmed/successful                                  │
+│ 7. Server inserts transactions record (status: "pending")              │
+│ 8. Server calls RPC: complete_deposit_atomic(intent_id, tx_id, amount) │
+│ 9. RPC atomically:                                                     │
+│    - Verifies intent belongs to auth.uid()                             │
+│    - Verifies transaction belongs to auth.uid()                        │
+│    - Credits profile.balance                                           │
+│    - Marks transactions.status = "completed"                           │
+│    - Marks deposit_intents.status = "completed"                        │
+│    - ROLLBACK ALL if any step fails                                    │
+│ 10. Server returns success/failure to frontend                         │
+─────────────────────────────────────────────────────────────────────────┘
+D. Exact Tables/Columns/Functions Proposed
+1. New Table: deposit_intents
 SQL
 
--- 1. Add block_timestamp to transactions table (when blockchain tx occurred)
-ALTER TABLE transactions 
-ADD COLUMN IF NOT EXISTS block_timestamp TIMESTAMPTZ;
-
--- 2. Add deposit_intents table (tracks user's intent to deposit)
-CREATE TABLE IF NOT EXISTS deposit_intents (
+CREATE TABLE deposit_intents (
   id UUID PRIMARY KEY DEFAULT gen_random_uuid(),
   user_id UUID NOT NULL REFERENCES auth.users(id) ON DELETE CASCADE,
   coin VARCHAR(50) NOT NULL,
@@ -50,28 +94,28 @@ CREATE TABLE IF NOT EXISTS deposit_intents (
   expected_amount_usd NUMERIC(12,2) NOT NULL,
   destination_address VARCHAR(255) NOT NULL,
   status VARCHAR(50) DEFAULT 'pending' NOT NULL,
-  expires_at TIMESTAMPTZ NOT NULL DEFAULT (NOW() + INTERVAL '24 hours'),
   created_at TIMESTAMPTZ DEFAULT NOW() NOT NULL,
+  expires_at TIMESTAMPTZ NOT NULL,
   completed_at TIMESTAMPTZ,
   completed_tx_reference VARCHAR(255) UNIQUE -- Links to transactions.reference
 );
 
--- 3. Index for performance
-CREATE INDEX IF NOT EXISTS idx_deposit_intents_user_id ON deposit_intents(user_id);
-CREATE INDEX IF NOT EXISTS idx_deposit_intents_status ON deposit_intents(status);
-CREATE INDEX IF NOT EXISTS idx_deposit_intents_expires_at ON deposit_intents(expires_at);
-
--- 4. Add comment documenting security purpose
-COMMENT ON TABLE deposit_intents IS 'Tracks user deposit intent to prevent historical payment replay attacks. Blockchain tx must occur AFTER intent creation.';
-B. New Atomic RPC Function (With Replay Protection)
+-- Indexes for performance
+CREATE INDEX idx_deposit_intents_user_id ON deposit_intents(user_id);
+CREATE INDEX idx_deposit_intents_status ON deposit_intents(status);
+CREATE INDEX idx_deposit_intents_expires_at ON deposit_intents(expires_at);
+2. New Column: transactions.block_timestamp
 SQL
 
--- Drop old function if exists
-DROP FUNCTION IF EXISTS add_balance_atomic(NUMERIC);
-DROP FUNCTION IF EXISTS complete_deposit_atomic(UUID, NUMERIC);
+ALTER TABLE transactions 
+ADD COLUMN block_timestamp TIMESTAMPTZ;
 
--- Create new atomic function with replay protection
+CREATE INDEX idx_transactions_block_timestamp ON transactions(block_timestamp);
+3. New RPC Function: complete_deposit_atomic()
+SQL
+
 CREATE OR REPLACE FUNCTION complete_deposit_atomic(
+  intent_id UUID,
   transaction_id UUID,
   amount_to_add NUMERIC
 )
@@ -79,35 +123,51 @@ RETURNS NUMERIC AS $$
 DECLARE
   new_balance NUMERIC;
   authenticated_user_id UUID;
+  intent_user_id UUID;
+  intent_status TEXT;
+  intent_created_at TIMESTAMPTZ;
   txn_user_id UUID;
   txn_status TEXT;
   txn_block_timestamp TIMESTAMPTZ;
-  txn_reference TEXT;
-  intent_created_at TIMESTAMPTZ;
 BEGIN
-  -- Get authenticated user from Supabase auth context
+  -- Get authenticated user
   authenticated_user_id := auth.uid();
   
-  -- Security check: Must be authenticated
   IF authenticated_user_id IS NULL THEN
     RAISE EXCEPTION 'Authentication required';
   END IF;
   
-  -- Security check: Amount must be positive
   IF amount_to_add IS NULL OR amount_to_add <= 0 THEN
     RAISE EXCEPTION 'Invalid amount';
   END IF;
   
-  -- Set safe search_path for SECURITY DEFINER function
   SET LOCAL search_path = public;
   
-  -- Verify transaction exists, belongs to user, and is pending
-  -- Also fetch block_timestamp and reference for replay protection
-  SELECT user_id, status, block_timestamp, reference 
-  INTO txn_user_id, txn_status, txn_block_timestamp, txn_reference
+  -- Lock and verify deposit intent (FOR UPDATE prevents concurrent modification)
+  SELECT user_id, status, created_at 
+  INTO intent_user_id, intent_status, intent_created_at
+  FROM deposit_intents
+  WHERE id = intent_id
+  FOR UPDATE;
+  
+  IF NOT FOUND THEN
+    RAISE EXCEPTION 'Deposit intent not found';
+  END IF;
+  
+  IF intent_user_id IS DISTINCT FROM authenticated_user_id THEN
+    RAISE EXCEPTION 'Deposit intent does not belong to authenticated user';
+  END IF;
+  
+  IF intent_status != 'pending' THEN
+    RAISE EXCEPTION 'Deposit intent is not pending (current: %)', intent_status;
+  END IF;
+  
+  -- Lock and verify transaction
+  SELECT user_id, status, block_timestamp
+  INTO txn_user_id, txn_status, txn_block_timestamp
   FROM transactions
   WHERE id = transaction_id
-  FOR UPDATE; -- Row lock to prevent concurrent modification
+  FOR UPDATE;
   
   IF NOT FOUND THEN
     RAISE EXCEPTION 'Transaction not found';
@@ -118,243 +178,144 @@ BEGIN
   END IF;
   
   IF txn_status != 'pending' THEN
-    RAISE EXCEPTION 'Transaction is not in pending status (current: %)', txn_status;
-  END IF;
-  
-  -- REPLAY PROTECTION: Verify blockchain transaction occurred AFTER deposit intent
-  -- Look for matching deposit intent (same user, same TxHash reference)
-  SELECT created_at INTO intent_created_at
-  FROM deposit_intents
-  WHERE user_id = authenticated_user_id 
-    AND completed_tx_reference = txn_reference
-    AND status = 'pending'
-    AND expires_at > NOW();
-  
-  IF NOT FOUND THEN
-    RAISE EXCEPTION 'No valid deposit intent found for this transaction. Historical payment replay detected.';
+    RAISE EXCEPTION 'Transaction is not pending (current: %)', txn_status;
   END IF;
   
   -- REPLAY PROTECTION: Blockchain tx must be after intent creation
   IF txn_block_timestamp IS NOT NULL AND txn_block_timestamp < intent_created_at THEN
-    RAISE EXCEPTION 'Blockchain transaction occurred before deposit intent was created. Historical payment replay detected.';
+    RAISE EXCEPTION 'Blockchain transaction occurred before deposit intent. Historical replay detected.';
   END IF;
   
-  -- ATOMIC OPERATION: Credit balance AND mark transaction completed
-  -- Both operations succeed or both fail (same PostgreSQL transaction)
-  
-  -- Step 1: Credit user's balance (NO updated_at column)
+  -- ATOMIC: Credit balance (NO updated_at)
   UPDATE profiles
   SET balance = (balance + amount_to_add)::NUMERIC
   WHERE id = authenticated_user_id
   RETURNING balance INTO new_balance;
   
   IF NOT FOUND THEN
-    RAISE EXCEPTION 'Profile not found for authenticated user';
+    RAISE EXCEPTION 'Profile not found';
   END IF;
   
-  -- Step 2: Mark transaction as completed
+  -- ATOMIC: Mark transaction completed
   UPDATE transactions
   SET status = 'completed'
-  WHERE id = transaction_id 
-    AND user_id = authenticated_user_id 
-    AND status = 'pending';
+  WHERE id = transaction_id AND user_id = authenticated_user_id;
   
-  IF NOT FOUND THEN
-    RAISE EXCEPTION 'Failed to update transaction status';
-  END IF;
-  
-  -- Step 3: Mark deposit intent as completed
+  -- ATOMIC: Mark intent completed
   UPDATE deposit_intents
-  SET status = 'completed',
-      completed_at = NOW()
-  WHERE user_id = authenticated_user_id 
-    AND completed_tx_reference = txn_reference
-    AND status = 'pending';
+  SET status = 'completed', completed_at = NOW(), completed_tx_reference = (SELECT reference FROM transactions WHERE id = transaction_id)
+  WHERE id = intent_id AND user_id = authenticated_user_id;
   
   RETURN new_balance;
 END;
 $$ LANGUAGE plpgsql SECURITY DEFINER;
 
--- Grant execute permission ONLY to authenticated users
-REVOKE ALL ON FUNCTION complete_deposit_atomic(UUID, NUMERIC) FROM PUBLIC;
-REVOKE ALL ON FUNCTION complete_deposit_atomic(UUID, NUMERIC) FROM anon;
-GRANT EXECUTE ON FUNCTION complete_deposit_atomic(UUID, NUMERIC) TO authenticated;
-C. Updated Deposit API Flow
-In src/app/api/crypto/deposit/route.ts, the flow becomes:
-
+-- Permissions
+REVOKE ALL ON FUNCTION complete_deposit_atomic(UUID, UUID, NUMERIC) FROM PUBLIC;
+REVOKE ALL ON FUNCTION complete_deposit_atomic(UUID, UUID, NUMERIC) FROM anon;
+GRANT EXECUTE ON FUNCTION complete_deposit_atomic(UUID, UUID, NUMERIC) TO authenticated;
+E. Exact API Flow
+Endpoint 1: POST /api/crypto/deposit-intent
 TypeScript
 
-// 1. Get authenticated user (unchanged)
-const { data: { user } } = await supabase.auth.getUser();
-const userId = user.id;
-
-// 2. Parse & validate body (unchanged)
-const { amountUsd, coin, txHash } = await req.json();
-
-// 3. Verify on-chain (unchanged - TronScan API)
-// ... verification logic ...
-// Extract block_timestamp from TronScan response
-const blockTimestamp = tronData.block_time 
-  ? new Date(tronData.block_time).toISOString() 
-  : null;
-
-// 4. Create deposit intent FIRST (NEW - before inserting transaction)
-const { data: depositIntent, error: intentErr } = await supabase
-  .from("deposit_intents")
-  .insert({
-    user_id: userId,
-    coin: coin,
-    network: coin.includes("USDT") ? "TRX" : coin.includes("BTC") ? "BTC" : "LTC",
-    expected_amount_usd: Number(amountUsd),
-    destination_address: expectedAddress,
-    status: "pending",
-    expires_at: new Date(Date.now() + 24 * 60 * 60 * 1000).toISOString(), // 24 hours
-  })
-  .select()
-  .single();
-
-if (intentErr) {
-  console.error("Failed to create deposit intent:", intentErr);
-  // Continue anyway - intent is for replay protection, not critical path
-}
-
-// 5. Insert transaction as "pending" with block_timestamp
-const { data: newTx, error: txErr } = await supabase
-  .from("transactions")
-  .insert({
-    user_id: userId,
-    amount_usd: Number(amountUsd),
-    amount_local: Number(amountUsd) * 1500,
-    currency: "USD",
-    payment_method: `Crypto - ${coin}`,
-    reference: cleanHash,
-    status: "pending",
-    block_timestamp: blockTimestamp, // NEW: Store when blockchain tx occurred
-  })
-  .select()
-  .single();
-
-if (txErr) {
-  if (txErr.code === "23505") {
-    return NextResponse.json(
-      { error: "This Transaction Hash has already been processed." },
-      { status: 400 }
-    );
-  }
-  throw txErr;
-}
-
-// 6. For verified USDT-TRX: Attempt atomic completion
-if (isVerified && coin.includes("USDT")) {
-  const { data: newBalance, error: balanceErr } = await supabase.rpc(
-    "complete_deposit_atomic",
-    {
-      transaction_id: newTx.id,
-      amount_to_add: Number(amountUsd),
-    }
-  );
-
-  if (balanceErr) {
-    // Transaction stays "pending" - admin can manually fix
-    // Check if it's a replay protection error
-    if (balanceErr.message.includes("Historical payment replay")) {
-      return NextResponse.json({
-        error: "This transaction occurred before your deposit request. Only new transactions after deposit request are accepted.",
-      }, { status: 400 });
-    }
-    
-    return NextResponse.json({
-      success: true,
-      autoCredited: false,
-      message: "Deposit recorded but auto-credit failed. Transaction marked pending for admin review.",
-    });
-  }
-
+// Creates deposit intent BEFORE user sends crypto
+export async function POST(req: Request) {
+  const { user } = await supabase.auth.getUser();
+  const { coin, amountUsd } = await req.json();
+  
+  // Validate amount, coin, etc.
+  
+  const intent = await supabase
+    .from("deposit_intents")
+    .insert({
+      user_id: user.id,
+      coin,
+      network: getNetwork(coin),
+      expected_amount_usd: amountUsd,
+      destination_address: process.env[`CRYPTO_${coin}`],
+      status: "pending",
+      expires_at: new Date(Date.now() + 24 * 60 * 60 * 1000),
+    })
+    .select()
+    .single();
+  
   return NextResponse.json({
-    success: true,
-    autoCredited: true,
-    newBalance: Number(newBalance),
-    message: `⚡ Payment verified on-chain! $${Number(amountUsd).toFixed(2)} added to your wallet instantly.`,
+    intent_id: intent.id,
+    destination_address: intent.destination_address,
+    expires_at: intent.expires_at,
   });
 }
+Endpoint 2: POST /api/crypto/deposit
+TypeScript
 
-// BTC/LTC: Stay pending for manual admin review
-return NextResponse.json({
-  success: true,
-  autoCredited: false,
-  message: `${coin} deposit submitted! Your transaction requires manual admin verification (15-60 min).`,
-});
-D. Historical Test Transaction Inspection
-Before any deletion, inspect the current state:
-
+// Verifies blockchain and completes deposit
+export async function POST(req: Request) {
+  const { user } = await supabase.auth.getUser();
+  const { intent_id, txHash } = await req.json();
+  
+  // 1. Verify intent exists, pending, belongs to user
+  // 2. Verify blockchain (TronScan/Blockchair)
+  // 3. Extract block_timestamp from blockchain API
+  // 4. Verify block_timestamp > intent.created_at
+  // 5. Insert transactions record (status: pending, block_timestamp: from blockchain)
+  // 6. Call RPC: complete_deposit_atomic(intent_id, tx_id, amount)
+  // 7. Return result
+}
+F. Historical Test Transaction Reconciliation
+Current State (Unknown - Needs Inspection):
 SQL
 
--- 1. Check the test transaction details
+-- Run this to inspect current state
 SELECT 
   t.id,
   t.user_id,
   t.amount_usd,
-  t.amount_local,
   t.status,
   t.reference,
   t.block_timestamp,
   t.created_at,
   p.email,
-  p.balance as current_balance,
+  p.balance,
   p.created_at as account_created_at
 FROM transactions t
 JOIN profiles p ON p.id = t.user_id
 WHERE t.reference = '7f986161176e2c12fa3dd1e4240216e60cc60581736c1a51ade93309af50cf64';
+Reconciliation Options (After Inspection):
+Scenario	Recommended Action
+status = 'completed' + balance includes $6.03	✅ Leave as-is (already credited)
+status = 'completed' + balance does NOT include $6.03	Manual credit: UPDATE profiles SET balance = balance + 6.03 WHERE id = [user_id]
+status = 'pending' + block_timestamp exists	Run RPC manually: SELECT complete_deposit_atomic(NULL, [tx_id], 6.03) (need to create intent first)
+status = 'pending' + no block_timestamp	Delete + resubmit: DELETE FROM transactions WHERE reference = '...' (user can resubmit with new intent)
+Recommended: Inspect first, then decide based on actual state.
 
--- 2. Check if any deposit intent exists for this user/tx
-SELECT 
-  id,
-  user_id,
-  coin,
-  expected_amount_usd,
-  status,
-  created_at,
-  expires_at,
-  completed_tx_reference
-FROM deposit_intents
-WHERE completed_tx_reference = '7f986161176e2c12fa3dd1e4240216e60cc60581736c1a51ade93309af50cf64'
-   OR user_id = (SELECT user_id FROM transactions WHERE reference = '7f986161176e2c12fa3dd1e4240216e60cc60581736c1a51ade93309af50cf64')
-ORDER BY created_at DESC;
-
--- 3. Check TronScan block timestamp for this transaction
--- (Run this PowerShell command to get actual block time)
-$response = Invoke-RestMethod -Uri "https://apilist.tronscanapi.com/api/transaction-info?hash=7f986161176e2c12fa3dd1e4240216e60cc60581736c1a51ade93309af50cf64"
-$response.block_time
-E. Reconciliation Decision Matrix
-Inspection Result	Recommended Action
-transactions.status = 'completed' AND profiles.balance includes $6.03	✅ Leave as-is (already credited somehow)
-transactions.status = 'completed' AND profiles.balance does NOT include $6.03	Option A: Manually credit $6.03 to balance
-Option B: Delete transaction (user can resubmit with new intent)
-transactions.status = 'pending' AND block_timestamp < account created_at	REPLAY DETECTED → Delete transaction
-transactions.status = 'pending' AND block_timestamp > account created_at	VALID → Run complete_deposit_atomic() manually
-📋 Summary of Security Protections
-Protection	Implementation
-No historical replay	deposit_intents table + timestamp comparison
-TxHash uniqueness	UNIQUE constraint on transactions.reference
-User authentication	auth.uid() in RPC function
-Transaction ownership	Verify txn_user_id = authenticated_user_id
-Status validation	Verify txn_status = 'pending' before credit
-Row locking	FOR UPDATE in RPC SELECT
-Atomic credit + status	Single PostgreSQL transaction in RPC
-No updated_at dependency	Removed from RPC function
-Amount validation	Check amount_to_add > 0
-Permission restriction	GRANT EXECUTE TO authenticated only
-Safe search_path	SET LOCAL search_path = public
+G. Remaining Risks
+Risk	Severity	Mitigation
+Intent expiration	Medium	24-hour expiry, user must resubmit if expired
+Blockchain API rate limits	Medium	TronScan/Blockchair free tiers have limits
+Amount tolerance	Low	±$0.01 tolerance for network fees
+Manual admin review for BTC/LTC	Low	These stay pending (no auto-credit)
+Historical transaction without intent	Medium	Cannot be auto-credited (no intent to verify against)
+User sends wrong amount	Low	Verification rejects if outside tolerance
+User sends to wrong address	Low	Verification rejects if not NAVA address
+Concurrent submissions	Low	FOR UPDATE row locking prevents race conditions
+📋 Summary: What Needs to Happen (In Order)
+Step	Action	Status
+1	Inspect historical test transaction	⏳ PENDING (run SQL query)
+2	Create deposit_intents table	⏳ PENDING
+3	Add transactions.block_timestamp column	⏳ PENDING
+4	Create complete_deposit_atomic() RPC	⏳ PENDING
+5	Drop broken add_balance_atomic() RPC	PENDING
+6	Create /api/crypto/deposit-intent endpoint	⏳ PENDING
+7	Update /api/crypto/deposit endpoint	⏳ PENDING
+8	Update wallet page UI (Start Deposit button)	⏳ PENDING
+9	Reconcile historical test transaction	PENDING (after inspection)
+10	Test with real USDT	⏳ PENDING
 Questions Before Implementation
-Question	Your Decision
-1. Approve deposit_intents table for replay protection?	[ ] Yes / [ ] No
-2. Approve block_timestamp column in transactions?	[ ] Yes / [ ] No
-3. Approve complete_deposit_atomic() with replay checks?	[ ] Yes / [ ] No
-4. How to handle historical test transaction?	[ ] Inspect first / [ ] Delete / [ ] Manually credit
-5. Any other security concerns?	[ ] List concerns
-Please review this complete design and confirm:
-
-Replay protection meets your security requirements
-Atomic RPC design is correct
-How to handle the historical test transaction (inspect first vs. delete)
-Once confirmed, I'll provide the exact implementation steps in order.
+#	Question	Your Decision
+1	Does this corrected design address all security concerns?	[ ] Yes / [ ] No
+2	Is the deposit-intent-before-payment flow correct?	[ ] Yes / [ ] No
+3	How should we handle the historical test transaction?	[ ] Inspect first / [ ] Delete / [ ] Manual credit
+4	Is 24-hour intent expiration appropriate?	[ ] Yes / [ ] No (suggest alternative)
+5	Any other security concerns to address?	[ ] List concerns
+6	Ready to proceed with implementation?	[ ] Yes / [ ] No
+This is the complete read-only diagnostic. No code, no SQL, no migrations have been created yet. Please review and approve this design before we proceed to implementation. 🙏
