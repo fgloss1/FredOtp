@@ -259,7 +259,30 @@ export default function DashboardPage() {
   };
 
   return (
-    <div className="p-4 sm:p-8 max-w-7xl mx-auto space-y-6">
+    <div className="p-3 sm:p-8 max-w-7xl mx-auto space-y-5 sm:space-y-6">
+      {/* OTP-first launch notice */}
+      <section
+        aria-labelledby="otp-launch-title"
+        className={`rounded-2xl border-2 p-4 sm:p-5 ${darkMode ? "bg-emerald-500/5 border-emerald-500/25" : "bg-emerald-50 border-emerald-200"}`}
+      >
+        <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-3">
+          <div className="min-w-0">
+            <h1 id="otp-launch-title" className={`text-sm sm:text-base font-black ${darkMode ? "text-white" : "text-slate-900"}`}>
+              NAVA OTP is live
+            </h1>
+            <p className={`mt-1 text-xs sm:text-sm leading-5 ${darkMode ? "text-slate-300" : "text-slate-600"}`}>
+              We are launching with OTP verification numbers first. Phone, SMS, rental, and other services are coming soon.
+            </p>
+          </div>
+          <div
+            className="inline-flex items-center justify-center self-start sm:self-auto shrink-0 rounded-full border border-emerald-500/30 bg-emerald-500/10 px-3 py-1.5 text-[10px] font-black uppercase tracking-wider text-emerald-500"
+            aria-label="Current launch status: OTP only"
+          >
+            OTP only
+          </div>
+        </div>
+      </section>
+
       {/* Top Header Metric Cards */}
       <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
         <div className={`${theme.cardBg} border rounded-2xl p-5 flex items-center justify-between transition-colors`}>
