@@ -55,14 +55,12 @@ CREATE INDEX IF NOT EXISTS idx_transactions_deposit_intent_id
 CREATE INDEX IF NOT EXISTS idx_transactions_block_timestamp
   ON public.transactions(block_timestamp);
 
--- The existing deployment already has a UNIQUE constraint/index on reference.
--- This statement is idempotent for the known named index/constraint representation.
-CREATE UNIQUE INDEX IF NOT EXISTS transactions_reference_unique_idx
-  ON public.transactions(reference)
-  WHERE reference IS NOT NULL;
+-- The existing deployment already has a UNIQUE constraint on transactions.reference.
+-- No redundant unique index is created here.
 
--- Enforce the intent requirement for all newly-created crypto transactions,
--- while leaving legacy/non-crypto rows untouched.
+-- Enforce the intent requirement for newly-created crypto transactions.
+-- NOT VALID preserves legacy rows that predate this security model, while
+-- PostgreSQL still enforces the check for new/updated rows.
 DO $$
 BEGIN
   IF NOT EXISTS (
@@ -77,12 +75,10 @@ BEGIN
         payment_method IS NULL
         OR payment_method NOT ILIKE 'Crypto - %'
         OR deposit_intent_id IS NOT NULL
-      );
+      ) NOT VALID;
   END IF;
 END $$;
 
--- No direct table access is required by the client. Server routes use the
--- Supabase service-role client; the authenticated caller invokes the RPC below.
 ALTER TABLE public.deposit_intents ENABLE ROW LEVEL SECURITY;
 
 CREATE OR REPLACE FUNCTION public.complete_deposit_atomic(
@@ -291,6 +287,10 @@ BEGIN
       completed_at = NOW()
   WHERE id = v_intent_id
     AND status = 'pending';
+
+  IF NOT FOUND THEN
+    RAISE EXCEPTION 'Failed to complete deposit intent';
+  END IF;
 
   RETURN v_new_balance;
 END;
