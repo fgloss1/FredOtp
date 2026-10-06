@@ -1,90 +1,76 @@
-qwen3.5-397b-a17b
-
 Thought for 3 seconds
 
-The user is absolutely right - the "insert pending → RPC credit → separate UPDATE to completed" approach is NOT truly atomic. There's still a window where:
+The user has identified a critical security vulnerability: Historical Payment Replay Attack.
 
-Balance credited but transaction stays pending
-Transaction marked completed but balance credit failed
-They want a SINGLE atomic database operation that does BOTH:
+A legitimate USDT-TRC20 transaction that was sent BEFORE the user created a deposit request on NAVA can still be submitted and credited. This is a serious vulnerability because:
 
-Credits the user's balance
-Marks the transaction as completed
-This requires a custom RPC function that takes the transaction ID and does both operations in one PostgreSQL transaction.
+User could send USDT to NAVA address for personal reasons (not a deposit)
+Later, user could submit that same TxHash to NAVA deposit form
+NAVA would credit the balance even though there was no deposit intent
+Required Protection:
 
-Also, I need to address the historical test transaction that's already in the database with status "completed" but no balance credit.
+Deposit intent/request must be created BEFORE the blockchain transaction
+Blockchain transaction timestamp must be AFTER deposit intent timestamp
+This prevents replaying old/historical transactions
+Implementation Plan:
 
-Let me design the proper solution:
+Add deposit_intents table to track when a user initiates a deposit request
+Add block_timestamp to transactions table to store when the blockchain transaction occurred
+Verify in API that block_timestamp > deposit_intent.created_at
+Keep UNIQUE constraint on reference (TxHash)
+Create complete_deposit_atomic() RPC as previously designed
+For the historical test transaction:
 
-New RPC Function: complete_deposit_atomic(transaction_id UUID, amount_to_add NUMERIC)
+First inspect the current row (status, amount, user_id, created_at)
+Check user's current balance
+Decide: delete vs. manually reconcile
+Let me propose the complete SQL + API design.
 
-Validates auth.uid()
-Validates the transaction exists and belongs to authenticated user
-Validates transaction is currently "pending"
-Credits balance AND updates transaction status in SAME transaction
-Returns new balance
-API Flow Change:
+Critical Security Vulnerability Confirmed
+You're absolutely right. A historical payment replay attack is possible:
 
-Insert transaction as "pending"
-Call complete_deposit_atomic(tx_id, amount)
-If RPC succeeds → both balance credited AND status completed
-If RPC fails → both remain unchanged (transaction stays pending)
-Historical Test Transaction Reconciliation:
-
-First inspect the existing test transaction
-Check if user's balance reflects the credit
-If not, either: a) Manually credit the user's balance for that transaction b) Or delete the test transaction so the TxHash can be reused
-Let me write the complete proposal.
-
-✅ You're Absolutely Right — Need True Atomic Operation
-The "pending → credit → update" approach is NOT atomic. There's still a race condition window.
-
-Proper solution: Single RPC function that does BOTH operations in one PostgreSQL transaction.
-
-📋 Proposed Final Design
-1. New Atomic RPC Function
-Single function that:
-
-Validates auth.uid()
-Validates transaction exists + belongs to user + is "pending"
-Credits balance AND marks transaction "completed" in SAME transaction
-Rolls back BOTH if either fails
-2. API Flow
-text
-
-1. Insert transaction as "pending"
-2. Call complete_deposit_atomic(tx_id, amount)
-   ├─ If SUCCESS → balance credited + status completed (atomic)
-   ─ If FAIL → both unchanged (transaction stays pending)
-3. Return result to user
-3. Historical Test Transaction Handling
-First inspect, then decide:
-
+Attack Scenario	Current Behavior	Required Behavior
+User sends USDT to NAVA address (personal reasons)	Transaction on blockchain	✅ Normal
+User later submits old TxHash to NAVA deposit form	❌ CREDITS BALANCE	❌ REJECT (no deposit intent)
+User submits TxHash from before account creation	❌ CREDITS BALANCE	❌ REJECT (timestamp before account)
+📋 Complete Proposed SQL + API Design
+A. New Database Schema Changes
 SQL
 
--- Check the test transaction
-SELECT id, user_id, amount_usd, status, created_at 
-FROM transactions 
-WHERE reference = '7f986161176e2c12fa3dd1e4240216e60cc60581736c1a51ade93309af50cf64';
+-- 1. Add block_timestamp to transactions table (when blockchain tx occurred)
+ALTER TABLE transactions 
+ADD COLUMN IF NOT EXISTS block_timestamp TIMESTAMPTZ;
 
--- Check user's current balance
-SELECT id, email, balance, created_at 
-FROM profiles 
-WHERE id = '[user_id from above]';
-Reconciliation options:
+-- 2. Add deposit_intents table (tracks user's intent to deposit)
+CREATE TABLE IF NOT EXISTS deposit_intents (
+  id UUID PRIMARY KEY DEFAULT gen_random_uuid(),
+  user_id UUID NOT NULL REFERENCES auth.users(id) ON DELETE CASCADE,
+  coin VARCHAR(50) NOT NULL,
+  network VARCHAR(50) NOT NULL,
+  expected_amount_usd NUMERIC(12,2) NOT NULL,
+  destination_address VARCHAR(255) NOT NULL,
+  status VARCHAR(50) DEFAULT 'pending' NOT NULL,
+  expires_at TIMESTAMPTZ NOT NULL DEFAULT (NOW() + INTERVAL '24 hours'),
+  created_at TIMESTAMPTZ DEFAULT NOW() NOT NULL,
+  completed_at TIMESTAMPTZ,
+  completed_tx_reference VARCHAR(255) UNIQUE -- Links to transactions.reference
+);
 
-Scenario	Action
-Balance already includes $6.03	✅ Leave transaction as-is (already credited manually?)
-Balance does NOT include $6.03	Option A: Manually credit balance + keep transaction
-Option B: Delete transaction + let user resubmit
-📝 PROPOSAL: Final SQL + API Changes
-A. Drop Old RPC + Create New Atomic RPC
+-- 3. Index for performance
+CREATE INDEX IF NOT EXISTS idx_deposit_intents_user_id ON deposit_intents(user_id);
+CREATE INDEX IF NOT EXISTS idx_deposit_intents_status ON deposit_intents(status);
+CREATE INDEX IF NOT EXISTS idx_deposit_intents_expires_at ON deposit_intents(expires_at);
+
+-- 4. Add comment documenting security purpose
+COMMENT ON TABLE deposit_intents IS 'Tracks user deposit intent to prevent historical payment replay attacks. Blockchain tx must occur AFTER intent creation.';
+B. New Atomic RPC Function (With Replay Protection)
 SQL
 
--- Drop old function
+-- Drop old function if exists
 DROP FUNCTION IF EXISTS add_balance_atomic(NUMERIC);
+DROP FUNCTION IF EXISTS complete_deposit_atomic(UUID, NUMERIC);
 
--- Create new atomic function (credits balance + completes transaction)
+-- Create new atomic function with replay protection
 CREATE OR REPLACE FUNCTION complete_deposit_atomic(
   transaction_id UUID,
   amount_to_add NUMERIC
@@ -95,6 +81,9 @@ DECLARE
   authenticated_user_id UUID;
   txn_user_id UUID;
   txn_status TEXT;
+  txn_block_timestamp TIMESTAMPTZ;
+  txn_reference TEXT;
+  intent_created_at TIMESTAMPTZ;
 BEGIN
   -- Get authenticated user from Supabase auth context
   authenticated_user_id := auth.uid();
@@ -113,9 +102,12 @@ BEGIN
   SET LOCAL search_path = public;
   
   -- Verify transaction exists, belongs to user, and is pending
-  SELECT user_id, status INTO txn_user_id, txn_status
+  -- Also fetch block_timestamp and reference for replay protection
+  SELECT user_id, status, block_timestamp, reference 
+  INTO txn_user_id, txn_status, txn_block_timestamp, txn_reference
   FROM transactions
-  WHERE id = transaction_id;
+  WHERE id = transaction_id
+  FOR UPDATE; -- Row lock to prevent concurrent modification
   
   IF NOT FOUND THEN
     RAISE EXCEPTION 'Transaction not found';
@@ -129,10 +121,28 @@ BEGIN
     RAISE EXCEPTION 'Transaction is not in pending status (current: %)', txn_status;
   END IF;
   
-  -- ATOMIC OPERATION: Credit balance AND mark transaction completed
-  -- Both operations succeed or both fail (same transaction)
+  -- REPLAY PROTECTION: Verify blockchain transaction occurred AFTER deposit intent
+  -- Look for matching deposit intent (same user, same TxHash reference)
+  SELECT created_at INTO intent_created_at
+  FROM deposit_intents
+  WHERE user_id = authenticated_user_id 
+    AND completed_tx_reference = txn_reference
+    AND status = 'pending'
+    AND expires_at > NOW();
   
-  -- Step 1: Credit user's balance
+  IF NOT FOUND THEN
+    RAISE EXCEPTION 'No valid deposit intent found for this transaction. Historical payment replay detected.';
+  END IF;
+  
+  -- REPLAY PROTECTION: Blockchain tx must be after intent creation
+  IF txn_block_timestamp IS NOT NULL AND txn_block_timestamp < intent_created_at THEN
+    RAISE EXCEPTION 'Blockchain transaction occurred before deposit intent was created. Historical payment replay detected.';
+  END IF;
+  
+  -- ATOMIC OPERATION: Credit balance AND mark transaction completed
+  -- Both operations succeed or both fail (same PostgreSQL transaction)
+  
+  -- Step 1: Credit user's balance (NO updated_at column)
   UPDATE profiles
   SET balance = (balance + amount_to_add)::NUMERIC
   WHERE id = authenticated_user_id
@@ -145,11 +155,21 @@ BEGIN
   -- Step 2: Mark transaction as completed
   UPDATE transactions
   SET status = 'completed'
-  WHERE id = transaction_id AND user_id = authenticated_user_id AND status = 'pending';
+  WHERE id = transaction_id 
+    AND user_id = authenticated_user_id 
+    AND status = 'pending';
   
   IF NOT FOUND THEN
     RAISE EXCEPTION 'Failed to update transaction status';
   END IF;
+  
+  -- Step 3: Mark deposit intent as completed
+  UPDATE deposit_intents
+  SET status = 'completed',
+      completed_at = NOW()
+  WHERE user_id = authenticated_user_id 
+    AND completed_tx_reference = txn_reference
+    AND status = 'pending';
   
   RETURN new_balance;
 END;
@@ -159,12 +179,46 @@ $$ LANGUAGE plpgsql SECURITY DEFINER;
 REVOKE ALL ON FUNCTION complete_deposit_atomic(UUID, NUMERIC) FROM PUBLIC;
 REVOKE ALL ON FUNCTION complete_deposit_atomic(UUID, NUMERIC) FROM anon;
 GRANT EXECUTE ON FUNCTION complete_deposit_atomic(UUID, NUMERIC) TO authenticated;
-B. Update Deposit API Route
-In src/app/api/crypto/deposit/route.ts, replace the transaction insert + credit section:
+C. Updated Deposit API Flow
+In src/app/api/crypto/deposit/route.ts, the flow becomes:
 
 TypeScript
 
-// Insert transaction as "pending" first
+// 1. Get authenticated user (unchanged)
+const { data: { user } } = await supabase.auth.getUser();
+const userId = user.id;
+
+// 2. Parse & validate body (unchanged)
+const { amountUsd, coin, txHash } = await req.json();
+
+// 3. Verify on-chain (unchanged - TronScan API)
+// ... verification logic ...
+// Extract block_timestamp from TronScan response
+const blockTimestamp = tronData.block_time 
+  ? new Date(tronData.block_time).toISOString() 
+  : null;
+
+// 4. Create deposit intent FIRST (NEW - before inserting transaction)
+const { data: depositIntent, error: intentErr } = await supabase
+  .from("deposit_intents")
+  .insert({
+    user_id: userId,
+    coin: coin,
+    network: coin.includes("USDT") ? "TRX" : coin.includes("BTC") ? "BTC" : "LTC",
+    expected_amount_usd: Number(amountUsd),
+    destination_address: expectedAddress,
+    status: "pending",
+    expires_at: new Date(Date.now() + 24 * 60 * 60 * 1000).toISOString(), // 24 hours
+  })
+  .select()
+  .single();
+
+if (intentErr) {
+  console.error("Failed to create deposit intent:", intentErr);
+  // Continue anyway - intent is for replay protection, not critical path
+}
+
+// 5. Insert transaction as "pending" with block_timestamp
 const { data: newTx, error: txErr } = await supabase
   .from("transactions")
   .insert({
@@ -174,13 +228,13 @@ const { data: newTx, error: txErr } = await supabase
     currency: "USD",
     payment_method: `Crypto - ${coin}`,
     reference: cleanHash,
-    status: "pending", // Always start as pending
+    status: "pending",
+    block_timestamp: blockTimestamp, // NEW: Store when blockchain tx occurred
   })
   .select()
   .single();
 
 if (txErr) {
-  // Check for UNIQUE constraint violation (duplicate TxHash)
   if (txErr.code === "23505") {
     return NextResponse.json(
       { error: "This Transaction Hash has already been processed." },
@@ -190,131 +244,117 @@ if (txErr) {
   throw txErr;
 }
 
-// For verified USDT-TRX: Attempt atomic completion
+// 6. For verified USDT-TRX: Attempt atomic completion
 if (isVerified && coin.includes("USDT")) {
-  try {
-    // Single atomic RPC: credits balance + marks transaction completed
-    const { data: newBalance, error: balanceErr } = await supabase.rpc(
-      "complete_deposit_atomic",
-      {
-        transaction_id: newTx.id,
-        amount_to_add: Number(amountUsd),
-      }
-    );
-
-    if (balanceErr) {
-      // Transaction stays "pending" - admin can manually fix
-      console.error("Atomic deposit completion failed:", balanceErr);
-      return NextResponse.json({
-        success: true,
-        autoCredited: false,
-        message: "Deposit recorded but auto-credit failed. Transaction marked pending for admin review.",
-      });
+  const { data: newBalance, error: balanceErr } = await supabase.rpc(
+    "complete_deposit_atomic",
+    {
+      transaction_id: newTx.id,
+      amount_to_add: Number(amountUsd),
     }
+  );
 
-    // SUCCESS: Both balance credited AND transaction completed atomically
-    return NextResponse.json({
-      success: true,
-      autoCredited: true,
-      newBalance: Number(newBalance),
-      message: `⚡ Payment verified on-chain! $${Number(amountUsd).toFixed(2)} added to your wallet instantly.`,
-    });
-  } catch (rpcErr: any) {
-    console.error("RPC call failed:", rpcErr);
+  if (balanceErr) {
+    // Transaction stays "pending" - admin can manually fix
+    // Check if it's a replay protection error
+    if (balanceErr.message.includes("Historical payment replay")) {
+      return NextResponse.json({
+        error: "This transaction occurred before your deposit request. Only new transactions after deposit request are accepted.",
+      }, { status: 400 });
+    }
+    
     return NextResponse.json({
       success: true,
       autoCredited: false,
       message: "Deposit recorded but auto-credit failed. Transaction marked pending for admin review.",
     });
   }
+
+  return NextResponse.json({
+    success: true,
+    autoCredited: true,
+    newBalance: Number(newBalance),
+    message: `⚡ Payment verified on-chain! $${Number(amountUsd).toFixed(2)} added to your wallet instantly.`,
+  });
 }
 
 // BTC/LTC: Stay pending for manual admin review
 return NextResponse.json({
   success: true,
   autoCredited: false,
-  message: `${coin} deposit submitted! Your transaction requires manual admin verification (15-60 min). You will be credited once verified.`,
+  message: `${coin} deposit submitted! Your transaction requires manual admin verification (15-60 min).`,
 });
-C. Historical Test Transaction Reconciliation
-Step 1: Inspect Current State
-
-Run this SQL to check the test transaction:
+D. Historical Test Transaction Inspection
+Before any deletion, inspect the current state:
 
 SQL
 
--- Check the test transaction
+-- 1. Check the test transaction details
 SELECT 
   t.id,
   t.user_id,
   t.amount_usd,
+  t.amount_local,
   t.status,
+  t.reference,
+  t.block_timestamp,
   t.created_at,
   p.email,
-  p.balance as current_balance
+  p.balance as current_balance,
+  p.created_at as account_created_at
 FROM transactions t
 JOIN profiles p ON p.id = t.user_id
 WHERE t.reference = '7f986161176e2c12fa3dd1e4240216e60cc60581736c1a51ade93309af50cf64';
-Step 2: Reconciliation Decision
 
-Result	Recommended Action
-status = 'completed' AND balance includes $6.03	✅ Leave as-is (somehow credited already)
-status = 'completed' AND balance does NOT include $6.03	Option A: Manually credit $6.03 to user's balance
-Option B: Delete transaction + user can resubmit
-status = 'pending'	Option A: Run complete_deposit_atomic() manually
-Option B: Delete transaction + user can resubmit
-Recommended (Safest): Option B - Delete the test transaction so the TxHash can be reused cleanly:
+-- 2. Check if any deposit intent exists for this user/tx
+SELECT 
+  id,
+  user_id,
+  coin,
+  expected_amount_usd,
+  status,
+  created_at,
+  expires_at,
+  completed_tx_reference
+FROM deposit_intents
+WHERE completed_tx_reference = '7f986161176e2c12fa3dd1e4240216e60cc60581736c1a51ade93309af50cf64'
+   OR user_id = (SELECT user_id FROM transactions WHERE reference = '7f986161176e2c12fa3dd1e4240216e60cc60581736c1a51ade93309af50cf64')
+ORDER BY created_at DESC;
 
-SQL
-
--- Delete the test transaction (user can resubmit after fix)
-DELETE FROM transactions 
-WHERE reference = '7f986161176e2c12fa3dd1e4240216e60cc60581736c1a51ade93309af50cf64';
-Why delete? The transaction was created with the broken code. Better to start fresh with the corrected atomic RPC.
-
-📋 Summary of Changes
-Component	Change	Reason
-RPC Function	New complete_deposit_atomic(UUID, NUMERIC)	Single atomic operation (balance + status)
-Old RPC	Drop add_balance_atomic(NUMERIC)	Obsolete (separate operations)
-API Route	Insert "pending" → Call atomic RPC	Ensures atomic completion
-Error Handling	RPC failure → transaction stays "pending"	Safe fallback for admin review
-Test Transaction	Delete historical test record	Clean slate for resubmission
-✅ Verification After Implementation
-SQL
-
--- 1. Verify new RPC function exists
-SELECT routine_name, routine_type 
-FROM information_schema.routines 
-WHERE routine_name = 'complete_deposit_atomic';
-
--- 2. Verify old RPC is dropped
-SELECT routine_name 
-FROM information_schema.routines 
-WHERE routine_name = 'add_balance_atomic';
-
--- 3. Verify permissions
-SELECT grantee, privilege_type 
-FROM information_schema.role_routine_grants 
-WHERE routine_name = 'complete_deposit_atomic';
-
--- 4. Delete test transaction
-DELETE FROM transactions 
-WHERE reference = '7f986161176e2c12fa3dd1e4240216e60cc60581736c1a51ade93309af50cf64';
-PowerShell
-
-# 5. TypeScript check
-npx tsc --noEmit
-
-# 6. Whitespace check
-git diff --check
-Questions Before Proceeding
+-- 3. Check TronScan block timestamp for this transaction
+-- (Run this PowerShell command to get actual block time)
+$response = Invoke-RestMethod -Uri "https://apilist.tronscanapi.com/api/transaction-info?hash=7f986161176e2c12fa3dd1e4240216e60cc60581736c1a51ade93309af50cf64"
+$response.block_time
+E. Reconciliation Decision Matrix
+Inspection Result	Recommended Action
+transactions.status = 'completed' AND profiles.balance includes $6.03	✅ Leave as-is (already credited somehow)
+transactions.status = 'completed' AND profiles.balance does NOT include $6.03	Option A: Manually credit $6.03 to balance
+Option B: Delete transaction (user can resubmit with new intent)
+transactions.status = 'pending' AND block_timestamp < account created_at	REPLAY DETECTED → Delete transaction
+transactions.status = 'pending' AND block_timestamp > account created_at	VALID → Run complete_deposit_atomic() manually
+📋 Summary of Security Protections
+Protection	Implementation
+No historical replay	deposit_intents table + timestamp comparison
+TxHash uniqueness	UNIQUE constraint on transactions.reference
+User authentication	auth.uid() in RPC function
+Transaction ownership	Verify txn_user_id = authenticated_user_id
+Status validation	Verify txn_status = 'pending' before credit
+Row locking	FOR UPDATE in RPC SELECT
+Atomic credit + status	Single PostgreSQL transaction in RPC
+No updated_at dependency	Removed from RPC function
+Amount validation	Check amount_to_add > 0
+Permission restriction	GRANT EXECUTE TO authenticated only
+Safe search_path	SET LOCAL search_path = public
+Questions Before Implementation
 Question	Your Decision
-1. Approve new complete_deposit_atomic() RPC?	[ ] Yes / [ ] No
-2. Approve deleting historical test transaction?	[ ] Yes / [ ] No
-3. Or manually credit balance instead of delete?	[ ] Credit / [ ] Delete
-4. Any other concerns with the atomic design?	[ ] List concerns
-Please review this proposal and confirm:
+1. Approve deposit_intents table for replay protection?	[ ] Yes / [ ] No
+2. Approve block_timestamp column in transactions?	[ ] Yes / [ ] No
+3. Approve complete_deposit_atomic() with replay checks?	[ ] Yes / [ ] No
+4. How to handle historical test transaction?	[ ] Inspect first / [ ] Delete / [ ] Manually credit
+5. Any other security concerns?	[ ] List concerns
+Please review this complete design and confirm:
 
-The atomic RPC design meets your requirements
-How to handle the historical test transaction
-Any modifications you want before implementation
-Once confirmed, I'll provide the exact implementation steps.
+Replay protection meets your security requirements
+Atomic RPC design is correct
+How to handle the historical test transaction (inspect first vs. delete)
+Once confirmed, I'll provide the exact implementation steps in order.
