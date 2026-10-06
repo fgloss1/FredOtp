@@ -37,7 +37,7 @@ CREATE TABLE IF NOT EXISTS public.crypto_payment_recoveries (
 ALTER TABLE public.transactions
   ADD COLUMN IF NOT EXISTS crypto_recovery_id UUID;
 
-DO $$
+DO $nava$
 BEGIN
   IF NOT EXISTS (
     SELECT 1
@@ -50,7 +50,7 @@ BEGIN
       FOREIGN KEY (crypto_recovery_id)
       REFERENCES public.crypto_payment_recoveries(id);
   END IF;
-END $$;
+END $nava$;
 
 ALTER TABLE public.transactions
   DROP CONSTRAINT IF EXISTS transactions_crypto_requires_deposit_intent;
@@ -64,8 +64,7 @@ ALTER TABLE public.transactions
     OR crypto_recovery_id IS NOT NULL
   ) NOT VALID;
 
-
-DO $
+DO $nava$
 BEGIN
   IF NOT EXISTS (
     SELECT 1
@@ -79,7 +78,7 @@ BEGIN
       REFERENCES public.transactions(id)
       ON DELETE SET NULL;
   END IF;
-END $;
+END $nava$;
 
 CREATE INDEX IF NOT EXISTS idx_crypto_payment_recoveries_user_id
   ON public.crypto_payment_recoveries(user_id);
@@ -93,14 +92,13 @@ CREATE INDEX IF NOT EXISTS idx_crypto_payment_recoveries_intent
 CREATE INDEX IF NOT EXISTS idx_transactions_crypto_recovery_id
   ON public.transactions(crypto_recovery_id);
 
-
 -- Extend the existing financial-write guards for the recovery RPC.
 CREATE OR REPLACE FUNCTION public.protect_profile_balance()
 RETURNS trigger
 LANGUAGE plpgsql
 SECURITY DEFINER
 SET search_path = public, pg_temp
-AS $
+AS $nava$
 DECLARE
   v_operation TEXT;
 BEGIN
@@ -125,14 +123,14 @@ BEGIN
 
   RETURN NEW;
 END;
-$;
+$nava$;
 
 CREATE OR REPLACE FUNCTION public.protect_transaction_ledger()
 RETURNS trigger
 LANGUAGE plpgsql
 SECURITY DEFINER
 SET search_path = public, pg_temp
-AS $
+AS $nava$
 DECLARE
   v_operation TEXT;
 BEGIN
@@ -150,7 +148,7 @@ BEGIN
 
   RAISE EXCEPTION 'Financial transactions may only be changed by NAVA server operations or an admin';
 END;
-$;
+$nava$;
 
 ALTER TABLE public.crypto_payment_recoveries ENABLE ROW LEVEL SECURITY;
 
@@ -168,7 +166,7 @@ RETURNS NUMERIC
 LANGUAGE plpgsql
 SECURITY DEFINER
 SET search_path = public, pg_temp
-AS $$
+AS $nava$
 DECLARE
   v_admin_id UUID;
   v_user_id UUID;
@@ -307,7 +305,7 @@ BEGIN
 
   RETURN v_new_balance;
 END;
-$$;
+$nava$;
 
 REVOKE ALL ON FUNCTION public.admin_complete_crypto_recovery_atomic(
   UUID, NUMERIC, TIMESTAMPTZ, TEXT
@@ -327,7 +325,7 @@ RETURNS VOID
 LANGUAGE plpgsql
 SECURITY DEFINER
 SET search_path = public, pg_temp
-AS $$
+AS $nava$
 DECLARE
   v_admin_id UUID;
 BEGIN
@@ -353,7 +351,7 @@ BEGIN
     RAISE EXCEPTION 'Crypto recovery report is not pending or does not exist';
   END IF;
 END;
-$$;
+$nava$;
 
 REVOKE ALL ON FUNCTION public.admin_reject_crypto_recovery_atomic(UUID, TEXT) FROM PUBLIC;
 REVOKE ALL ON FUNCTION public.admin_reject_crypto_recovery_atomic(UUID, TEXT) FROM anon;
