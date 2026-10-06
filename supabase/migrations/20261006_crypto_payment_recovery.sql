@@ -52,8 +52,8 @@ BEGIN
   END IF;
 END $$;
 
-DROP CONSTRAINT IF EXISTS transactions_crypto_requires_deposit_intent
-  ON public.transactions;
+ALTER TABLE public.transactions
+  DROP CONSTRAINT IF EXISTS transactions_crypto_requires_deposit_intent;
 
 ALTER TABLE public.transactions
   ADD CONSTRAINT transactions_crypto_requires_deposit_intent
