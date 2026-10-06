@@ -85,6 +85,61 @@ ALTER TABLE public.deposit_intents ENABLE ROW LEVEL SECURITY;
 -- authenticated users cannot directly create or modify financial intents.
 -- Customer routes use the Supabase service-role client only after verifying auth.
 
+-- Protect the real wallet balance from direct browser/Supabase writes.
+-- Customer-facing code must use the authenticated deposit RPC; the only direct
+-- profile balance writer that remains allowed is the NAVA admin.
+CREATE OR REPLACE FUNCTION public.is_admin_user()
+RETURNS BOOLEAN
+LANGUAGE sql
+SECURITY DEFINER
+SET search_path = public, pg_temp
+AS $
+  SELECT EXISTS (
+    SELECT 1
+    FROM public.profiles
+    WHERE id = auth.uid()
+      AND role = 'admin'
+  );
+$;
+
+REVOKE ALL ON FUNCTION public.is_admin_user() FROM PUBLIC;
+REVOKE ALL ON FUNCTION public.is_admin_user() FROM anon;
+GRANT EXECUTE ON FUNCTION public.is_admin_user() TO authenticated;
+
+CREATE OR REPLACE FUNCTION public.protect_profile_balance()
+RETURNS trigger
+LANGUAGE plpgsql
+SECURITY DEFINER
+SET search_path = public, pg_temp
+AS $
+DECLARE
+  v_operation TEXT;
+BEGIN
+  IF NEW.balance IS DISTINCT FROM OLD.balance THEN
+    v_operation := COALESCE(current_setting('nava.wallet_operation', true), '');
+
+    IF COALESCE(auth.role(), '') <> 'service_role'
+       AND NOT public.is_admin_user()
+       AND v_operation NOT IN (
+         'complete_deposit_atomic',
+         'admin_complete_deposit_atomic'
+       ) THEN
+      RAISE EXCEPTION 'Profile balance may only be changed by NAVA server wallet operations';
+    END IF;
+  END IF;
+
+  RETURN NEW;
+END;
+$;
+
+DROP TRIGGER IF EXISTS protect_profile_balance
+  ON public.profiles;
+
+CREATE TRIGGER protect_profile_balance
+  BEFORE UPDATE OF balance ON public.profiles
+  FOR EACH ROW
+  EXECUTE FUNCTION public.protect_profile_balance();
+
 -- Crypto transaction rows are also server-created. This trigger protects the
 -- financial table even if an existing authenticated INSERT policy exists.
 CREATE OR REPLACE FUNCTION public.enforce_crypto_transaction_server_insert()
@@ -193,6 +248,12 @@ BEGIN
     RAISE EXCEPTION 'Blockchain transaction occurred before the deposit intent';
   END IF;
 
+  PERFORM set_config(
+    'nava.wallet_operation',
+    'complete_deposit_atomic',
+    true
+  );
+
   UPDATE public.profiles
   SET balance = COALESCE(balance, 0) + v_tx_amount
   WHERE id = v_user_id
@@ -291,6 +352,12 @@ BEGIN
   IF NOT FOUND THEN
     RAISE EXCEPTION 'Deposit intent not found';
   END IF;
+
+  PERFORM set_config(
+    'nava.wallet_operation',
+    'admin_complete_deposit_atomic',
+    true
+  );
 
   UPDATE public.profiles
   SET balance = COALESCE(balance, 0) + v_amount
