@@ -1,23 +1,25 @@
+jest.mock("@/lib/supabase-request-auth", () => ({
+  getAuthenticatedSupabaseUser: jest.fn(),
+}));
+
+jest.mock("@/lib/supabase-admin", () => ({
+  supabaseAdmin: {
+    from: jest.fn(),
+    rpc: jest.fn(),
+  },
+}));
+
 import { POST as otpPost, GET as otpGet } from "@/app/api/otp/route";
 import { POST as cancelPost } from "@/app/api/otp/cancel/route";
 import { POST as rentalsExpirePost } from "@/app/api/rentals/expire/route";
 import { POST as rentalsPost } from "@/app/api/rentals/route";
 import { POST as rentalPurchasePost } from "@/app/api/rentals/purchase/route";
+import { getAuthenticatedSupabaseUser } from "@/lib/supabase-request-auth";
+import { supabaseAdmin } from "@/lib/supabase-admin";
 
-const mockGetAuthenticatedSupabaseUser = jest.fn();
-const mockRpc = jest.fn();
-const mockFrom = jest.fn();
-
-jest.mock("@/lib/supabase-request-auth", () => ({
-  getAuthenticatedSupabaseUser: mockGetAuthenticatedSupabaseUser,
-}));
-
-jest.mock("@/lib/supabase-admin", () => ({
-  supabaseAdmin: {
-    from: mockFrom,
-    rpc: mockRpc,
-  },
-}));
+const mockGetAuthenticatedSupabaseUser = getAuthenticatedSupabaseUser as jest.Mock;
+const mockRpc = supabaseAdmin.rpc as unknown as jest.Mock;
+const mockFrom = supabaseAdmin.from as unknown as jest.Mock;
 
 function makeChain(result: any) {
   const chain: any = {};
