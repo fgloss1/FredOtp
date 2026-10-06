@@ -1,6 +1,5 @@
 import { NextResponse } from "next/server";
 import { createClient } from "@supabase/supabase-js";
-import { supabaseAdmin } from "@/lib/supabase-admin";
 
 type SupportedCoin = "USDT" | "BTC" | "LTC";
 
@@ -99,7 +98,7 @@ export async function POST(req: Request) {
     const normalizedAmount = Number(amountUsd.toFixed(2));
 
     // Reuse an existing pending intent for the same user/coin/amount when it is still valid.
-    const { data: existingIntent, error: existingErr } = await supabaseAdmin
+    const { data: existingIntent, error: existingErr } = await client
       .from("deposit_intents")
       .select("id, coin, network, expected_amount_usd, destination_address, status, created_at, expires_at")
       .eq("user_id", user.id)
@@ -125,7 +124,7 @@ export async function POST(req: Request) {
       });
     }
 
-    const { data: intent, error: intentErr } = await supabaseAdmin
+    const { data: intent, error: intentErr } = await client
       .from("deposit_intents")
       .insert({
         user_id: user.id,
