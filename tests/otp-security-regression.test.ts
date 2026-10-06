@@ -60,7 +60,6 @@ function providerResponse(overrides: Record<string, unknown> = {}) {
 beforeEach(() => {
   jest.clearAllMocks();
   process.env.FIVESIM_API_TOKEN = "test-5sim-token";
-  process.env.NODE_ENV = "test";
   global.fetch = jest.fn(async (url: string) => {
     if (url.includes("/cancel/")) {
       return new Response("{}", { status: 200 });
@@ -262,7 +261,7 @@ describe("OTP security regression", () => {
   });
 
   test("non-OTP rental mutations are disabled", async () => {
-    expect((await rentalsPost(new Request("http://localhost/api/rentals", { method: "POST" }))).status).toBe(410);
-    expect((await rentalPurchasePost(new Request("http://localhost/api/rentals/purchase", { method: "POST" }))).status).toBe(410);
+    expect((await rentalsPost()).status).toBe(410);
+    expect((await rentalPurchasePost()).status).toBe(410);
   });
 });
