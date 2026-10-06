@@ -111,13 +111,18 @@ RETURNS trigger
 LANGUAGE plpgsql
 SECURITY DEFINER
 SET search_path = public, pg_temp
-AS $
+AS $$
 DECLARE
   v_operation TEXT;
 BEGIN
-  IF NEW.balance IS DISTINCT FROM OLD.balance THEN
-    v_operation := COALESCE(current_setting('nava.wallet_operation', true), '');
+  v_operation := COALESCE(current_setting('nava.wallet_operation', true), '');
 
+  IF NEW.role IS DISTINCT FROM OLD.role
+     AND COALESCE(auth.role(), '') <> 'service_role' THEN
+    RAISE EXCEPTION 'Profile role may only be changed by the NAVA server';
+  END IF;
+
+  IF NEW.balance IS DISTINCT FROM OLD.balance THEN
     IF COALESCE(auth.role(), '') <> 'service_role'
        AND NOT public.is_admin_user()
        AND v_operation NOT IN (
@@ -130,7 +135,7 @@ BEGIN
 
   RETURN NEW;
 END;
-$;
+$$;
 
 DROP TRIGGER IF EXISTS protect_profile_balance
   ON public.profiles;
@@ -163,6 +168,41 @@ CREATE TRIGGER enforce_crypto_transaction_server_insert
   BEFORE INSERT ON public.transactions
   FOR EACH ROW
   EXECUTE FUNCTION public.enforce_crypto_transaction_server_insert();
+
+-- Protect the financial transaction ledger from direct customer mutation.
+-- New crypto rows are created server-side; the two wallet RPCs may update
+-- their own transaction status atomically.
+CREATE OR REPLACE FUNCTION public.protect_transaction_ledger()
+RETURNS trigger
+LANGUAGE plpgsql
+SECURITY DEFINER
+SET search_path = public, pg_temp
+AS $
+DECLARE
+  v_operation TEXT;
+BEGIN
+  v_operation := COALESCE(current_setting('nava.transaction_operation', true), '');
+
+  IF COALESCE(auth.role(), '') = 'service_role'
+     OR public.is_admin_user()
+     OR v_operation IN (
+       'complete_deposit_atomic',
+       'admin_complete_deposit_atomic'
+     ) THEN
+    RETURN COALESCE(NEW, OLD);
+  END IF;
+
+  RAISE EXCEPTION 'Financial transactions may only be changed by NAVA server operations or an admin';
+END;
+$;
+
+DROP TRIGGER IF EXISTS protect_transaction_ledger
+  ON public.transactions;
+
+CREATE TRIGGER protect_transaction_ledger
+  BEFORE INSERT OR UPDATE OR DELETE ON public.transactions
+  FOR EACH ROW
+  EXECUTE FUNCTION public.protect_transaction_ledger();
 
 CREATE OR REPLACE FUNCTION public.complete_deposit_atomic(
   p_intent_id UUID,
@@ -262,6 +302,12 @@ BEGIN
   IF NOT FOUND THEN
     RAISE EXCEPTION 'Profile not found';
   END IF;
+
+  PERFORM set_config(
+    'nava.transaction_operation',
+    'complete_deposit_atomic',
+    true
+  );
 
   UPDATE public.transactions
   SET status = 'completed'
@@ -367,6 +413,12 @@ BEGIN
   IF NOT FOUND THEN
     RAISE EXCEPTION 'Profile not found';
   END IF;
+
+  PERFORM set_config(
+    'nava.transaction_operation',
+    'admin_complete_deposit_atomic',
+    true
+  );
 
   UPDATE public.transactions
   SET status = 'completed'
