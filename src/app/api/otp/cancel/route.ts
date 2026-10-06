@@ -1,120 +1,83 @@
-import { NextResponse } from 'next/server';
-import { supabase } from '@/lib/supabase';
+import { NextResponse } from "next/server";
+import { supabaseAdmin } from "@/lib/supabase-admin";
+import { getAuthenticatedSupabaseUser } from "@/lib/supabase-request-auth";
 
 export async function POST(req: Request) {
   try {
-    const body = await req.json();
-    const orderId = body.orderId || body.id;
-
-    if (!orderId) {
-      return NextResponse.json(
-        { success: false, error: 'Missing order ID for cancellation.' },
-        { status: 400 }
-      );
+    const user = await getAuthenticatedSupabaseUser(req);
+    if (!user) {
+      return NextResponse.json({ success: false, error: "Unauthorized. Please log in." }, { status: 401 });
     }
 
-    // 1. Resolve Authenticated User
-    let userId: string | null = null;
-    try {
-      const { data: { user } } = await supabase.auth.getUser();
-      if (user?.id) userId = user.id;
-    } catch (_) {}
+    const body = await req.json();
+    const orderId = String(body.orderId || body.id || "").trim();
+    if (!orderId) {
+      return NextResponse.json({ success: false, error: "Missing order ID for cancellation." }, { status: 400 });
+    }
 
-    // 2. Locate Order in Supabase Database
-       let dbOrder: any = null;
-    const isUuid = /^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/i.test(String(orderId));
-
-    const { data, error } = await supabase
-      .from('orders')
-      .select('*')
-      .eq(isUuid ? 'id' : 'supplier_order_id', String(orderId))
-      .order('created_at', { ascending: false })
-      .limit(1)
+    const { data: dbOrder, error: orderErr } = await supabaseAdmin
+      .from("orders")
+      .select("id, user_id, status, price_usd, supplier, supplier_order_id")
+      .eq("id", orderId)
+      .eq("user_id", user.id)
       .maybeSingle();
 
-    if (!error && data) {
-      dbOrder = data;
-      if (!userId) userId = data.user_id;
-    }
-
+    if (orderErr) throw orderErr;
     if (!dbOrder) {
-      return NextResponse.json(
-        { success: false, error: 'Order not found. No refund issued.' },
-        { status: 404 }
-      );
+      return NextResponse.json({ success: false, error: "Order not found." }, { status: 404 });
     }
 
-    const supplierOrderId = dbOrder.supplier_order_id || String(orderId);
-    const refundAmount = Number(dbOrder.price_usd || 0);
-
-    // Prevent double refunds if order is already canceled or completed
-    if (['canceled', 'refunded', 'completed', 'expired'].includes(dbOrder.status?.toLowerCase())) {
-        return NextResponse.json({
+    const status = String(dbOrder.status || "").toLowerCase();
+    if (["canceled", "refunded", "completed", "expired", "banned"].includes(status)) {
+      return NextResponse.json({
         success: true,
-        message: 'Order is already closed or refunded.',
+        message: "Order is already closed or refunded.",
         status: dbOrder.status,
+        refundedAmountUSD: 0,
       });
     }
 
-    // 3. Cancel Order with 5SIM Provider (if token exists)
+    const supplierOrderId = String(dbOrder.supplier_order_id || "");
     const fivesimToken = process.env.FIVESIM_API_TOKEN || process.env.FIVESIM_API_KEY;
-    if (fivesimToken && fivesimToken !== 'your_5sim_key_here' && !supplierOrderId.startsWith('MOCK-')) {
-      try {
-        const apiRes = await fetch(`https://5sim.net/v1/user/cancel/${supplierOrderId}`, {
-          method: 'GET',
-          headers: {
-            Authorization: `Bearer ${fivesimToken}`,
-            Accept: 'application/json',
-          },
-        });
 
-        if (!apiRes.ok) {
-          const errText = await apiRes.text();
-          console.warn(`5SIM order cancellation notice for ${supplierOrderId}:`, errText);
-        }
-      } catch (err) {
-        console.warn('Network error while canceling order with 5SIM:', err);
+    if (dbOrder.supplier === "5sim" && supplierOrderId && fivesimToken && fivesimToken !== "your_5sim_key_here") {
+      const apiRes = await fetch("https://5sim.net/v1/user/cancel/" + encodeURIComponent(supplierOrderId), {
+        method: "GET",
+        headers: {
+          Authorization: "Bearer " + fivesimToken,
+          Accept: "application/json",
+        },
+      });
+      if (!apiRes.ok) {
+        return NextResponse.json(
+          { success: false, error: "The supplier could not cancel this number yet. No wallet refund was issued." },
+          { status: 502 }
+        );
       }
     }
 
-    // 4. Update Database Order Status to 'canceled'
-    if (dbOrder?.id) {
-      await supabase
-        .from('orders')
-        .update({ status: 'canceled' })
-        .eq('id', dbOrder.id);
-    }
+    const { data, error } = await supabaseAdmin.rpc("otp_close_order_atomic", {
+      p_order_id: dbOrder.id,
+      p_user_id: user.id,
+      p_final_status: "canceled",
+    });
 
-    // 5. Refund User Wallet Balance in Supabase 'profiles'
-    let newBalance = 0.0;
-    if (userId) {
-      const { data: profile } = await supabase
-        .from('profiles')
-        .select('balance')
-        .eq('id', userId)
-        .single();
+    if (error) throw error;
+    const result = Array.isArray(data) ? data[0] : data;
 
-      const currentBalance = Number(profile?.balance || 0);
-      newBalance = Number((currentBalance + refundAmount).toFixed(2));
-
-      await supabase
-        .from('profiles')
-        .update({ balance: newBalance })
-        .eq('id', userId);
-    }
-
-    // 6. Return Clean Structured JSON Response
     return NextResponse.json({
       success: true,
-      message: 'Order canceled and refunded successfully.',
-      status: 'canceled',
-      refundedAmountUSD: refundAmount,
-      newBalance,
+      message: result?.refunded_amount > 0
+        ? "Order canceled and refunded successfully."
+        : "Order canceled successfully.",
+      status: result?.status || "canceled",
+      refundedAmountUSD: Number(result?.refunded_amount || 0),
+      newBalance: Number(result?.new_balance || 0),
     });
   } catch (err: any) {
-    console.error('Error during cancellation:', err);
+    console.error("Error during OTP cancellation:", err);
     return NextResponse.json(
-      { success: false, error: err.message || 'Unable to process cancellation.' },
+      { success: false, error: err?.message || "Unable to process cancellation." },
       { status: 500 }
     );
   }

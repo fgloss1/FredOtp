@@ -101,11 +101,16 @@ export default function DashboardPage() {
 
         if (stale.length > 0) {
           setIsCleaning(true);
-          for (const o of stale) {
+          const { data: { session } } = await supabase.auth.getSession();
+        for (const o of stale) {
             try {
+              if (!session?.access_token) break;
               await fetch("/api/rentals/expire", {
                 method: "POST",
-                headers: { "Content-Type": "application/json" },
+                headers: {
+                  "Content-Type": "application/json",
+                  Authorization: "Bearer " + session.access_token,
+                },
                 body: JSON.stringify({ orderId: o.id }),
               });
             } catch (e) {
@@ -196,9 +201,15 @@ export default function DashboardPage() {
   const handleCancelFromTable = async (rentalId: string) => {
     setCancelingId(rentalId);
     try {
+      const { supabase } = await import("@/lib/supabase");
+      const { data: { session } } = await supabase.auth.getSession();
+      if (!session?.access_token) return;
       const res = await fetch("/api/otp/cancel", {
         method: "POST",
-        headers: { "Content-Type": "application/json" },
+        headers: {
+          "Content-Type": "application/json",
+          Authorization: "Bearer " + session.access_token,
+        },
         body: JSON.stringify({ orderId: rentalId }),
       });
       if (res.ok) {

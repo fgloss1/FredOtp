@@ -1,37 +1,7 @@
 import { NextResponse } from "next/server";
-import { createClient } from "@supabase/supabase-js";
 import { supabaseAdmin } from "@/lib/supabase-admin";
+import { getAuthenticatedSupabaseUser } from "@/lib/supabase-request-auth";
 import { calculateNavaPrice } from "@/lib/pricing";
-
-async function getAuthenticatedUser(req: Request) {
-  const authHeader = req.headers.get("Authorization");
-
-  if (!authHeader?.startsWith("Bearer ")) {
-    return { error: NextResponse.json({ error: "Unauthorized. Please log in." }, { status: 401 }) };
-  }
-
-  const accessToken = authHeader.slice(7).trim();
-  if (!accessToken) {
-    return { error: NextResponse.json({ error: "Unauthorized. Please log in." }, { status: 401 }) };
-  }
-
-  const client = createClient(
-    process.env.NEXT_PUBLIC_SUPABASE_URL || "",
-    process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY || "",
-    {
-      global: { headers: { Authorization: `Bearer ${accessToken}` } },
-      auth: { autoRefreshToken: false, persistSession: false },
-    }
-  );
-
-  const { data: { user }, error } = await client.auth.getUser();
-
-  if (error || !user) {
-    return { error: NextResponse.json({ error: "Unauthorized. Please log in." }, { status: 401 }) };
-  }
-
-  return { user };
-}
 
 async function cancelSupplierOrder(supplier: string, supplierOrderId: string) {
   if (!supplierOrderId || supplierOrderId.startsWith("MOCK-")) return;
@@ -66,8 +36,10 @@ async function adjustOtpBalance(userId: string, delta: number) {
 
 export async function GET(req: Request) {
   try {
-    const auth = await getAuthenticatedUser(req);
-    if ("error" in auth) return auth.error;
+    const user = await getAuthenticatedSupabaseUser(req);
+    if (!user) {
+      return NextResponse.json({ error: "Unauthorized. Please log in." }, { status: 401 });
+    }
 
     const { searchParams } = new URL(req.url);
     const orderId = searchParams.get("orderId")?.trim();
@@ -80,7 +52,7 @@ export async function GET(req: Request) {
       .from("orders")
       .select("id, user_id, service_name, country_code, phone_number, price_usd, status, supplier, supplier_order_id, created_at, sms_code, sms_text")
       .eq("id", orderId)
-      .eq("user_id", auth.user.id)
+      .eq("user_id", user.id)
       .maybeSingle();
 
     if (orderErr) {
@@ -186,10 +158,11 @@ export async function POST(req: Request) {
   let supplierOrderId = "";
 
   try {
-    const auth = await getAuthenticatedUser(req);
-    if ("error" in auth) return auth.error;
+    const user = await getAuthenticatedSupabaseUser(req);
+    if (!user) {
+      return NextResponse.json({ error: "Unauthorized. Please log in." }, { status: 401 });
+    }
 
-    const { user } = auth;
     chargedUserId = user.id;
 
     const body = await req.json();
@@ -294,7 +267,7 @@ export async function POST(req: Request) {
       );
     }
 
-    if (!assignedPhone) {
+    if (!assignedPhone && process.env.NODE_ENV !== "production") {
       supplierName = "mock";
       const areaCode = Math.floor(200 + Math.random() * 700);
       const prefix = Math.floor(100 + Math.random() * 800);
@@ -306,6 +279,13 @@ export async function POST(req: Request) {
 
       supplierOrderId = `MOCK-${Date.now()}-${Math.floor(Math.random() * 1000)}`;
       actualSupplierCost = priceUSD / 1.5;
+    }
+
+    if (!assignedPhone) {
+      return NextResponse.json(
+        { error: "OTP provider is unavailable. No number was assigned and your wallet was not charged." },
+        { status: 503 }
+      );
     }
 
     const pricingResult = calculateNavaPrice(

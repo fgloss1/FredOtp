@@ -395,7 +395,11 @@ export default function OtpCatalog({ onBalanceRefresh, userBalance }: OtpCatalog
       stopPolling();
       pollTimerRef.current = setInterval(async () => {
         try {
-          const res = await fetch(`/api/otp?orderId=${encodeURIComponent(orderId)}`);
+          const { data: { session } } = await supabase.auth.getSession();
+          if (!session?.access_token) return;
+          const res = await fetch("/api/otp?orderId=" + encodeURIComponent(orderId), {
+            headers: { Authorization: "Bearer " + session.access_token },
+          });
           if (!res.ok) return;
           const data = await res.json();
           if (!data || data.error) return;
@@ -501,9 +505,16 @@ export default function OtpCatalog({ onBalanceRefresh, userBalance }: OtpCatalog
     setIsCanceling(true);
     setErrorMessage(null);
     try {
+      const { data: { session } } = await supabase.auth.getSession();
+      if (!session?.access_token) {
+        throw new Error('Your login session has expired. Please log in again.');
+      }
       const res = await fetch('/api/otp/cancel', {
         method: 'POST',
-        headers: { 'Content-Type': 'application/json' },
+        headers: {
+          'Content-Type': 'application/json',
+          Authorization: "Bearer " + session.access_token,
+        },
         body: JSON.stringify({ orderId: activeOrder.orderId }),
       });
       const data = await res.json();

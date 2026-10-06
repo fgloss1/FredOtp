@@ -1,98 +1,81 @@
 import { NextResponse } from "next/server";
-import { supabase } from "@/lib/supabase";
+import { supabaseAdmin } from "@/lib/supabase-admin";
+import { getAuthenticatedSupabaseUser } from "@/lib/supabase-request-auth";
 
 export async function POST(req: Request) {
   try {
-    const { orderId } = await req.json();
+    const user = await getAuthenticatedSupabaseUser(req);
+    if (!user) {
+      return NextResponse.json({ success: false, error: "Unauthorized. Please log in." }, { status: 401 });
+    }
 
-    if (!orderId) {
+    const { orderId } = await req.json();
+    const normalizedOrderId = String(orderId || "").trim();
+    if (!normalizedOrderId) {
       return NextResponse.json({ error: "Missing order ID" }, { status: 400 });
     }
 
-    // 1. Fetch Order Record (matches both primary UUID id and supplier_order_id)
-    let { data: order } = await supabase
+    const { data: order, error: orderErr } = await supabaseAdmin
       .from("orders")
-      .select("*")
-      .eq("id", orderId)
+      .select("id, user_id, status, supplier, supplier_order_id")
+      .eq("id", normalizedOrderId)
+      .eq("user_id", user.id)
       .maybeSingle();
 
-    if (!order) {
-      const { data: supplierOrder } = await supabase
-        .from("orders")
-        .select("*")
-        .eq("supplier_order_id", orderId)
-        .maybeSingle();
-
-      order = supplierOrder;
-    }
-
+    if (orderErr) throw orderErr;
     if (!order) {
       return NextResponse.json({ error: "Order record not found" }, { status: 404 });
     }
 
-    // 2. Prevent Double Refunds if already completed or expired
-    if (order.status === "Completed") {
-      return NextResponse.json(
-        { error: "Cannot refund a completed order with received SMS code." },
-        { status: 400 }
-      );
-    }
-
-    if (order.status === "Expired" || order.status === "Cancelled") {
-      const { data: profile } = await supabase
-        .from("profiles")
-        .select("balance")
-        .eq("id", order.user_id)
-        .single();
-
+    const status = String(order.status || "").toLowerCase();
+    if (["canceled", "refunded", "completed", "expired", "banned"].includes(status)) {
       return NextResponse.json({
         success: true,
-        alreadyExpired: true,
-        newBalance: profile ? Number(profile.balance) : undefined,
-        message: `Order is already ${order.status.toLowerCase()}`,
+        alreadyExpired: status === "expired",
+        refundedAmount: 0,
+        message: "Order is already " + status,
       });
     }
 
-    // 3. Fetch User Profile Balance
-    const { data: profile, error: profileErr } = await supabase
-      .from("profiles")
-      .select("balance")
-      .eq("id", order.user_id)
-      .single();
-
-    if (profileErr || !profile) {
-      return NextResponse.json({ error: "User profile not found" }, { status: 404 });
+    const supplierOrderId = String(order.supplier_order_id || "");
+    const fivesimToken = process.env.FIVESIM_API_TOKEN || process.env.FIVESIM_API_KEY;
+    if (order.supplier === "5sim" && supplierOrderId && fivesimToken && fivesimToken !== "your_5sim_key_here") {
+      const apiRes = await fetch("https://5sim.net/v1/user/cancel/" + encodeURIComponent(supplierOrderId), {
+        method: "GET",
+        headers: {
+          Authorization: "Bearer " + fivesimToken,
+          Accept: "application/json",
+        },
+      });
+      if (!apiRes.ok) {
+        return NextResponse.json(
+          { success: false, error: "The supplier could not release this number yet. No wallet refund was issued." },
+          { status: 502 }
+        );
+      }
     }
 
-    const currentBalance = Number(profile.balance || 0);
-    const refundAmount = Number(order.price_usd || 0);
-    const newBalance = Number((currentBalance + refundAmount).toFixed(2));
+    const { data, error } = await supabaseAdmin.rpc("otp_close_order_atomic", {
+      p_order_id: order.id,
+      p_user_id: user.id,
+      p_final_status: "expired",
+    });
+    if (error) throw error;
 
-    // 4. Update Profile Balance & Mark Order Expired
-    const { error: updateBalErr } = await supabase
-      .from("profiles")
-      .update({ balance: newBalance })
-      .eq("id", order.user_id);
-
-    if (updateBalErr) throw updateBalErr;
-
-    const { error: updateOrderErr } = await supabase
-      .from("orders")
-      .update({ status: "Expired" })
-      .eq("id", order.id);
-
-    if (updateOrderErr) throw updateOrderErr;
+    const result = Array.isArray(data) ? data[0] : data;
+    const refundedAmount = Number(result?.refunded_amount || 0);
+    const newBalance = Number(result?.new_balance || 0);
 
     return NextResponse.json({
       success: true,
-      refundedAmount: refundAmount,
+      refundedAmount,
       newBalance,
-      message: `⚡ 10-Minute timeout reached. $${refundAmount.toFixed(2)} automatically refunded to your wallet balance.`,
+      message: "$" + refundedAmount.toFixed(2) + " automatically refunded to your wallet balance.",
     });
   } catch (err: any) {
     console.error("Error in /api/rentals/expire:", err);
     return NextResponse.json(
-      { error: err.message || "Failed to process auto-refund." },
+      { error: err?.message || "Failed to process auto-refund." },
       { status: 500 }
     );
   }
