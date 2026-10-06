@@ -440,18 +440,20 @@ export default function OtpCatalog({ onBalanceRefresh, userBalance }: OtpCatalog
     setIsPurchasing(true);
     setErrorMessage(null);
     try {
-      let userId: string | undefined;
-      try {
-        const { data: { user } } = await supabase.auth.getUser();
-        if (user?.id) userId = user.id;
-      } catch (_) {}
+      const { data: { session } } = await supabase.auth.getSession();
+      if (!session?.access_token) {
+        throw new Error('Your login session has expired. Please log in again.');
+      }
+
       const res = await fetch('/api/otp', {
         method: 'POST',
-        headers: { 'Content-Type': 'application/json' },
+        headers: {
+          'Content-Type': 'application/json',
+          Authorization: `Bearer ${session.access_token}`,
+        },
         body: JSON.stringify({
-          userId,
-          country: country.slug,
-          service: selectedService.slug,
+          serviceSlug: selectedService.slug,
+          countryCode: country.slug,
           priceUSD: country.navaPrice,
         }),
       });
@@ -459,12 +461,13 @@ export default function OtpCatalog({ onBalanceRefresh, userBalance }: OtpCatalog
       if (!res.ok || data.error) {
         throw new Error(data.error || 'Order purchase failed');
       }
-      const resolvedOrderId = String(data.id || data.orderId || data.supplier_order_id || '');
-      const resolvedPhone = String(data.number || data.phone_number || data.phoneNumber || '');
-      const resolvedService = String(data.service || data.service_name || selectedService.displayName);
-      const resolvedCountry = String(data.country || data.country_code || country.displayName);
-      const resolvedPrice = Number(data.priceUSD || data.navaPrice || data.price_usd || country.navaPrice);
-      const resolvedExpiresAt = String(data.expires_at || data.expiresAt || new Date(Date.now() + 15 * 60_000).toISOString());
+      const orderData = data.order || data;
+      const resolvedOrderId = String(orderData.id || orderData.orderId || orderData.supplier_order_id || '');
+      const resolvedPhone = String(orderData.number || orderData.phone_number || orderData.phoneNumber || '');
+      const resolvedService = String(orderData.service || orderData.service_name || selectedService.displayName);
+      const resolvedCountry = String(orderData.country || orderData.country_code || country.displayName);
+      const resolvedPrice = Number(orderData.priceUSD || orderData.navaPrice || orderData.price_usd || country.navaPrice);
+      const resolvedExpiresAt = String(orderData.expires_at || orderData.expiresAt || new Date(Date.now() + 15 * 60_000).toISOString());
       if (!resolvedOrderId || !resolvedPhone) {
         throw new Error('Received invalid order payload from server.');
       }
