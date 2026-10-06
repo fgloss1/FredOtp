@@ -81,19 +81,33 @@ END $$;
 
 ALTER TABLE public.deposit_intents ENABLE ROW LEVEL SECURITY;
 
-DROP POLICY IF EXISTS deposit_intents_select_own ON public.deposit_intents;
-CREATE POLICY deposit_intents_select_own
-  ON public.deposit_intents
-  FOR SELECT
-  TO authenticated
-  USING (user_id = auth.uid());
+-- Deposit intents are server-managed. With RLS enabled and no client policies,
+-- authenticated users cannot directly create or modify financial intents.
+-- Customer routes use the Supabase service-role client only after verifying auth.
 
-DROP POLICY IF EXISTS deposit_intents_insert_own ON public.deposit_intents;
-CREATE POLICY deposit_intents_insert_own
-  ON public.deposit_intents
-  FOR INSERT
-  TO authenticated
-  WITH CHECK (user_id = auth.uid());
+-- Crypto transaction rows are also server-created. This trigger protects the
+-- financial table even if an existing authenticated INSERT policy exists.
+CREATE OR REPLACE FUNCTION public.enforce_crypto_transaction_server_insert()
+RETURNS trigger
+LANGUAGE plpgsql
+AS $$
+BEGIN
+  IF NEW.payment_method ILIKE 'Crypto - %'
+     AND COALESCE(auth.role(), '') <> 'service_role' THEN
+    RAISE EXCEPTION 'Crypto transactions may only be created by the NAVA server';
+  END IF;
+
+  RETURN NEW;
+END;
+$$;
+
+DROP TRIGGER IF EXISTS enforce_crypto_transaction_server_insert
+  ON public.transactions;
+
+CREATE TRIGGER enforce_crypto_transaction_server_insert
+  BEFORE INSERT ON public.transactions
+  FOR EACH ROW
+  EXECUTE FUNCTION public.enforce_crypto_transaction_server_insert();
 
 CREATE OR REPLACE FUNCTION public.complete_deposit_atomic(
   p_intent_id UUID,
