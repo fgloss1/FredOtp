@@ -23,7 +23,7 @@ export default function RentalsPage() {
   const [userEmail, setUserEmail] = useState<string>("");
 
   // Rental Mode State ('quick' | 'webline' | 'esim')
-  const [rentalMode, setRentalMode] = useState<"quick" | "webline" | "esim">("quick");
+  const [rentalMode, setRentalMode] = useState<"quick" | "webline" | "esim">("webline");
 
   // Form State
   const [selectedCountry, setSelectedCountry] = useState<CountryOption>({ name: "United States", code: "US" });
@@ -95,46 +95,6 @@ export default function RentalsPage() {
       window.removeEventListener("nava-currency-change", checkCurrency);
     };
   }, []);
-
-  // Public launch scope: OTP verification only.
-  // Keep the rental implementation in the codebase for background development/testing,
-  // but do not expose or execute it from the public customer page yet.
-  return (
-    <section
-      aria-labelledby="rental-coming-soon-title"
-      className={`space-y-6 ${darkMode ? "text-white" : "text-slate-900"} font-sans`}
-    >
-      <div>
-        <div className="flex items-center gap-3 flex-wrap">
-          <h1 id="rental-coming-soon-title" className="text-2xl font-bold">Rental Services</h1>
-          <span className="text-[9px] uppercase tracking-wider font-black text-amber-400 border border-amber-500/25 bg-amber-500/10 rounded-full px-2 py-1">
-            Coming Soon
-          </span>
-        </div>
-        <p className={`${darkMode ? "text-gray-400" : "text-slate-600"} text-xs mt-1`}>
-          Rental Services are being developed in the background. For now, NAVA is focused exclusively on OTP verification.
-        </p>
-      </div>
-
-      <div className={`${darkMode ? "bg-[#0d1526] border-slate-800" : "bg-white border-slate-300"} border-2 rounded-3xl p-8 sm:p-12 text-center max-w-2xl mx-auto space-y-5 shadow-xl`}>
-        <div className="w-16 h-16 bg-amber-500/10 border border-amber-500/30 text-amber-400 rounded-2xl flex items-center justify-center text-3xl mx-auto">
-          📦
-        </div>
-        <div className="space-y-2">
-          <h2 className="text-xl font-bold">Rental Services Coming Soon</h2>
-          <p className={`${darkMode ? "text-gray-400" : "text-slate-600"} text-xs leading-relaxed max-w-md mx-auto`}>
-            Phone lines, web lines, eSIMs, and other rental products are not available for public purchase yet.
-          </p>
-        </div>
-        <a
-          href="/dashboard"
-          className="inline-flex items-center justify-center min-h-11 w-full sm:w-auto bg-emerald-500 hover:bg-emerald-400 text-black font-black text-xs px-6 py-3 rounded-xl transition-all shadow-md"
-        >
-          Buy OTP Numbers
-        </a>
-      </div>
-    </section>
-  );
 
   const rate = 1500;
   const formatAmt = (usd: number) => {
@@ -280,7 +240,7 @@ export default function RentalsPage() {
         <div className="grid grid-cols-1 md:grid-cols-3 gap-4 sm:gap-5">
           {/* Card 1: Quick Code (ACTIVE) */}
           <div
-            onClick={() => handleSelectCard("quick")}
+            onClick={() => setErrorMessage("Rental Services are coming soon. Please use Buy OTP from the main dashboard.")}
             className={`cursor-pointer rounded-2xl sm:rounded-3xl p-5 sm:p-6 space-y-4 relative flex flex-col justify-between transition-all border ${
               rentalMode === "quick"
                 ? "bg-emerald-500/10 border-emerald-500 ring-2 ring-emerald-500/30 shadow-lg"
@@ -288,7 +248,7 @@ export default function RentalsPage() {
             }`}
           >
             <span className="absolute top-4 right-4 bg-emerald-500/20 text-emerald-600 dark:text-emerald-400 border border-emerald-500/30 text-[10px] font-bold px-2.5 py-0.5 rounded-full uppercase">
-              Most Popular
+              Coming Soon
             </span>
             <div className="space-y-2">
               <div className={`w-10 h-10 sm:w-12 sm:h-12 rounded-2xl border flex items-center justify-center text-xl sm:text-2xl ${c.iconBox}`}>
@@ -310,7 +270,7 @@ export default function RentalsPage() {
                   rentalMode === "quick" ? "bg-emerald-500 text-black" : c.btnInactive
                 }`}
               >
-                {rentalMode === "quick" ? "Selected ✓" : "Rent Quick Code ↓"}
+                {rentalMode === "quick" ? "Selected ✓" : "Coming Soon"}
               </button>
             </div>
           </div>

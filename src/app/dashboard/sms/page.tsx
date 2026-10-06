@@ -34,14 +34,9 @@ export default function SmsComingSoonPage() {
     <div className={`space-y-6 ${theme.text} font-sans`}>
       {/* Header */}
       <div>
-        <div className="flex items-center gap-3">
-          <h1 className="text-2xl font-bold">Phone</h1>
-          <span className="text-[9px] uppercase tracking-wider font-black text-amber-400 border border-amber-500/25 bg-amber-500/10 rounded-full px-2 py-1">
-            Coming Soon
-          </span>
-        </div>
+        <h1 className="text-2xl font-bold">Phone</h1>
         <p className={`${theme.textMuted} text-xs mt-0.5`}>
-          Phone services are currently in development and are not available yet.
+          Phone services are currently in development and coming soon.
         </p>
       </div>
 
@@ -53,7 +48,7 @@ export default function SmsComingSoonPage() {
 
         <div className="space-y-2">
           <span className="text-[10px] font-bold uppercase tracking-wider bg-pink-950/50 text-pink-400 px-3 py-1 rounded-full border border-pink-500/30">
-            Coming Soon
+            Feature In Development
           </span>
           <h2 className={`text-xl font-bold ${theme.text}`}>Web SMS Dispatcher Coming Soon</h2>
           <p className={`text-xs ${theme.textMuted} leading-relaxed max-w-md mx-auto`}>
@@ -69,7 +64,12 @@ export default function SmsComingSoonPage() {
           >
             📞 Get Instant Disposable OTP
           </Link>
-
+          <Link
+            href="/dashboard/rentals"
+            className={`${theme.innerCard} hover:border-slate-500 text-xs font-bold px-6 py-3 rounded-xl transition-all border`}
+          >
+            📱 Rent 30-Day T-Mobile eSIM Line
+          </Link>
         </div>
       </div>
     </div>
