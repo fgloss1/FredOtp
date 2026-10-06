@@ -24,6 +24,7 @@ export default function RentalsPage() {
 
   // Rental Mode State ('quick' | 'webline' | 'esim')
   const [rentalMode, setRentalMode] = useState<"quick" | "webline" | "esim">("webline");
+  const RENTALS_PUBLICLY_ENABLED = false;
 
   // Form State
   const [selectedCountry, setSelectedCountry] = useState<CountryOption>({ name: "United States", code: "US" });
@@ -118,6 +119,11 @@ export default function RentalsPage() {
 
   // Order Execution Handler
   const handleOrderNumber = async () => {
+    if (!RENTALS_PUBLICLY_ENABLED) {
+      setErrorMessage("Rental Services are coming soon. Please use Buy OTP from the main dashboard.");
+      return;
+    }
+
     if (!userId) {
       setErrorMessage("Please sign in to rent a phone number.");
       return;
