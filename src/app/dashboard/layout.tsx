@@ -443,7 +443,7 @@ export default function AntiFlashLayout({ children }: { children: React.ReactNod
             {navItems.map((item) => {
               const isActive = pathname === item.href;
               return (
-                {item.comingSoon ? (
+                item.comingSoon ? (
                   <div
                     key={item.href}
                     aria-disabled="true"
@@ -526,7 +526,7 @@ export default function AntiFlashLayout({ children }: { children: React.ReactNod
             {navItems.map((item) => {
               const isActive = pathname === item.href;
               return (
-                {item.comingSoon ? (
+                item.comingSoon ? (
                   <div
                     key={item.href}
                     aria-disabled="true"
