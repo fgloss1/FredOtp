@@ -323,7 +323,7 @@ export async function POST(req: Request) {
       return NextResponse.json({ error: "Invalid deposit amount." }, { status: 400 });
     }
 
-    const { data: newTx, error: txErr } = await client
+    const { data: newTx, error: txErr } = await supabaseAdmin
       .from("transactions")
       .insert({
         user_id: user.id,
