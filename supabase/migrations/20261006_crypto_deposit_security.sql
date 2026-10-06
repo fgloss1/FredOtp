@@ -93,7 +93,7 @@ RETURNS BOOLEAN
 LANGUAGE sql
 SECURITY DEFINER
 SET search_path = public, pg_temp
-AS $
+AS $$
   SELECT EXISTS (
     SELECT 1
     FROM public.profiles
@@ -177,7 +177,7 @@ RETURNS trigger
 LANGUAGE plpgsql
 SECURITY DEFINER
 SET search_path = public, pg_temp
-AS $
+AS $$
 DECLARE
   v_operation TEXT;
 BEGIN
