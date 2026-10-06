@@ -250,24 +250,24 @@ export default function AntiFlashLayout({ children }: { children: React.ReactNod
   }
 
   const allNavItems = [
-    { href: "/dashboard", label: "Rent a number", icon: "phone", adminOnly: false },
-    { href: "/dashboard/sms", label: "Phone", icon: "chat", adminOnly: false },
-    { href: "/dashboard/rentals", label: "Rental Services", icon: "store", adminOnly: false },
-    { href: "/dashboard/history", label: "History", icon: "history", adminOnly: false },
-    { href: "/dashboard/wallet", label: "Wallet & Top Up", icon: "wallet", adminOnly: false },
-    { href: "/dashboard/otp", label: "Price list", icon: "tag", adminOnly: false },
-    { href: "/dashboard/support", label: "Help & Support", icon: "support", adminOnly: false },
-    { href: "/admin/rentals", label: "Admin Desk", icon: "admin", adminOnly: true },
+    { href: "/dashboard", label: "Buy OTP", icon: "phone", adminOnly: false, comingSoon: false },
+    { href: "/dashboard/sms", label: "Phone", icon: "chat", adminOnly: false, comingSoon: true },
+    { href: "/dashboard/rentals", label: "Rental Services", icon: "store", adminOnly: false, comingSoon: true },
+    { href: "/dashboard/history", label: "OTP History", icon: "history", adminOnly: false, comingSoon: false },
+    { href: "/dashboard/wallet", label: "Wallet & Top Up", icon: "wallet", adminOnly: false, comingSoon: false },
+    { href: "/dashboard/otp", label: "OTP Price List", icon: "tag", adminOnly: false, comingSoon: false },
+    { href: "/dashboard/support", label: "Help & Support", icon: "support", adminOnly: false, comingSoon: false },
+    { href: "/admin/rentals", label: "Admin Desk", icon: "admin", adminOnly: true, comingSoon: false },
   ];
 
   const navItems = allNavItems.filter((item) => !item.adminOnly || userRole === "admin");
 
   const mobileBottomNavItems = [
-    { href: "/dashboard", label: "Rent", icon: "phone" },
-    { href: "/dashboard/sms", label: "Phone", icon: "chat" },
-    { href: "/dashboard/rentals", label: "Services", icon: "store" },
+    { href: "/dashboard", label: "Buy OTP", icon: "phone" },
+    { href: "/dashboard/history", label: "History", icon: "history" },
     { href: "/dashboard/wallet", label: "Wallet", icon: "wallet" },
     { href: "/dashboard/otp", label: "Prices", icon: "tag" },
+    { href: "/dashboard/support", label: "Help", icon: "support" },
   ];
 
   const sidebarLinkClass = (href: string) => {
@@ -443,14 +443,30 @@ export default function AntiFlashLayout({ children }: { children: React.ReactNod
             {navItems.map((item) => {
               const isActive = pathname === item.href;
               return (
-                <Link
-                  key={item.href}
-                  href={item.href}
-                  className={`flex items-center gap-3 px-3 py-2.5 rounded-xl text-xs font-medium transition-all backdrop-blur-sm ${sidebarLinkClass(item.href)}`}
-                >
-                  <GlassIcon name={item.icon} isActive={isActive} />
-                  <span>{item.label}</span>
-                </Link>
+                {item.comingSoon ? (
+                  <div
+                    key={item.href}
+                    aria-disabled="true"
+                    className="flex items-center gap-3 px-3 py-2.5 rounded-xl text-xs font-medium text-slate-500 border border-transparent cursor-not-allowed opacity-75"
+                    title="Coming soon"
+                  >
+                    <GlassIcon name={item.icon} />
+                    <span className="min-w-0 flex-1">{item.label}</span>
+                    <span className="text-[8px] uppercase tracking-wider font-black text-amber-400/90 border border-amber-500/25 bg-amber-500/10 rounded-full px-1.5 py-0.5">
+                      Soon
+                    </span>
+                  </div>
+                ) : (
+                  <Link
+                    key={item.href}
+                    href={item.href}
+                    aria-current={isActive ? "page" : undefined}
+                    className={`flex items-center gap-3 px-3 py-2.5 rounded-xl text-xs font-medium transition-all backdrop-blur-sm focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-emerald-400/70 ${sidebarLinkClass(item.href)}`}
+                  >
+                    <GlassIcon name={item.icon} isActive={isActive} />
+                    <span>{item.label}</span>
+                  </Link>
+                )}
               );
             })}
           </nav>
@@ -510,15 +526,30 @@ export default function AntiFlashLayout({ children }: { children: React.ReactNod
             {navItems.map((item) => {
               const isActive = pathname === item.href;
               return (
-                <Link
-                  key={item.href}
-                  href={item.href}
-                  onClick={() => setIsMobileDrawerOpen(false)}
-                  className={`flex items-center gap-3 px-3 py-2.5 rounded-xl text-xs font-semibold transition-all backdrop-blur-sm ${mobileDrawerLinkClass(item.href)}`}
-                >
-                  <GlassIcon name={item.icon} isActive={isActive} />
-                  <span>{item.label}</span>
-                </Link>
+                {item.comingSoon ? (
+                  <div
+                    key={item.href}
+                    aria-disabled="true"
+                    className="flex items-center gap-3 px-3 py-2.5 rounded-xl text-xs font-semibold text-slate-500 border border-transparent cursor-not-allowed opacity-75"
+                  >
+                    <GlassIcon name={item.icon} />
+                    <span className="min-w-0 flex-1">{item.label}</span>
+                    <span className="text-[8px] uppercase tracking-wider font-black text-amber-400/90 border border-amber-500/25 bg-amber-500/10 rounded-full px-1.5 py-0.5">
+                      Soon
+                    </span>
+                  </div>
+                ) : (
+                  <Link
+                    key={item.href}
+                    href={item.href}
+                    onClick={() => setIsMobileDrawerOpen(false)}
+                    aria-current={isActive ? "page" : undefined}
+                    className={`flex items-center gap-3 px-3 py-2.5 rounded-xl text-xs font-semibold transition-all backdrop-blur-sm focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-emerald-400/70 ${mobileDrawerLinkClass(item.href)}`}
+                  >
+                    <GlassIcon name={item.icon} isActive={isActive} />
+                    <span>{item.label}</span>
+                  </Link>
+                )}
               );
             })}
           </nav>
@@ -543,7 +574,8 @@ export default function AntiFlashLayout({ children }: { children: React.ReactNod
             <Link
               key={item.href}
               href={item.href}
-              className={`flex flex-col items-center justify-center flex-1 h-full py-1 text-[10px] font-bold transition-all ${
+              aria-current={isActive ? "page" : undefined}
+              className={`flex flex-col items-center justify-center flex-1 h-full py-1 text-[10px] font-bold transition-all focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-emerald-400/70 focus-visible:ring-inset ${
                 isActive ? "text-emerald-400" : "text-gray-400 hover:text-gray-200"
               }`}
             >
