@@ -58,9 +58,19 @@ export default function AdminRentalsDesk() {
   const handleApproveCrypto = async (txId: string) => {
     setApprovingId(txId);
     try {
+      const { data: sessionData } = await supabase.auth.getSession();
+      const accessToken = sessionData?.session?.access_token;
+
+      if (!accessToken) {
+        throw new Error("Admin session expired. Please log in again.");
+      }
+
       const res = await fetch("/api/admin/approve-crypto", {
         method: "POST",
-        headers: { "Content-Type": "application/json" },
+        headers: {
+          "Content-Type": "application/json",
+          "Authorization": `Bearer ${accessToken}`,
+        },
         body: JSON.stringify({ transactionId: txId }),
       });
       const data = await res.json();
