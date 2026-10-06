@@ -32,6 +32,9 @@ export default function WalletPage() {
   const [isSubmitting, setIsSubmitting] = useState(false);
   const [depositMessage, setDepositMessage] = useState("");
   const [depositError, setDepositError] = useState("");
+  const [depositIntentId, setDepositIntentId] = useState("");
+  const [depositIntentExpiresAt, setDepositIntentExpiresAt] = useState("");
+  const [isStartingDeposit, setIsStartingDeposit] = useState(false);
 
   // Fetch wallets from server (authoritative addresses)
   const [cryptoWallets, setCryptoWallets] = useState<CryptoWallet[]>([]);
@@ -92,13 +95,59 @@ export default function WalletPage() {
   };
 
   const handlePresetAmount = (amount: number) => {
+    if (depositIntentId) return;
     setDepositAmount(amount.toString());
     setIsCustomAmount(false);
   };
 
   const handleCustomAmount = () => {
+    if (depositIntentId) return;
     setIsCustomAmount(true);
     setDepositAmount("");
+  };
+
+  const handleStartDeposit = async () => {
+    if (depositIntentId || !currentWallet) return;
+
+    const numericAmount = Number(depositAmount);
+    if (!Number.isFinite(numericAmount) || numericAmount <= 0) {
+      setDepositError("Please select or enter a valid deposit amount first.");
+      return;
+    }
+
+    setIsStartingDeposit(true);
+    setDepositMessage("");
+    setDepositError("");
+
+    try {
+      const { data: authData } = await supabase.auth.getSession();
+      const accessToken = authData?.session?.access_token;
+      if (!accessToken) throw new Error("Session expired. Please log in again.");
+
+      const res = await fetch("/api/crypto/deposit-intent", {
+        method: "POST",
+        headers: {
+          "Content-Type": "application/json",
+          "Authorization": `Bearer ${accessToken}`,
+        },
+        body: JSON.stringify({
+          amountUsd: Number(numericAmount.toFixed(2)),
+          coin: currentWallet.symbol,
+        }),
+      });
+
+      const data = await res.json();
+      if (!res.ok) throw new Error(data.error || "Unable to start deposit.");
+
+      setDepositIntentId(String(data.intent_id));
+      setDepositIntentExpiresAt(String(data.expires_at));
+      setDepositAmount(Number(data.expected_amount_usd).toFixed(2));
+      setDepositMessage(`Deposit session active. Send exactly ${Number(data.expected_amount_usd).toFixed(2)} ${currentWallet.symbol} to the NAVA address above before the session expires.`);
+    } catch (err: any) {
+      setDepositError(err.message || "Unable to start deposit.");
+    } finally {
+      setIsStartingDeposit(false);
+    }
   };
 
   const handleDepositSubmit = async (e: React.FormEvent) => {
@@ -112,6 +161,12 @@ export default function WalletPage() {
       setIsSubmitting(false);
       return;
     }
+    if (!depositIntentId) {
+      setDepositError("Start a deposit session before sending or submitting crypto.");
+      setIsSubmitting(false);
+      return;
+    }
+
     if (!txHash || txHash.length < 10) {
       setDepositError("Please enter a valid Transaction Hash (TxHash).");
       setIsSubmitting(false);
@@ -129,8 +184,6 @@ export default function WalletPage() {
         return;
       }
 
-      const coinName = currentWallet ? currentWallet.symbol : "UNKNOWN";
-
       const res = await fetch("/api/crypto/deposit", {
         method: "POST",
         headers: {
@@ -138,8 +191,7 @@ export default function WalletPage() {
           "Authorization": `Bearer ${accessToken}`,
         },
         body: JSON.stringify({
-          amountUsd: Number(depositAmount),
-          coin: coinName,
+          intentId: depositIntentId,
           txHash: txHash.trim(),
         }),
       });
@@ -154,6 +206,8 @@ export default function WalletPage() {
       setDepositAmount("");
       setTxHash("");
       setShowQR(false);
+      setDepositIntentId("");
+      setDepositIntentExpiresAt("");
 
       if (data.autoCredited) {
         setBalance(data.newBalance || balance);
@@ -243,6 +297,7 @@ export default function WalletPage() {
                     key={amount}
                     type="button"
                     onClick={() => handlePresetAmount(amount)}
+                    disabled={Boolean(depositIntentId)}
                     className={`px-4 py-2 rounded-xl text-sm font-bold transition-all ${
                       depositAmount === amount.toString() && !isCustomAmount
                         ? "bg-emerald-500 text-black"
@@ -255,6 +310,7 @@ export default function WalletPage() {
                 <button
                   type="button"
                   onClick={handleCustomAmount}
+                  disabled={Boolean(depositIntentId)}
                   className={`px-4 py-2 rounded-xl text-sm font-bold transition-all border-2 ${
                     isCustomAmount
                       ? "bg-emerald-500 text-black border-emerald-500"
@@ -275,7 +331,9 @@ export default function WalletPage() {
     <button
       key={wallet.symbol}
       type="button"
+      disabled={Boolean(depositIntentId)}
       onClick={() => {
+        if (depositIntentId) return;
         setSelectedCrypto(idx);
         setCopiedCryptoAddress(false);
         setShowQR(false);
@@ -325,6 +383,30 @@ export default function WalletPage() {
                   </div>
                 )}
 
+                {/* Deposit Intent Gate */}
+                <div className={`${theme.innerCard} rounded-2xl p-4 space-y-3`}>
+                  <div className="flex items-center justify-between gap-3">
+                    <div>
+                      <h3 className={`text-sm font-bold ${theme.textTitle}`}>NAVA Deposit Session</h3>
+                      <p className={`text-xs mt-1 ${theme.textSubtle}`}>Start the session before sending crypto. The server records the amount and timestamp so earlier transactions cannot be replayed.</p>
+                    </div>
+                    {depositIntentId ? (
+                      <span className="text-xs font-bold text-emerald-500 whitespace-nowrap">✓ Session active</span>
+                    ) : (
+                      <button
+                        type="button"
+                        onClick={handleStartDeposit}
+                        disabled={isStartingDeposit || !depositAmount || Number(depositAmount) <= 0}
+                        className="px-4 py-2 rounded-xl bg-emerald-500 hover:bg-emerald-400 text-black font-black text-xs transition disabled:opacity-50 disabled:cursor-not-allowed whitespace-nowrap"
+                      >
+                        {isStartingDeposit ? "Creating…" : "Start Deposit"}
+                      </button>
+                    )}
+                  </div>
+                  {depositIntentExpiresAt && (
+                    <p className="text-xs text-amber-500 font-bold">Session expires: {new Date(depositIntentExpiresAt).toLocaleString()}</p>
+                  )}
+                </div>
                 {/* Address Box */}
                 <div>
                   <div className="flex items-center justify-between mb-2">
@@ -363,7 +445,7 @@ export default function WalletPage() {
                   <form onSubmit={handleDepositSubmit} className="space-y-4">
                     <div>
                       <label className={`text-[10px] font-bold uppercase tracking-wider ${theme.textMuted} block mb-1`}>USD Amount to Deposit</label>
-                      <input type="number" step="0.01" min="1" placeholder="e.g. 50.00" value={depositAmount} onChange={(e) => { setDepositAmount(e.target.value); setIsCustomAmount(true); }} className={`w-full border-2 rounded-xl px-4 py-3 text-sm outline-none transition ${theme.inputBg}`} disabled={isSubmitting} />
+                      <input type="number" step="0.01" min="1" placeholder="e.g. 50.00" value={depositAmount} onChange={(e) => { setDepositAmount(e.target.value); setIsCustomAmount(true); }} className={`w-full border-2 rounded-xl px-4 py-3 text-sm outline-none transition ${theme.inputBg}`} disabled={isSubmitting || Boolean(depositIntentId)} />
                     </div>
 
                     <div>
@@ -374,12 +456,12 @@ export default function WalletPage() {
                     {depositMessage && (<div className="p-3 rounded-xl bg-emerald-500/10 border-2 border-emerald-500/30 text-emerald-400 text-xs font-bold">{depositMessage}</div>)}
                     {depositError && (<div className="p-3 rounded-xl bg-red-500/10 border-2 border-red-500/30 text-red-400 text-xs font-bold">{depositError}</div>)}
 
-                    <button type="submit" disabled={isSubmitting} className="w-full py-4 rounded-2xl bg-emerald-500 hover:bg-emerald-400 text-black font-black text-sm transition shadow-lg shadow-emerald-500/30 disabled:opacity-50 disabled:cursor-not-allowed">
+                    <button type="submit" disabled={isSubmitting || !depositIntentId} className="w-full py-4 rounded-2xl bg-emerald-500 hover:bg-emerald-400 text-black font-black text-sm transition shadow-lg shadow-emerald-500/30 disabled:opacity-50 disabled:cursor-not-allowed">
                       {isSubmitting ? "⏳ Verifying on Blockchain..." : "✅ Submit Deposit"}
                     </button>
 
                     <p className={`text-[10px] ${theme.textSubtle} text-center`}>
-                      Auto-credit if verified on-chain (USDT only). Otherwise pending admin review. Do not close this page until submission is complete.
+                      Start a deposit session before sending. USDT can be auto-credited after server-side blockchain verification; BTC/LTC remain pending admin review.
                     </p>
                   </form>
                 </div>
