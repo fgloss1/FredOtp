@@ -1,5 +1,6 @@
 import { NextResponse } from "next/server";
 import { createClient } from "@supabase/supabase-js";
+import { supabaseAdmin } from "@/lib/supabase-admin";
 
 const USDT_TRC20_CONTRACT = "TR7NHqjeKQxGTCi8q8ZY4pL8otSzgjLj6t";
 const NGN_PER_USD = 1500;
@@ -86,7 +87,7 @@ export async function POST(req: Request) {
     }
 
     // The authenticated server session is the only source of user identity.
-    const { data: intent, error: intentErr } = await client
+    const { data: intent, error: intentErr } = await supabaseAdmin
       .from("deposit_intents")
       .select("*")
       .eq("id", intentId)
@@ -110,7 +111,7 @@ export async function POST(req: Request) {
 
     // Global replay protection: the TxHash belongs to NAVA once recorded,
     // regardless of which account submitted it.
-    const { data: existingTx, error: existingErr } = await client
+    const { data: existingTx, error: existingErr } = await supabaseAdmin
       .from("transactions")
       .select("id, user_id, status")
       .eq("reference", cleanHash)
