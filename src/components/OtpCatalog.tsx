@@ -593,11 +593,17 @@ export default function OtpCatalog({ onBalanceRefresh, userBalance }: OtpCatalog
       };
 
   return (
-    <div className={`w-full ${theme.cardBg} rounded-2xl shadow-2xl overflow-hidden flex flex-col`}>
+    <section
+      aria-labelledby="otp-catalog-title"
+      className={`w-full ${theme.cardBg} rounded-2xl shadow-2xl overflow-hidden flex flex-col`}
+    >
       {/* HEADER */}
       <div className={`flex items-center justify-between p-5 border-b-2 ${darkMode ? 'border-gray-700' : 'border-slate-300'} ${theme.headerBg} backdrop-blur-md`}>
-        <h2 className={`text-base sm:text-lg font-bold ${theme.textTitle} tracking-tight flex items-center gap-2`}>
-          Instant Verification
+        <h2
+          id="otp-catalog-title"
+          className={`text-base sm:text-lg font-bold ${theme.textTitle} tracking-tight flex items-center gap-2`}
+        >
+          Instant OTP Verification
           <span className="relative flex h-2.5 w-2.5 ml-1">
             <span className="animate-ping absolute inline-flex h-full w-full rounded-full bg-emerald-400 opacity-75" />
             <span className="relative inline-flex rounded-full h-2.5 w-2.5 bg-emerald-500" />
@@ -626,7 +632,11 @@ export default function OtpCatalog({ onBalanceRefresh, userBalance }: OtpCatalog
 
       <div className={`p-5 sm:p-6 flex-1 ${theme.innerBg}`}>
         {errorMessage && (
-          <div className={`mb-5 p-3 rounded-lg text-xs flex justify-between items-center border-2 ${darkMode ? 'bg-red-950/40 border-red-900/50 text-red-300' : 'bg-red-50 border-red-200 text-red-700'}`}>
+          <div
+            role="alert"
+            aria-live="assertive"
+            className={`mb-5 p-3 rounded-lg text-xs flex justify-between items-center border-2 ${darkMode ? 'bg-red-950/40 border-red-900/50 text-red-300' : 'bg-red-50 border-red-200 text-red-700'}`}
+          >
             <span>{errorMessage}</span>
             <button type="button" onClick={() => setErrorMessage(null)} className={`font-bold ml-4 ${darkMode ? 'text-red-400 hover:text-white' : 'text-red-600 hover:text-red-800'}`}></button>
           </div>
@@ -636,7 +646,7 @@ export default function OtpCatalog({ onBalanceRefresh, userBalance }: OtpCatalog
           <div className="max-w-xl mx-auto space-y-5">
             {/* ACTIVE ORDER CARD */}
             <div className={`p-5 rounded-2xl border-2 ${darkMode ? 'border-gray-700 bg-[#161f33]' : 'border-slate-300 bg-white'} shadow-inner`}>
-              <div className="flex items-center justify-between mb-4 gap-2">
+              <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between mb-4 gap-3">
                 <div className="flex items-center gap-2.5 min-w-0">
                   <div className={`w-7 h-7 rounded-lg flex items-center justify-center overflow-hidden shrink-0 border-2 ${darkMode ? 'bg-slate-800/90 border-slate-600/60' : 'bg-slate-100 border-slate-300'}`}>
                     <ServiceLogo src={`/api/otp/logo?slug=${encodeURIComponent(activeOrder.service)}&name=${encodeURIComponent(activeOrder.service)}`} name={activeOrder.service} size={18} />
@@ -670,7 +680,11 @@ export default function OtpCatalog({ onBalanceRefresh, userBalance }: OtpCatalog
               </div>
 
               {/* SMS CODE AREA */}
-              <div className={`p-5 rounded-xl border-2 text-center ${darkMode ? 'bg-gray-900 border-gray-800' : 'bg-slate-50 border-slate-300'}`}>
+              <div
+                aria-live="polite"
+                aria-atomic="true"
+                className={`p-5 rounded-xl border-2 text-center ${darkMode ? 'bg-gray-900 border-gray-800' : 'bg-slate-50 border-slate-300'}`}
+              >
                 <div className="flex items-center justify-between mb-2">
                   <span className={`text-[10px] uppercase font-bold ${theme.textMuted}`}>Incoming SMS Code</span>
                   {activeOrder.status === 'pending' && secondsLeft !== null && (
@@ -840,11 +854,11 @@ export default function OtpCatalog({ onBalanceRefresh, userBalance }: OtpCatalog
                     <span className={`absolute inset-y-0 left-0 flex items-center pl-3.5 pointer-events-none ${theme.textMuted}`}>
                       <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M21 21l-6-6m2-5a7 7 0 11-14 0 7 7 0 0114 0z" /></svg>
                     </span>
-                    <input type="text" value={countrySearch} onChange={(e) => setCountrySearch(e.target.value)} placeholder="Search countries..." autoComplete="off" className={`w-full pl-10 pr-10 py-3 border-2 rounded-xl text-sm font-medium placeholder-slate-400 focus:outline-none focus:border-emerald-400 focus:ring-2 focus:ring-emerald-500/25 hover:border-slate-500 transition-colors ${theme.dropdownBg} ${darkMode ? 'text-white' : 'text-slate-900'}`} />
+                    <input aria-label="Search countries" type="text" value={countrySearch} onChange={(e) => setCountrySearch(e.target.value)} placeholder="Search countries..." autoComplete="off" className={`w-full pl-10 pr-10 py-3 border-2 rounded-xl text-sm font-medium placeholder-slate-400 focus:outline-none focus:border-emerald-400 focus:ring-2 focus:ring-emerald-500/25 hover:border-slate-500 transition-colors ${theme.dropdownBg} ${darkMode ? 'text-white' : 'text-slate-900'}`} />
                     {countrySearch && (<button type="button" onClick={() => setCountrySearch('')} className="absolute inset-y-0 right-0 flex items-center pr-3.5 text-slate-400 hover:text-white transition-colors" title="Clear">✕</button>)}
                   </div>
                   <div className="relative min-w-[170px]">
-                    <select value={countrySort} onChange={(e) => setCountrySort(e.target.value as 'popularity' | 'price')} className={`w-full appearance-none pl-4 pr-9 py-3 border-2 rounded-xl text-sm font-medium focus:outline-none focus:border-emerald-400 focus:ring-2 focus:ring-emerald-500/25 cursor-pointer transition-colors ${theme.dropdownBg} ${darkMode ? 'text-slate-100' : 'text-slate-900'}`}>
+                    <select aria-label="Sort countries" value={countrySort} onChange={(e) => setCountrySort(e.target.value as 'popularity' | 'price')} className={`w-full appearance-none pl-4 pr-9 py-3 border-2 rounded-xl text-sm font-medium focus:outline-none focus:border-emerald-400 focus:ring-2 focus:ring-emerald-500/25 cursor-pointer transition-colors ${theme.dropdownBg} ${darkMode ? 'text-slate-100' : 'text-slate-900'}`}>
                       <option value="popularity">Sort by stock</option>
                       <option value="price">Sort by price</option>
                     </select>
