@@ -164,9 +164,9 @@ export async function GET(req: Request) {
       sms_code: code,
       sms,
       sms_text: sms,
-      expires_at: expiresAt || order.created_at
-        ? (expiresAt || new Date(new Date(order.created_at).getTime() + 15 * 60_000).toISOString())
-        : null,
+      expires_at:
+        expiresAt ||
+        new Date(new Date(order.created_at).getTime() + 15 * 60_000).toISOString(),
       created_at: order.created_at,
     });
   } catch (err: any) {
@@ -181,6 +181,7 @@ export async function GET(req: Request) {
 export async function POST(req: Request) {
   let chargedUserId: string | null = null;
   let chargedAmount = 0;
+  let walletDebited = false;
   let supplierName = "";
   let supplierOrderId = "";
 
@@ -330,6 +331,7 @@ export async function POST(req: Request) {
     }
 
     const newBalance = await adjustOtpBalance(user.id, -finalChargedPrice);
+    walletDebited = true;
 
     const { data: dbOrder, error: dbErr } = await supabaseAdmin
       .from("orders")
@@ -376,7 +378,7 @@ export async function POST(req: Request) {
       },
     });
   } catch (err: any) {
-    if (chargedUserId && chargedAmount > 0) {
+    if (walletDebited && chargedUserId && chargedAmount > 0) {
       try {
         await adjustOtpBalance(chargedUserId, chargedAmount);
       } catch (refundError) {
