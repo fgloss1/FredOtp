@@ -163,7 +163,7 @@ export default function PhonePage() {
           Authorization: `Bearer ${session.access_token}`,
           "Content-Type": "application/json",
         },
-        body: JSON.stringify({ phone_number: phoneNumber }),
+        body: JSON.stringify({ phone_number: phoneNumber, country_code: country }),
       });
 
       const data = await response.json();
