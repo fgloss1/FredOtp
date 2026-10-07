@@ -67,7 +67,7 @@ export async function POST(req: Request) {
         success: true,
         simulated: true,
         number: {
-          id: "simulation-" + phoneNumber.replace(/\\D/g, ""),
+          id: "simulation-" + phoneNumber.replace(/\D/g, ""),
           phone_number: phoneNumber,
           status: "active",
           country_code: String(candidate?.country_code || "").toUpperCase() || null,
@@ -125,7 +125,7 @@ export async function POST(req: Request) {
 
     const charged = await db.transaction(async (tx) => {
       const updated = await tx.update(wallets).set({
-        balance: sql\`\${wallets.balance} - \${monthlyPrice.toFixed(2)}\`,
+        balance: sql`${wallets.balance} - ${monthlyPrice.toFixed(2)}`,
         updatedAt: new Date(),
       }).where(
         and(eq(wallets.id, wallet[0].id), gte(wallets.balance, monthlyPrice.toFixed(2)))
