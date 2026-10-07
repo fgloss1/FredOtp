@@ -24,14 +24,14 @@ type AvailableNumber = {
 };
 
 const countries = [
-  ["US", "United States"],
-  ["CA", "Canada"],
-  ["GB", "United Kingdom"],
-  ["AU", "Australia"],
-  ["DE", "Germany"],
-  ["FR", "France"],
-  ["NL", "Netherlands"],
-  ["NG", "Nigeria"],
+  ["US", "🇺🇸", "United States"],
+  ["CA", "🇨🇦", "Canada"],
+  ["GB", "🇬🇧", "United Kingdom"],
+  ["AU", "🇦🇺", "Australia"],
+  ["DE", "🇩🇪", "Germany"],
+  ["FR", "🇫🇷", "France"],
+  ["NL", "🇳🇱", "Netherlands"],
+  ["NG", "🇳🇬", "Nigeria"],
 ];
 
 export default function PhonePage() {
@@ -170,6 +170,25 @@ export default function PhonePage() {
       ) : (
         <>
           <div className={`${theme.card} rounded-3xl p-6 sm:p-8`}>
+            <div className="mb-6 grid gap-3 sm:grid-cols-3">
+              {[
+                ["💬", "SMS", "Send and receive messages.", "/dashboard/sms/inbox"],
+                ["📞", "Calling", "Make and receive calls.", "/dashboard/sms/calling"],
+                ["🌐", "Web Dialer", "Use your NAVA number from the dashboard.", "/dashboard/sms/dialer"],
+              ].map(([icon, title, description, href]) => (
+                <Link
+                  key={title}
+                  href={href}
+                  className={`${theme.innerCard} rounded-2xl p-4 text-center transition hover:-translate-y-0.5 hover:border-emerald-500/50 hover:bg-emerald-500/5 focus:outline-none focus:ring-2 focus:ring-emerald-400/50`}
+                >
+                  <div className="text-2xl">{icon}</div>
+                  <div className="mt-2 text-xs font-bold">{title}</div>
+                  <div className={`mt-1 text-[10px] leading-relaxed ${theme.textMuted}`}>{description}</div>
+                  <div className="mt-3 text-[9px] font-bold uppercase tracking-wider text-emerald-400">Open</div>
+                </Link>
+              ))}
+            </div>
+
             <div>
               <span className="inline-flex rounded-full border border-emerald-500/30 bg-emerald-500/10 px-3 py-1 text-[10px] font-bold uppercase tracking-wider text-emerald-400">
                 Get a Number
@@ -186,9 +205,9 @@ export default function PhonePage() {
                 onChange={(event) => setCountry(event.target.value)}
                 className={`${theme.innerCard} rounded-xl px-4 py-3 text-sm outline-none focus:border-emerald-400`}
               >
-                {countries.map(([code, name]) => (
+                {countries.map(([code, flag, name]) => (
                   <option key={code} value={code}>
-                    {name}
+                    {flag} {name}
                   </option>
                 ))}
               </select>
