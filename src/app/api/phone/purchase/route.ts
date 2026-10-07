@@ -60,6 +60,39 @@ export async function POST(req: Request) {
     }
 
     const monthlyPrice = navaMonthlyPrice(providerMonthlyCost);
+    const purchaseMode = String(process.env.NAVA_PHONE_PURCHASE_MODE || "live").trim().toLowerCase();
+
+    if (purchaseMode === "simulation") {
+      return NextResponse.json({
+        success: true,
+        simulated: true,
+        number: {
+          id: "simulation-" + phoneNumber.replace(/\\D/g, ""),
+          phone_number: phoneNumber,
+          status: "active",
+          country_code: String(candidate?.country_code || "").toUpperCase() || null,
+          capabilities: {
+            sms: true,
+            voice: Array.isArray(candidate?.features)
+              ? candidate.features.some((feature: any) =>
+                  String(feature?.name || feature || "").toLowerCase() === "voice"
+                )
+              : false,
+          },
+          monthly_price: monthlyPrice,
+          created_at: new Date().toISOString(),
+        },
+        message: "Simulation successful. No number was purchased and no wallet was charged.",
+      });
+    }
+
+    if (purchaseMode !== "live") {
+      return NextResponse.json(
+        { error: "NAVA Phone checkout is not enabled in this environment. No charge was made." },
+        { status: 503 }
+      );
+    }
+
     const wallet = await db.select({ id: wallets.id, balance: wallets.balance }).from(wallets)
       .where(eq(wallets.userId, dbUser[0].id)).limit(1);
     if (!wallet[0]) return NextResponse.json({ error: "Your NAVA wallet is not ready yet. No charge was made." }, { status: 409 });
