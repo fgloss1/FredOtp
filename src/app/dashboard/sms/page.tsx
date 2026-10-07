@@ -163,7 +163,7 @@ export default function PhonePage() {
           Authorization: `Bearer ${session.access_token}`,
           "Content-Type": "application/json",
         },
-        body: JSON.stringify({ phone_number: phoneNumber, country_code: country }),
+        body: JSON.stringify({ phone_number: phoneNumber, country_code: country, monthly_price: availableNumbers.find((item) => item.phone_number === phoneNumber)?.monthly_price }),
       });
 
       const data = await response.json();
