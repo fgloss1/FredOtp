@@ -74,9 +74,15 @@ export async function GET(req: Request) {
         }
 
         const features = Array.isArray(item?.features) ? item.features : [];
-        const featureText = features.map((feature: any) =>
-          typeof feature === "string" ? feature.toLowerCase() : ""
-        );
+        const featureText = features
+          .map((feature: any) =>
+            typeof feature === "string"
+              ? feature.toLowerCase()
+              : typeof feature?.name === "string"
+                ? feature.name.toLowerCase()
+                : ""
+          )
+          .filter(Boolean);
 
         return {
           phone_number: String(item.phone_number),
