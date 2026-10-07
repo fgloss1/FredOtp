@@ -25,14 +25,14 @@ export async function POST(req: Request) {
       US: "1", CA: "1", GB: "44", AU: "61", DE: "49", FR: "33", NL: "31", NG: "234",
     };
 
-    const phoneDigits = rawPhoneNumber.replace(/\\D/g, "");
+    const phoneDigits = rawPhoneNumber.replace(/\D/g, "");
     const normalizedPhoneNumber = rawPhoneNumber.startsWith("+")
       ? "+" + phoneDigits
       : callingCodes[countryCode] && !phoneDigits.startsWith(callingCodes[countryCode])
         ? "+" + callingCodes[countryCode] + phoneDigits
         : "+" + phoneDigits;
 
-    if (!/^\\+[1-9]\\d{7,14}$/.test(normalizedPhoneNumber)) {
+    if (!/^\+[1-9]\d{7,14}$/.test(normalizedPhoneNumber)) {
       return NextResponse.json({ error: "Please select a valid NAVA Phone number." }, { status: 400 });
     }
 
