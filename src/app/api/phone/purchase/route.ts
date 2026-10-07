@@ -144,8 +144,36 @@ export async function POST(req: Request) {
 
     if (phoneInsertError) {
       console.error("NAVA Phone ownership record failed:", phoneInsertError);
+
+      await db.transaction(async (tx) => {
+        await tx
+          .update(wallets)
+          .set({
+            balance: sql`${wallets.balance} + ${monthlyPrice.toFixed(2)}`,
+            updatedAt: new Date(),
+          })
+          .where(eq(wallets.id, wallet[0].id));
+
+        await tx.insert(transactions).values({
+          userId: dbUser[0].id,
+          walletId: wallet[0].id,
+          type: "refund",
+          amount: monthlyPrice.toFixed(2),
+          status: "completed",
+          description: "NAVA Phone checkout reversal " + phoneNumber,
+          reference: orderPayload?.data?.id ? String(orderPayload.data.id) : undefined,
+        });
+      });
+
+      if (purchasedProviderNumberId) {
+        await fetch(
+          "https://api.telnyx.com/v2/phone_numbers/" + encodeURIComponent(purchasedProviderNumberId),
+          { method: "DELETE", headers: { Authorization: "Bearer " + apiKey, Accept: "application/json" } }
+        ).catch((releaseError) => console.error("NAVA Phone rollback failed:", releaseError));
+      }
+
       return NextResponse.json(
-        { error: "The number was secured, but we could not finish your NAVA Phone setup. Please contact support." },
+        { error: "We could not finish your NAVA Phone setup. Your wallet charge was reversed." },
         { status: 500 }
       );
     }
