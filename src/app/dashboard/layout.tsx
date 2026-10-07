@@ -139,6 +139,7 @@ function GlassIcon({ name, isActive = false }: { name: string; isActive?: boolea
 export default function AntiFlashLayout({ children }: { children: React.ReactNode }) {
   const pathname = usePathname();
   const router = useRouter();
+  const isPhoneInbox = pathname === "/dashboard/sms/inbox";
 
   const [authChecking, setAuthChecking] = useState(true);
 
@@ -292,7 +293,7 @@ export default function AntiFlashLayout({ children }: { children: React.ReactNod
 
   return (
     <div
-      className={`min-h-screen ${darkMode ? "bg-[#070b14] text-white" : "bg-slate-100 text-slate-900"} pb-20 md:pb-0`}
+      className={`min-h-screen ${darkMode ? "bg-[#070b14] text-white" : "bg-slate-100 text-slate-900"} ${isPhoneInbox ? "pb-0" : "pb-20 md:pb-0"}`}
     >
       <IdleTimer />
 
@@ -437,7 +438,7 @@ export default function AntiFlashLayout({ children }: { children: React.ReactNod
         </div>
       </header>
 
-      <div className="max-w-7xl mx-auto px-3 sm:px-4 py-6 md:py-8 flex gap-8">
+      <div className={`max-w-7xl mx-auto px-3 sm:px-4 flex gap-8 ${isPhoneInbox ? "py-0 md:py-0" : "py-6 md:py-8"}`}>
         <aside className="hidden md:block w-56 shrink-0 space-y-6">
           <nav className="space-y-1 sticky top-24">
             {navItems.map((item) => {
@@ -459,7 +460,7 @@ export default function AntiFlashLayout({ children }: { children: React.ReactNod
         <main className="flex-1 w-full overflow-hidden">{children}</main>
       </div>
 
-      <Footer />
+      {!isPhoneInbox && <Footer />}
 
       {isMobileDrawerOpen && (
         <div
@@ -536,24 +537,60 @@ export default function AntiFlashLayout({ children }: { children: React.ReactNod
         </div>
       </aside>
 
-      <nav className="md:hidden fixed bottom-0 left-0 right-0 z-40 bg-[#090e1a]/95 backdrop-blur-lg border-t border-slate-800/80 flex items-center justify-around h-16 px-1 text-white">
-        {mobileBottomNavItems.map((item) => {
-          const isActive = pathname === item.href;
-          return (
-            <Link
-              key={item.href}
-              href={item.href}
-              className={`flex flex-col items-center justify-center flex-1 h-full py-1 text-[10px] font-bold transition-all ${
-                isActive ? "text-emerald-400" : "text-gray-400 hover:text-gray-200"
-              }`}
-            >
-              <GlassIcon name={item.icon} isActive={isActive} />
-              <span className="mt-0.5">{item.label}</span>
-              {isActive && <span className="w-1 h-1 rounded-full bg-emerald-400 mt-0.5" />}
-            </Link>
-          );
-        })}
-      </nav>
+      {!isPhoneInbox && (
+        <nav className="md:hidden fixed bottom-0 left-0 right-0 z-40 bg-[#090e1a]/95 backdrop-blur-lg border-t border-slate-800/80 flex items-center justify-around h-16 px-1 text-white">
+          {mobileBottomNavItems.map((item) => {
+            const isActive = pathname === item.href;
+            return (
+              <Link
+                key={item.href}
+                href={item.href}
+                className={`flex flex-col items-center justify-center flex-1 h-full py-1 text-[10px] font-bold transition-all ${
+                  isActive ? "text-emerald-400" : "text-gray-400 hover:text-gray-200"
+                }`}
+              >
+                <GlassIcon name={item.icon} isActive={isActive} />
+                <span className="mt-0.5">{item.label}</span>
+                {isActive && <span className="w-1 h-1 rounded-full bg-emerald-400 mt-0.5" />}
+              </Link>
+            );
+          })}
+        </nav>
+      )}
+
+      {isPhoneInbox && (
+        <nav className="md:hidden fixed bottom-0 left-0 right-0 z-50 h-16 border-t border-white/10 bg-[#09090b]/96 px-1 text-white backdrop-blur-xl">
+          <div className="mx-auto flex h-full max-w-md items-center justify-around">
+            {[
+              { href: "/dashboard/sms/inbox", label: "Messages", icon: "message" },
+              { href: "/dashboard/sms/calling", label: "Calls", icon: "phone" },
+              { href: "/dashboard/sms/dialer", label: "Dialer", icon: "dialer" },
+              { href: "/dashboard/sms", label: "Numbers", icon: "numbers" },
+            ].map((item) => {
+              const isActive =
+                pathname === item.href ||
+                (item.href === "/dashboard/sms" && pathname.startsWith("/dashboard/sms") &&
+                  !pathname.includes("/inbox") && !pathname.includes("/calling") && !pathname.includes("/dialer"));
+              return (
+                <Link
+                  key={item.href}
+                  href={item.href}
+                  className={`flex h-full min-w-0 flex-1 flex-col items-center justify-center gap-0.5 text-[10px] font-semibold transition-all ${
+                    isActive ? "text-white" : "text-white/45 hover:text-white/75"
+                  }`}
+                >
+                  <span className={`flex h-7 w-7 items-center justify-center rounded-full text-base ${
+                    isActive ? "bg-white/12 text-emerald-400" : "text-white/55"
+                  }`}>
+                    {item.icon === "message" ? "▰" : item.icon === "phone" ? "⌕" : item.icon === "dialer" ? "⋮" : "▣"}
+                  </span>
+                  <span>{item.label}</span>
+                </Link>
+              );
+            })}
+          </div>
+        </nav>
+      )}
     </div>
   );
 }
