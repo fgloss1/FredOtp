@@ -18,11 +18,25 @@ export async function POST(req: Request) {
     if (!authUser) return NextResponse.json({ error: "Unauthorized. Please log in." }, { status: 401 });
 
     const body = await req.json();
-    const phoneNumber = String(body?.phone_number || "").trim();
+    const rawPhoneNumber = String(body?.phone_number || "").trim();
     const countryCode = String(body?.country_code || "").trim().toUpperCase();
-    if (!/^\+[1-9]\d{7,14}$/.test(phoneNumber)) {
+
+    const callingCodes: Record<string, string> = {
+      US: "1", CA: "1", GB: "44", AU: "61", DE: "49", FR: "33", NL: "31", NG: "234",
+    };
+
+    const phoneDigits = rawPhoneNumber.replace(/\\D/g, "");
+    const normalizedPhoneNumber = rawPhoneNumber.startsWith("+")
+      ? "+" + phoneDigits
+      : callingCodes[countryCode] && !phoneDigits.startsWith(callingCodes[countryCode])
+        ? "+" + callingCodes[countryCode] + phoneDigits
+        : "+" + phoneDigits;
+
+    if (!/^\\+[1-9]\\d{7,14}$/.test(normalizedPhoneNumber)) {
       return NextResponse.json({ error: "Please select a valid NAVA Phone number." }, { status: 400 });
     }
+
+    const phoneNumber = normalizedPhoneNumber;
     if (!/^[A-Z]{2}$/.test(countryCode)) {
       return NextResponse.json({ error: "Please select a valid NAVA Phone country." }, { status: 400 });
     }
