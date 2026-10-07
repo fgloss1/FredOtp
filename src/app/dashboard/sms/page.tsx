@@ -1,5 +1,6 @@
 "use client";
 
+import Link from "next/link";
 import { useEffect, useState } from "react";
 
 type PhoneNumber = {
@@ -99,6 +100,27 @@ export default function PhonePage() {
         textMuted: "text-slate-600 font-medium",
       };
 
+  const workspaceCards = [
+    {
+      href: "/dashboard/sms/inbox",
+      icon: "💬",
+      title: "SMS",
+      description: "Send and receive messages.",
+    },
+    {
+      href: "/dashboard/sms/calling",
+      icon: "📞",
+      title: "Calling",
+      description: "Make and receive calls.",
+    },
+    {
+      href: "/dashboard/sms/dialer",
+      icon: "🌐",
+      title: "Web dialer",
+      description: "Use your number from the dashboard.",
+    },
+  ];
+
   return (
     <div className={`space-y-6 ${theme.text} font-sans`}>
       <div>
@@ -139,21 +161,21 @@ export default function PhonePage() {
           </div>
 
           <div className="mx-auto mt-7 grid max-w-2xl gap-3 sm:grid-cols-3">
-            {[
-              ["💬", "SMS", "Send and receive messages."],
-              ["📞", "Calling", "Make and receive calls."],
-              ["🌐", "Web dialer", "Use your number from the dashboard."],
-            ].map(([icon, title, description]) => (
-              <div
+            {workspaceCards.map(({ href, icon, title, description }) => (
+              <Link
                 key={title}
-                className={`${theme.innerCard} rounded-2xl p-4 text-center`}
+                href={href}
+                className={`${theme.innerCard} rounded-2xl p-4 text-center transition hover:-translate-y-0.5 hover:border-emerald-500/50 hover:bg-emerald-500/5 focus:outline-none focus:ring-2 focus:ring-emerald-400/50`}
               >
                 <div className="text-2xl">{icon}</div>
                 <div className="mt-2 text-xs font-bold">{title}</div>
                 <div className={`mt-1 text-[10px] leading-relaxed ${theme.textMuted}`}>
                   {description}
                 </div>
-              </div>
+                <div className="mt-3 text-[9px] font-bold uppercase tracking-wider text-emerald-400">
+                  Open
+                </div>
+              </Link>
             ))}
           </div>
 
@@ -184,28 +206,31 @@ export default function PhonePage() {
 
           <div className="mt-5 space-y-3">
             {numbers.map((number) => (
-              <div
+              <Link
                 key={number.id}
-                className={`${theme.innerCard} rounded-2xl p-4 flex flex-col gap-3 sm:flex-row sm:items-center sm:justify-between`}
+                href="/dashboard/sms/inbox"
+                className={`${theme.innerCard} block rounded-2xl p-4 transition hover:border-emerald-500/50 hover:bg-emerald-500/5 focus:outline-none focus:ring-2 focus:ring-emerald-400/50`}
               >
-                <div>
-                  <div className="text-lg font-black tracking-wide">
-                    {number.phone_number}
+                <div className="flex flex-col gap-3 sm:flex-row sm:items-center sm:justify-between">
+                  <div>
+                    <div className="text-lg font-black tracking-wide">
+                      {number.phone_number}
+                    </div>
+                    <div className={`mt-1 text-[10px] ${theme.textMuted}`}>
+                      {number.country_code || "—"} · {number.status}
+                    </div>
                   </div>
-                  <div className={`mt-1 text-[10px] ${theme.textMuted}`}>
-                    {number.country_code || "—"} · {number.status}
-                  </div>
-                </div>
 
-                <div className="text-left sm:text-right">
-                  <div className="text-xs font-bold text-emerald-400">
-                    SMS ready
-                  </div>
-                  <div className={`text-[10px] ${theme.textMuted}`}>
-                    Voice coming next
+                  <div className="text-left sm:text-right">
+                    <div className="text-xs font-bold text-emerald-400">
+                      Open SMS
+                    </div>
+                    <div className={`text-[10px] ${theme.textMuted}`}>
+                      Voice and dialer coming next
+                    </div>
                   </div>
                 </div>
-              </div>
+              </Link>
             ))}
           </div>
         </div>
