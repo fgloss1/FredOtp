@@ -61,6 +61,11 @@ export default function Page() {
   const [notice, setNotice] = useState("");
   const [composeOpen, setComposeOpen] = useState(false);
   const [addNumberOpen, setAddNumberOpen] = useState(false);
+  const [mobileView, setMobileView] = useState<"list" | "conversation" | "compose">("list");
+  const [mobilePeer, setMobilePeer] = useState("");
+  const [mobileSearch, setMobileSearch] = useState("");
+  const [mobileFromPickerOpen, setMobileFromPickerOpen] = useState(false);
+  const mobileRecipientRef = useRef<HTMLInputElement | null>(null);
   const messagesEndRef = useRef<HTMLDivElement | null>(null);
   const composerRef = useRef<HTMLTextAreaElement | null>(null);
 
@@ -169,6 +174,12 @@ export default function Page() {
     }
   }, [composeOpen]);
 
+  useEffect(() => {
+    if (mobileView === "compose") {
+      requestAnimationFrame(() => mobileRecipientRef.current?.focus());
+    }
+  }, [mobileView]);
+
   const sendMessage = async () => {
     if (!selectedNumberId || !recipient.trim() || !text.trim() || sending) return;
 
@@ -199,7 +210,10 @@ export default function Page() {
 
       if (data?.message) setMessages((current) => [...current, data.message]);
       setText("");
+      setMobilePeer(recipient.trim());
+      setMobileView("conversation");
       setComposeOpen(false);
+      setMobileFromPickerOpen(false);
       setNotice("Message sent.");
     } catch (err: any) {
       setError(err?.message || "Unable to send your message.");
@@ -242,7 +256,29 @@ export default function Page() {
     setNotice("");
     setRecipient("");
     setText("");
+    setMobilePeer("");
+    setMobileFromPickerOpen(false);
     setComposeOpen(true);
+    setMobileView("compose");
+  };
+
+  const openMobileThread = (numberId: string, peer: string) => {
+    setSelectedNumberId(numberId);
+    setMobilePeer(peer);
+    setRecipient(peer);
+    setText("");
+    setError("");
+    setNotice("");
+    setMobileView("conversation");
+  };
+
+  const closeMobileCompose = () => {
+    setMobileFromPickerOpen(false);
+    setMobileView(mobilePeer ? "conversation" : "list");
+    setComposeOpen(false);
+    setText("");
+    setError("");
+    setNotice("");
   };
 
   const startQuickReply = () => {
@@ -264,6 +300,238 @@ export default function Page() {
 
   return (
     <div className={`min-h-[calc(100vh-2rem)] ${theme.page} ${theme.text} rounded-[28px] font-sans`}>
+      <div className="lg:hidden min-h-[100dvh] bg-black text-white">
+        <div className="flex min-h-[100dvh] flex-col">
+          {mobileView === "list" && (
+            <>
+              <header className="flex items-center justify-between px-4 pb-3 pt-5">
+                <Link href="/dashboard/sms" className="text-[15px] font-semibold text-white/90">Phone</Link>
+                <h1 className="text-[20px] font-bold tracking-tight">Messages</h1>
+                <button
+                  type="button"
+                  onClick={openAddNumber}
+                  aria-label="Manage NAVA numbers"
+                  className="flex h-9 w-9 items-center justify-center rounded-full bg-[#242426] text-lg text-white/80"
+                >
+                  ⋯
+                </button>
+              </header>
+
+              <div className="px-4 pt-1">
+                {error && <div className="mb-3 rounded-2xl bg-red-500/15 px-3 py-2 text-xs text-red-300">{error}</div>}
+                {notice && <div className="mb-3 rounded-2xl bg-emerald-500/15 px-3 py-2 text-xs text-emerald-300">{notice}</div>}
+              </div>
+
+              <main className="relative flex-1 px-2 pb-28">
+                {loading ? (
+                  <div className="flex min-h-[55vh] items-center justify-center">
+                    <div className="h-7 w-7 animate-spin rounded-full border-2 border-emerald-400 border-t-transparent" />
+                  </div>
+                ) : messages.length === 0 ? (
+                  <div className="flex min-h-[58vh] items-center justify-center px-8 text-center">
+                    <div>
+                      <div className="mx-auto flex h-14 w-14 items-center justify-center rounded-full bg-[#29292c] text-2xl">💬</div>
+                      <h2 className="mt-4 text-[16px] font-semibold text-white">No Messages</h2>
+                      <p className="mt-1 text-[11px] text-white/45">Messages you send or receive will appear here.</p>
+                    </div>
+                  </div>
+                ) : (
+                  <div className="space-y-1 pt-2">
+                    {numbers.map((number) => {
+                      const numberMessages = messages.filter((message) => message.phone_number_id === number.id);
+                      const threads = Array.from(new Set(numberMessages.map((message) => message.direction === "inbound" ? message.from_number : message.to_number)));
+                      return threads.map((peer) => {
+                        const threadMessages = numberMessages.filter((message) => (message.direction === "inbound" ? message.from_number : message.to_number) === peer);
+                        const lastMessage = threadMessages[threadMessages.length - 1];
+                        return (
+                          <button
+                            key={`${number.id}-${peer}`}
+                            type="button"
+                            onClick={() => openMobileThread(number.id, peer)}
+                            className="flex w-full items-center gap-3 rounded-2xl px-3 py-3 text-left active:bg-white/10"
+                          >
+                            <div className="flex h-12 w-12 shrink-0 items-center justify-center rounded-full bg-gradient-to-br from-emerald-400 to-cyan-500 text-base font-bold text-slate-950">
+                              {flagForCountry(number.country_code)}
+                            </div>
+                            <div className="min-w-0 flex-1 border-b border-white/10 pb-3">
+                              <div className="flex items-center justify-between gap-3">
+                                <p className="truncate text-[15px] font-semibold">{formatPhoneNumber(peer)}</p>
+                                <span className="shrink-0 text-[10px] text-white/35">{lastMessage ? formatMessageTime(lastMessage.created_at) : ""}</span>
+                              </div>
+                              <p className="mt-1 truncate text-[12px] text-white/45">{lastMessage?.body || formatPhoneNumber(number.phone_number)}</p>
+                            </div>
+                          </button>
+                        );
+                      });
+                    })}
+                  </div>
+                )}
+
+                <div className="fixed bottom-0 left-0 right-0 z-30 border-t border-white/10 bg-black/95 px-4 pb-[calc(env(safe-area-inset-bottom)+12px)] pt-3 backdrop-blur-xl">
+                  <div className="flex items-center gap-2">
+                    <div className="flex h-10 flex-1 items-center rounded-full bg-[#1c1c1e] px-4">
+                      <span className="mr-2 text-sm text-white/35">⌕</span>
+                      <input
+                        value={mobileSearch}
+                        onChange={(event) => setMobileSearch(event.target.value)}
+                        placeholder="Search"
+                        className="w-full bg-transparent text-[14px] text-white outline-none placeholder:text-white/35"
+                      />
+                    </div>
+                    <button
+                      type="button"
+                      onClick={openCompose}
+                      aria-label="New Message"
+                      className="flex h-11 w-11 shrink-0 items-center justify-center rounded-full bg-white text-xl text-black shadow-lg"
+                    >
+                      ↗
+                    </button>
+                  </div>
+                </div>
+              </main>
+            </>
+          )}
+
+          {mobileView === "conversation" && (
+            <div className="flex min-h-[100dvh] flex-col bg-black">
+              <header className="flex items-center gap-3 border-b border-white/10 px-4 pb-3 pt-5">
+                <button type="button" onClick={() => { setMobileView("list"); setMobilePeer(""); }} className="text-3xl leading-none text-white/80" aria-label="Back">‹</button>
+                <div className="flex min-w-0 flex-1 items-center gap-3">
+                  <div className="flex h-9 w-9 shrink-0 items-center justify-center rounded-full bg-gradient-to-br from-emerald-400 to-cyan-500 text-xs text-slate-950">
+                    {flagForCountry(selectedNumber?.country_code || null)}
+                  </div>
+                  <div className="min-w-0">
+                    <p className="truncate text-[15px] font-semibold">{formatPhoneNumber(mobilePeer || conversationPeer || "")}</p>
+                    <p className="truncate text-[10px] text-white/40">via {selectedNumber ? formatPhoneNumber(selectedNumber.phone_number) : "NAVA Phone"}</p>
+                  </div>
+                </div>
+                <button type="button" onClick={copyNumber} className="text-lg text-white/60" aria-label="Copy number">⋯</button>
+              </header>
+
+              <div className="flex-1 overflow-y-auto px-4 py-5">
+                {selectedMessages.filter((message) => {
+                  const peer = message.direction === "inbound" ? message.from_number : message.to_number;
+                  return !mobilePeer || peer === mobilePeer;
+                }).length === 0 ? (
+                  <div className="flex min-h-[55vh] items-center justify-center text-center">
+                    <div>
+                      <div className="mx-auto flex h-12 w-12 items-center justify-center rounded-full bg-[#29292c] text-xl">💬</div>
+                      <p className="mt-3 text-sm text-white/55">Start your conversation</p>
+                    </div>
+                  </div>
+                ) : (
+                  <div className="space-y-2">
+                    {selectedMessages.filter((message) => {
+                      const peer = message.direction === "inbound" ? message.from_number : message.to_number;
+                      return !mobilePeer || peer === mobilePeer;
+                    }).map((message) => {
+                      const outbound = message.direction === "outbound";
+                      return (
+                        <div key={message.id} className={`flex ${outbound ? "justify-end" : "justify-start"}`}>
+                          <div className={`max-w-[78%] rounded-[21px] px-4 py-2.5 text-[15px] leading-relaxed ${outbound ? "rounded-br-[7px] bg-[#0a84ff] text-white" : "rounded-bl-[7px] bg-[#262628] text-white"}`}>
+                            {message.body}
+                            <div className={`mt-1 text-[9px] ${outbound ? "text-right text-white/55" : "text-white/35"}`}>{formatMessageTime(message.created_at)}</div>
+                          </div>
+                        </div>
+                      );
+                    })}
+                  </div>
+                )}
+              </div>
+
+              <div className="border-t border-white/10 bg-black/95 px-3 pb-[calc(env(safe-area-inset-bottom)+10px)] pt-2 backdrop-blur-xl">
+                <div className="flex items-end gap-2">
+                  <button type="button" onClick={() => setMobileFromPickerOpen((value) => !value)} className="flex h-9 w-9 shrink-0 items-center justify-center rounded-full bg-[#1c1c1e] text-xl text-white/75">+</button>
+                  <textarea
+                    ref={composerRef}
+                    value={text}
+                    onChange={(event) => { setText(event.target.value.slice(0, 1600)); if (!recipient && mobilePeer) setRecipient(mobilePeer); }}
+                    onKeyDown={handleComposerKeyDown}
+                    rows={1}
+                    placeholder="Message"
+                    className="max-h-28 min-h-9 flex-1 resize-none rounded-[20px] border border-white/10 bg-[#1c1c1e] px-4 py-2 text-[15px] text-white outline-none placeholder:text-white/35 focus:border-white/20"
+                  />
+                  <button type="button" onClick={() => void sendMessage()} disabled={sending || !text.trim()} className="flex h-9 w-9 shrink-0 items-center justify-center rounded-full bg-[#0a84ff] text-lg font-bold text-white disabled:opacity-30" aria-label="Send">{sending ? "…" : "↑"}</button>
+                </div>
+
+                {mobileFromPickerOpen && (
+                  <div className="mt-2 rounded-2xl border border-white/10 bg-[#1c1c1e] p-2">
+                    <p className="px-2 py-1 text-[10px] font-semibold uppercase tracking-wider text-white/35">Send from</p>
+                    {numbers.map((number) => (
+                      <button key={number.id} type="button" onClick={() => { setSelectedNumberId(number.id); setMobileFromPickerOpen(false); }} className={`flex w-full items-center gap-2 rounded-xl px-3 py-2 text-left text-xs ${number.id === selectedNumberId ? "bg-white/10 text-white" : "text-white/65"}`}>
+                        <span>{flagForCountry(number.country_code)}</span>
+                        <span>{formatPhoneNumber(number.phone_number)}</span>
+                        {number.id === selectedNumberId && <span className="ml-auto text-emerald-400">✓</span>}
+                      </button>
+                    ))}
+                  </div>
+                )}
+              </div>
+            </div>
+          )}
+
+          {mobileView === "compose" && (
+            <div className="flex min-h-[100dvh] flex-col bg-[#1c1c1e]">
+              <header className="flex items-center justify-between border-b border-white/10 px-4 pb-3 pt-5">
+                <button type="button" onClick={closeMobileCompose} className="text-[15px] text-white/75">‹</button>
+                <h1 className="text-[15px] font-semibold">New Message</h1>
+                <button type="button" onClick={closeMobileCompose} className="flex h-8 w-8 items-center justify-center rounded-full bg-[#2c2c2e] text-lg text-white/70" aria-label="Close">×</button>
+              </header>
+
+              <div className="px-3">
+                {error && <div className="mt-3 rounded-2xl bg-red-500/15 px-3 py-2 text-xs text-red-300">{error}</div>}
+                {notice && <div className="mt-3 rounded-2xl bg-emerald-500/15 px-3 py-2 text-xs text-emerald-300">{notice}</div>}
+              </div>
+
+              <div className="border-b border-white/10 px-3">
+                <div className="flex items-center border-b border-white/10 py-3">
+                  <span className="mr-2 text-[14px] text-white/45">To:</span>
+                  <input
+                    ref={mobileRecipientRef}
+                    value={recipient}
+                    onChange={(event) => setRecipient(event.target.value)}
+                    placeholder="Phone number"
+                    inputMode="tel"
+                    autoComplete="tel"
+                    className="min-w-0 flex-1 bg-transparent text-[15px] text-white outline-none placeholder:text-white/30"
+                  />
+                  <button type="button" onClick={() => setMobileFromPickerOpen((value) => !value)} className="flex h-7 w-7 items-center justify-center rounded-full bg-[#3a3a3c] text-base text-white/80" aria-label="Choose NAVA number">+</button>
+                </div>
+              </div>
+
+              {mobileFromPickerOpen && (
+                <div className="mx-3 mt-2 rounded-2xl border border-white/10 bg-[#2c2c2e] p-2">
+                  <p className="px-2 py-1 text-[10px] font-semibold uppercase tracking-wider text-white/35">Send from</p>
+                  {numbers.map((number) => (
+                    <button key={number.id} type="button" onClick={() => { setSelectedNumberId(number.id); setMobileFromPickerOpen(false); }} className={`flex w-full items-center gap-2 rounded-xl px-3 py-2 text-left text-xs ${number.id === selectedNumberId ? "bg-white/10 text-white" : "text-white/65"}`}>
+                      <span>{flagForCountry(number.country_code)}</span><span>{formatPhoneNumber(number.phone_number)}</span>
+                      {number.id === selectedNumberId && <span className="ml-auto text-emerald-400">✓</span>}
+                    </button>
+                  ))}
+                </div>
+              )}
+
+              <div className="flex-1" />
+
+              <div className="border-t border-white/10 bg-[#1c1c1e] px-3 pb-[calc(env(safe-area-inset-bottom)+10px)] pt-2">
+                <div className="flex items-end gap-2">
+                  <button type="button" onClick={() => setMobileFromPickerOpen((value) => !value)} className="flex h-9 w-9 shrink-0 items-center justify-center rounded-full bg-[#3a3a3c] text-xl text-white/80">+</button>
+                  <textarea
+                    value={text}
+                    onChange={(event) => setText(event.target.value.slice(0, 1600))}
+                    onKeyDown={handleComposerKeyDown}
+                    rows={1}
+                    placeholder=""
+                    className="min-h-9 max-h-28 flex-1 resize-none rounded-[20px] border border-white/10 bg-[#2c2c2e] px-4 py-2 text-[15px] text-white outline-none placeholder:text-white/30"
+                  />
+                  <button type="button" onClick={() => void sendMessage()} disabled={sending || !selectedNumberId || !recipient.trim() || !text.trim()} className="flex h-9 w-9 shrink-0 items-center justify-center rounded-full bg-[#0a84ff] text-lg font-bold text-white disabled:opacity-30" aria-label="Send">{sending ? "…" : "↑"}</button>
+                </div>
+              </div>
+            </div>
+          )}
+        </div>
+      </div>
+      <div className="hidden lg:block">
       <div className="mx-auto max-w-6xl px-1 py-1 sm:px-4 sm:py-4">
         <div className={`overflow-hidden rounded-[28px] border ${theme.panel} shadow-2xl`}>
           <header className={`flex items-center justify-between border-b px-4 py-3 sm:px-6 sm:py-4 ${theme.divider}`}>
@@ -534,6 +802,7 @@ export default function Page() {
           )}
         </div>
       </div>
+      </div>
 
       {addNumberOpen && (
         <div className="fixed inset-0 z-50 flex items-end justify-center bg-black/60 p-0 backdrop-blur-sm sm:items-center sm:p-6">
@@ -593,6 +862,7 @@ export default function Page() {
         </div>
       )}
 
+      <div className="hidden lg:block">
       {composeOpen && (
         <div className="fixed inset-0 z-50 flex items-end justify-center bg-black/60 p-0 backdrop-blur-sm sm:items-center sm:p-6">
           <div className={`w-full max-w-lg rounded-t-[30px] border p-5 shadow-2xl sm:rounded-[28px] ${theme.panel}`}>
@@ -675,6 +945,7 @@ export default function Page() {
           </div>
         </div>
       )}
+      </div>
     </div>
   );
 }
