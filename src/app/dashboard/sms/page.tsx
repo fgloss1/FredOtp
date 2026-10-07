@@ -6,7 +6,6 @@ import { useEffect, useState } from "react";
 type PhoneNumber = {
   id: string;
   phone_number: string;
-  telnyx_phone_number_id: string | null;
   status: "active" | "suspended" | "released";
   country_code: string | null;
   capabilities: Record<string, unknown>;
