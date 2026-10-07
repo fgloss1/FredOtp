@@ -41,6 +41,7 @@ export default function PhonePage() {
   const [searching, setSearching] = useState(false);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState("");
+  const [purchasingNumber, setPurchasingNumber] = useState("");
 
   useEffect(() => {
     const checkTheme = () => {
@@ -129,6 +130,36 @@ export default function PhonePage() {
       setError(err?.message || "Unable to search numbers.");
     } finally {
       setSearching(false);
+    }
+  };
+
+  const getNumber = async (phoneNumber: string) => {
+    try {
+      setPurchasingNumber(phoneNumber);
+      setError("");
+
+      const { supabase } = await import("@/lib/supabase");
+      const { data: { session } } = await supabase.auth.getSession();
+      if (!session?.access_token) throw new Error("Your session has expired. Please sign in again.");
+
+      const response = await fetch("/api/phone/purchase", {
+        method: "POST",
+        headers: {
+          Authorization: `Bearer ${session.access_token}`,
+          "Content-Type": "application/json",
+        },
+        body: JSON.stringify({ phone_number: phoneNumber }),
+      });
+
+      const data = await response.json();
+      if (!response.ok) throw new Error(data?.error || "Unable to get this number.");
+
+      setAvailableNumbers((current) => current.filter((item) => item.phone_number !== phoneNumber));
+      setNumbers((current) => [data.number, ...current]);
+    } catch (err: any) {
+      setError(err?.message || "Unable to get this number.");
+    } finally {
+      setPurchasingNumber("");
     }
   };
 
@@ -254,10 +285,11 @@ export default function PhonePage() {
                         </div>
                         <button
                           type="button"
-                          disabled
-                          className="mt-2 rounded-lg border border-slate-700 px-3 py-1.5 text-[9px] font-bold uppercase tracking-wider text-gray-500"
+                          onClick={() => getNumber(number.phone_number)}
+                          disabled={purchasingNumber !== ""}
+                          className="mt-2 rounded-lg bg-emerald-500 px-3 py-1.5 text-[9px] font-bold uppercase tracking-wider text-slate-950 transition hover:bg-emerald-400 disabled:cursor-not-allowed disabled:opacity-60"
                         >
-                          Get Number
+                          {purchasingNumber === number.phone_number ? "Getting..." : "Get Number"}
                         </button>
                       </div>
                     </div>
