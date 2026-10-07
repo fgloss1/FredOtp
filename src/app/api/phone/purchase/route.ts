@@ -26,12 +26,6 @@ export async function POST(req: Request) {
     const apiKey = process.env.TELNYX_API_KEY;
     if (!apiKey) return NextResponse.json({ error: "NAVA Phone number service is temporarily unavailable." }, { status: 503 });
 
-    const dbUser = await db.select({ id: users.id }).from(users)
-      .where(eq(users.email, authUser.email || "")).limit(1);
-    if (!dbUser[0]) {
-      return NextResponse.json({ error: "Your NAVA wallet account could not be matched. No charge was made." }, { status: 409 });
-    }
-
     const exactParams = new URLSearchParams();
     exactParams.set("filter[phone_number]", phoneNumber);
     exactParams.set("filter[limit]", "1");
@@ -61,6 +55,42 @@ export async function POST(req: Request) {
 
     const monthlyPrice = navaMonthlyPrice(providerMonthlyCost);
     const purchaseMode = String(process.env.NAVA_PHONE_PURCHASE_MODE || "live").trim().toLowerCase();
+    if (purchaseMode === "simulation") {
+      return NextResponse.json({
+        success: true,
+        simulated: true,
+        number: {
+          id: "simulation-" + phoneNumber.replace(/\D/g, ""),
+          phone_number: phoneNumber,
+          status: "active",
+          country_code: String(candidate?.country_code || "").toUpperCase() || null,
+          capabilities: {
+            sms: true,
+            voice: Array.isArray(candidate?.features)
+              ? candidate.features.some((feature: any) =>
+                  String(feature?.name || feature || "").toLowerCase() === "voice"
+                )
+              : false,
+          },
+          monthly_price: monthlyPrice,
+          created_at: new Date().toISOString(),
+        },
+        message: "Simulation successful. No number was purchased and no wallet was charged.",
+      });
+    }
+
+    if (purchaseMode !== "live") {
+      return NextResponse.json(
+        { error: "NAVA Phone checkout is not enabled in this environment. No charge was made." },
+        { status: 503 }
+      );
+    }
+
+    const dbUser = await db.select({ id: users.id }).from(users)
+      .where(eq(users.email, authUser.email || "")).limit(1);
+    if (!dbUser[0]) {
+      return NextResponse.json({ error: "Your NAVA wallet account could not be matched. No charge was made." }, { status: 409 });
+    }
 
     if (purchaseMode === "simulation") {
       return NextResponse.json({
