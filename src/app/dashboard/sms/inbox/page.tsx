@@ -300,7 +300,7 @@ export default function Page() {
 
   return (
     <div className={`min-h-[calc(100vh-2rem)] ${theme.page} ${theme.text} rounded-[28px] font-sans`}>
-      <div className="lg:hidden min-h-[100dvh] bg-black text-white">
+      <div className="phone-inbox-mobile lg:hidden min-h-[100dvh] bg-black text-white">
         <div className="flex min-h-[100dvh] flex-col">
           {mobileView === "list" && (
             <>
@@ -322,7 +322,7 @@ export default function Page() {
                 {notice && <div className="mb-3 rounded-2xl bg-emerald-500/15 px-3 py-2 text-xs text-emerald-300">{notice}</div>}
               </div>
 
-              <main className="relative flex-1 px-2 pb-28">
+              <main className="relative flex-1 px-2 pb-36">
                 {loading ? (
                   <div className="flex min-h-[55vh] items-center justify-center">
                     <div className="h-7 w-7 animate-spin rounded-full border-2 border-emerald-400 border-t-transparent" />
@@ -367,7 +367,7 @@ export default function Page() {
                   </div>
                 )}
 
-                <div className="fixed bottom-0 left-0 right-0 z-30 border-t border-white/10 bg-black/95 px-4 pb-[calc(env(safe-area-inset-bottom)+12px)] pt-3 backdrop-blur-xl">
+                <div className="fixed bottom-16 left-0 right-0 z-30 border-t border-white/10 bg-black/95 px-4 pb-[calc(env(safe-area-inset-bottom)+12px)] pt-3 backdrop-blur-xl">
                   <div className="flex items-center gap-2">
                     <div className="flex h-10 flex-1 items-center rounded-full bg-[#1c1c1e] px-4">
                       <span className="mr-2 text-sm text-white/35">⌕</span>
@@ -393,7 +393,7 @@ export default function Page() {
           )}
 
           {mobileView === "conversation" && (
-            <div className="flex min-h-[100dvh] flex-col bg-black">
+            <div className="flex min-h-[100dvh] flex-col bg-black pb-16">
               <header className="flex items-center gap-3 border-b border-white/10 px-4 pb-3 pt-5">
                 <button type="button" onClick={() => { setMobileView("list"); setMobilePeer(""); }} className="text-3xl leading-none text-white/80" aria-label="Back">‹</button>
                 <div className="flex min-w-0 flex-1 items-center gap-3">
@@ -471,7 +471,7 @@ export default function Page() {
           )}
 
           {mobileView === "compose" && (
-            <div className="flex min-h-[100dvh] flex-col bg-[#1c1c1e]">
+            <div className="flex min-h-[100dvh] flex-col bg-[#1c1c1e] pb-16">
               <header className="flex items-center justify-between border-b border-white/10 px-4 pb-3 pt-5">
                 <button type="button" onClick={closeMobileCompose} className="text-[15px] text-white/75">‹</button>
                 <h1 className="text-[15px] font-semibold">New Message</h1>
