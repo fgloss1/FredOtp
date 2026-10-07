@@ -1,3 +1,10 @@
+PS C:\Users\Sire-F\OneDrive\Desktop\My Projects\nava-otp> $Root = "C:\Users\Sire-F\OneDrive\Desktop\My Projects\nava-otp"
+PS C:\Users\Sire-F\OneDrive\Desktop\My Projects\nava-otp> Set-Location $Root
+PS C:\Users\Sire-F\OneDrive\Desktop\My Projects\nava-otp>
+PS C:\Users\Sire-F\OneDrive\Desktop\My Projects\nava-otp> git branch --show-current
+NAVA-TELNYX-PHONE-WORK
+PS C:\Users\Sire-F\OneDrive\Desktop\My Projects\nava-otp>
+PS C:\Users\Sire-F\OneDrive\Desktop\My Projects\nava-otp> Get-Content "src\app\dashboard\layout.tsx"
 "use client";
 
 import Link from "next/link";
@@ -8,7 +15,7 @@ import CurrencyToggle from "@/components/CurrencyToggle";
 import Footer from "@/components/Footer";
 import IdleTimer from "@/components/IdleTimer";
 
-// ─── GLASS 3D ICON HELPER FOR NAV ───
+// â”€â”€â”€ GLASS 3D ICON HELPER FOR NAV â”€â”€â”€
 function GlassIcon({ name, isActive = false }: { name: string; isActive?: boolean }) {
   const glow = isActive ? "drop-shadow-[0_0_12px_rgba(16,185,129,0.8)]" : "drop-shadow-lg";
 
@@ -344,7 +351,7 @@ export default function AntiFlashLayout({ children }: { children: React.ReactNod
                   {userEmail.slice(0, 2)}
                 </div>
                 <span className="max-w-[90px] truncate">{userEmail}</span>
-                <span className={`text-[10px] ${darkMode ? "text-gray-400" : "text-slate-400"}`}>▼</span>
+                <span className={`text-[10px] ${darkMode ? "text-gray-400" : "text-slate-400"}`}>â–¼</span>
               </button>
 
               {isProfileMenuOpen && (
@@ -367,7 +374,7 @@ export default function AntiFlashLayout({ children }: { children: React.ReactNod
                         {fullEmail}
                       </span>
                       <span className="inline-block px-2 py-0.5 rounded bg-emerald-500/10 text-emerald-600 text-[10px] font-bold border border-emerald-500/20">
-                        {userRole === "admin" ? "️ Administrator" : "✓ Verified User"}
+                        {userRole === "admin" ? "ï¸ Administrator" : "âœ“ Verified User"}
                       </span>
                     </div>
                     <Link
@@ -377,7 +384,7 @@ export default function AntiFlashLayout({ children }: { children: React.ReactNod
                         darkMode ? "text-gray-300 hover:bg-[#152035]" : "text-slate-700 hover:bg-slate-100"
                       }`}
                     >
-                      📑 Rental Services
+                      ðŸ“‘ Rental Services
                     </Link>
                     <Link
                       href="/dashboard/history"
@@ -386,7 +393,7 @@ export default function AntiFlashLayout({ children }: { children: React.ReactNod
                         darkMode ? "text-gray-300 hover:bg-[#152035]" : "text-slate-700 hover:bg-slate-100"
                       }`}
                     >
-                      🕒 History
+                      ðŸ•’ History
                     </Link>
                     <Link
                       href="/dashboard/wallet"
@@ -395,7 +402,7 @@ export default function AntiFlashLayout({ children }: { children: React.ReactNod
                         darkMode ? "text-gray-300 hover:bg-[#152035]" : "text-slate-700 hover:bg-slate-100"
                       }`}
                     >
-                      💳 Wallet & Top Up
+                      ðŸ’³ Wallet & Top Up
                     </Link>
                     {userRole === "admin" && (
                       <Link
@@ -403,7 +410,7 @@ export default function AntiFlashLayout({ children }: { children: React.ReactNod
                         onClick={() => setIsProfileMenuOpen(false)}
                         className="block px-3 py-2 text-xs font-bold text-amber-600 hover:bg-amber-500/10 rounded-xl"
                       >
-                        ️ Admin Desk
+                        ï¸ Admin Desk
                       </Link>
                     )}
                     <button
@@ -431,7 +438,7 @@ export default function AntiFlashLayout({ children }: { children: React.ReactNod
               <div className="w-6 h-6 rounded-lg bg-emerald-500/20 text-emerald-500 flex items-center justify-center uppercase font-black text-xs">
                 {userEmail.slice(0, 2)}
               </div>
-              <span className={`text-[10px] ${darkMode ? "text-gray-400" : "text-slate-400"}`}>☰</span>
+              <span className={`text-[10px] ${darkMode ? "text-gray-400" : "text-slate-400"}`}>â˜°</span>
             </button>
           </div>
         </div>
@@ -482,7 +489,7 @@ export default function AntiFlashLayout({ children }: { children: React.ReactNod
               <div className="min-w-0">
                 <span className="font-bold text-xs text-white block truncate">{fullEmail}</span>
                 <span className="inline-block px-2 py-0.5 rounded bg-emerald-500/10 text-emerald-400 text-[10px] font-bold border border-emerald-500/20 mt-0.5">
-                  {userRole === "admin" ? "🛠️ Administrator" : "✓ Verified Account"}
+                  {userRole === "admin" ? "ðŸ› ï¸ Administrator" : "âœ“ Verified Account"}
                 </span>
               </div>
             </div>
@@ -557,3 +564,4 @@ export default function AntiFlashLayout({ children }: { children: React.ReactNod
     </div>
   );
 }
+PS C:\Users\Sire-F\OneDrive\Desktop\My Projects\nava-otp>
