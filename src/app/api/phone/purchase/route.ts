@@ -19,17 +19,26 @@ export async function POST(req: Request) {
 
     const body = await req.json();
     const phoneNumber = String(body?.phone_number || "").trim();
+    const countryCode = String(body?.country_code || "").trim().toUpperCase();
     if (!/^\+[1-9]\d{7,14}$/.test(phoneNumber)) {
       return NextResponse.json({ error: "Please select a valid NAVA Phone number." }, { status: 400 });
+    }
+    if (!/^[A-Z]{2}$/.test(countryCode)) {
+      return NextResponse.json({ error: "Please select a valid NAVA Phone country." }, { status: 400 });
     }
 
     const apiKey = process.env.TELNYX_API_KEY;
     if (!apiKey) return NextResponse.json({ error: "NAVA Phone number service is temporarily unavailable." }, { status: 503 });
 
     const exactParams = new URLSearchParams();
-    exactParams.set("filter[phone_number]", phoneNumber.replace(/\D/g, ""));
-    exactParams.set("filter[limit]", "1");
+    const nationalNumber = phoneNumber.replace(/\D/g, "").replace(/^\d{1,3}/, (prefix) => {
+      return prefix === "1" ? "" : prefix;
+    });
+    exactParams.set("filter[country_code]", countryCode);
+    exactParams.set("filter[phone_number][starts_with]", nationalNumber);
+    exactParams.set("filter[limit]", "5");
     exactParams.append("filter[features]", "sms");
+    exactParams.set("filter[exclude_held_numbers]", "true");
 
     const inventoryResponse = await fetch(
       "https://api.telnyx.com/v2/available_phone_numbers?" + exactParams.toString(),
@@ -42,7 +51,10 @@ export async function POST(req: Request) {
 
     const inventoryPayload = await inventoryResponse.json();
     const candidate = Array.isArray(inventoryPayload?.data)
-      ? inventoryPayload.data.find((item: any) => item?.phone_number === phoneNumber)
+      ? inventoryPayload.data.find(
+          (item: any) =>
+            String(item?.phone_number || "").replace(/\D/g, "") === phoneNumber.replace(/\D/g, "")
+        )
       : null;
     const providerMonthlyCost = Number(
       candidate?.cost_information?.monthly_cost ??
@@ -90,37 +102,6 @@ export async function POST(req: Request) {
       .where(eq(users.email, authUser.email || "")).limit(1);
     if (!dbUser[0]) {
       return NextResponse.json({ error: "Your NAVA wallet account could not be matched. No charge was made." }, { status: 409 });
-    }
-
-    if (purchaseMode === "simulation") {
-      return NextResponse.json({
-        success: true,
-        simulated: true,
-        number: {
-          id: "simulation-" + phoneNumber.replace(/\D/g, ""),
-          phone_number: phoneNumber,
-          status: "active",
-          country_code: String(candidate?.country_code || "").toUpperCase() || null,
-          capabilities: {
-            sms: true,
-            voice: Array.isArray(candidate?.features)
-              ? candidate.features.some((feature: any) =>
-                  String(feature?.name || feature || "").toLowerCase() === "voice"
-                )
-              : false,
-          },
-          monthly_price: monthlyPrice,
-          created_at: new Date().toISOString(),
-        },
-        message: "Simulation successful. No number was purchased and no wallet was charged.",
-      });
-    }
-
-    if (purchaseMode !== "live") {
-      return NextResponse.json(
-        { error: "NAVA Phone checkout is not enabled in this environment. No charge was made." },
-        { status: 503 }
-      );
     }
 
     const wallet = await db.select({ id: wallets.id, balance: wallets.balance }).from(wallets)
