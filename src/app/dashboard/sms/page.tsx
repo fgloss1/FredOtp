@@ -14,9 +14,32 @@ type PhoneNumber = {
   created_at: string;
 };
 
+type AvailableNumber = {
+  phone_number: string;
+  monthly_price: number;
+  capabilities: {
+    sms: boolean;
+    voice: boolean;
+  };
+};
+
+const countries = [
+  ["US", "United States"],
+  ["CA", "Canada"],
+  ["GB", "United Kingdom"],
+  ["AU", "Australia"],
+  ["DE", "Germany"],
+  ["FR", "France"],
+  ["NL", "Netherlands"],
+  ["NG", "Nigeria"],
+];
+
 export default function PhonePage() {
   const [darkMode, setDarkMode] = useState(true);
   const [numbers, setNumbers] = useState<PhoneNumber[]>([]);
+  const [availableNumbers, setAvailableNumbers] = useState<AvailableNumber[]>([]);
+  const [country, setCountry] = useState("US");
+  const [searching, setSearching] = useState(false);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState("");
 
@@ -28,7 +51,6 @@ export default function PhonePage() {
 
     checkTheme();
     window.addEventListener("nava-theme-change", checkTheme);
-
     return () => window.removeEventListener("nava-theme-change", checkTheme);
   }, []);
 
@@ -46,16 +68,12 @@ export default function PhonePage() {
         } = await supabase.auth.getSession();
 
         if (!session?.access_token) {
-          if (!cancelled) {
-            setError("Your session has expired. Please sign in again.");
-          }
+          if (!cancelled) setError("Your session has expired. Please sign in again.");
           return;
         }
 
         const response = await fetch("/api/phone", {
-          headers: {
-            Authorization: `Bearer ${session.access_token}`,
-          },
+          headers: { Authorization: `Bearer ${session.access_token}` },
           cache: "no-store",
         });
 
@@ -69,22 +87,51 @@ export default function PhonePage() {
           setNumbers(Array.isArray(data?.numbers) ? data.numbers : []);
         }
       } catch (err: any) {
-        if (!cancelled) {
-          setError(err?.message || "Unable to load Phone service.");
-        }
+        if (!cancelled) setError(err?.message || "Unable to load Phone service.");
       } finally {
-        if (!cancelled) {
-          setLoading(false);
-        }
+        if (!cancelled) setLoading(false);
       }
     }
 
     loadPhoneNumbers();
-
     return () => {
       cancelled = true;
     };
   }, []);
+
+  const searchNumbers = async () => {
+    try {
+      setSearching(true);
+      setError("");
+      setAvailableNumbers([]);
+
+      const { supabase } = await import("@/lib/supabase");
+      const {
+        data: { session },
+      } = await supabase.auth.getSession();
+
+      if (!session?.access_token) {
+        throw new Error("Your session has expired. Please sign in again.");
+      }
+
+      const response = await fetch(`/api/phone/available?country=${encodeURIComponent(country)}`, {
+        headers: { Authorization: `Bearer ${session.access_token}` },
+        cache: "no-store",
+      });
+
+      const data = await response.json();
+
+      if (!response.ok) {
+        throw new Error(data?.error || "Unable to search numbers.");
+      }
+
+      setAvailableNumbers(Array.isArray(data?.numbers) ? data.numbers : []);
+    } catch (err: any) {
+      setError(err?.message || "Unable to search numbers.");
+    } finally {
+      setSearching(false);
+    }
+  };
 
   const theme = darkMode
     ? {
@@ -99,27 +146,6 @@ export default function PhonePage() {
         text: "text-slate-900",
         textMuted: "text-slate-600 font-medium",
       };
-
-  const workspaceCards = [
-    {
-      href: "/dashboard/sms/inbox",
-      icon: "💬",
-      title: "SMS",
-      description: "Send and receive messages.",
-    },
-    {
-      href: "/dashboard/sms/calling",
-      icon: "📞",
-      title: "Calling",
-      description: "Make and receive calls.",
-    },
-    {
-      href: "/dashboard/sms/dialer",
-      icon: "🌐",
-      title: "Web dialer",
-      description: "Use your number from the dashboard.",
-    },
-  ];
 
   return (
     <div className={`space-y-6 ${theme.text} font-sans`}>
@@ -139,101 +165,121 @@ export default function PhonePage() {
       {loading ? (
         <div className={`${theme.card} rounded-3xl p-8 text-center`}>
           <div className="mx-auto mb-3 h-8 w-8 rounded-full border-2 border-emerald-400 border-t-transparent animate-spin" />
-          <p className={`text-xs ${theme.textMuted}`}>
-            Loading your NAVA Phone...
-          </p>
-        </div>
-      ) : numbers.length === 0 ? (
-        <div className={`${theme.card} rounded-3xl p-8 sm:p-10`}>
-          <div className="mx-auto flex h-16 w-16 items-center justify-center rounded-2xl border border-emerald-500/30 bg-emerald-500/10 text-3xl">
-            📱
-          </div>
-
-          <div className="mx-auto mt-5 max-w-xl text-center space-y-2">
-            <span className="inline-flex rounded-full border border-emerald-500/30 bg-emerald-500/10 px-3 py-1 text-[10px] font-bold uppercase tracking-wider text-emerald-400">
-              NAVA Phone
-            </span>
-            <h2 className="text-xl font-bold">Get your own NAVA number</h2>
-            <p className={`text-xs leading-relaxed ${theme.textMuted}`}>
-              Your NAVA number will support ongoing SMS conversations first,
-              followed by voice calling and browser calling.
-            </p>
-          </div>
-
-          <div className="mx-auto mt-7 grid max-w-2xl gap-3 sm:grid-cols-3">
-            {workspaceCards.map(({ href, icon, title, description }) => (
-              <Link
-                key={title}
-                href={href}
-                className={`${theme.innerCard} rounded-2xl p-4 text-center transition hover:-translate-y-0.5 hover:border-emerald-500/50 hover:bg-emerald-500/5 focus:outline-none focus:ring-2 focus:ring-emerald-400/50`}
-              >
-                <div className="text-2xl">{icon}</div>
-                <div className="mt-2 text-xs font-bold">{title}</div>
-                <div className={`mt-1 text-[10px] leading-relaxed ${theme.textMuted}`}>
-                  {description}
-                </div>
-                <div className="mt-3 text-[9px] font-bold uppercase tracking-wider text-emerald-400">
-                  Open
-                </div>
-              </Link>
-            ))}
-          </div>
-
-          <div className="mx-auto mt-7 max-w-md rounded-2xl border border-pink-500/30 bg-pink-950/30 px-4 py-3 text-center">
-            <p className="text-[10px] font-bold uppercase tracking-wider text-pink-400">
-              Number provisioning
-            </p>
-            <p className={`mt-1 text-xs ${theme.textMuted}`}>
-              Telnyx number search and secure checkout are the next step.
-            </p>
-          </div>
+          <p className={`text-xs ${theme.textMuted}`}>Loading your NAVA Phone...</p>
         </div>
       ) : (
-        <div className={`${theme.card} rounded-3xl p-6`}>
-          <div className="flex flex-col gap-4 sm:flex-row sm:items-center sm:justify-between">
+        <>
+          <div className={`${theme.card} rounded-3xl p-6 sm:p-8`}>
             <div>
+              <span className="inline-flex rounded-full border border-emerald-500/30 bg-emerald-500/10 px-3 py-1 text-[10px] font-bold uppercase tracking-wider text-emerald-400">
+                Get a Number
+              </span>
+              <h2 className="mt-3 text-xl font-bold">Choose your country</h2>
+              <p className={`mt-1 text-xs ${theme.textMuted}`}>
+                Search available NAVA numbers with SMS support. You are not charged by searching.
+              </p>
+            </div>
+
+            <div className="mt-5 flex flex-col gap-3 sm:flex-row">
+              <select
+                value={country}
+                onChange={(event) => setCountry(event.target.value)}
+                className={`${theme.innerCard} rounded-xl px-4 py-3 text-sm outline-none focus:border-emerald-400`}
+              >
+                {countries.map(([code, name]) => (
+                  <option key={code} value={code}>
+                    {name}
+                  </option>
+                ))}
+              </select>
+
+              <button
+                type="button"
+                onClick={searchNumbers}
+                disabled={searching}
+                className="rounded-xl bg-emerald-500 px-5 py-3 text-sm font-bold text-slate-950 transition hover:bg-emerald-400 disabled:cursor-not-allowed disabled:opacity-60"
+              >
+                {searching ? "Searching..." : "Search Numbers"}
+              </button>
+            </div>
+
+            {availableNumbers.length === 0 && !searching && (
+              <div className={`mt-5 rounded-2xl ${theme.innerCard} p-5 text-center`}>
+                <div className="text-2xl">📱</div>
+                <p className="mt-2 text-sm font-bold">Ready to find your NAVA number</p>
+                <p className={`mt-1 text-[10px] ${theme.textMuted}`}>
+                  Select a country and search for available numbers.
+                </p>
+              </div>
+            )}
+
+            {availableNumbers.length > 0 && (
+              <div className="mt-5 grid gap-3 md:grid-cols-2">
+                {availableNumbers.map((number) => (
+                  <div
+                    key={number.phone_number}
+                    className={`${theme.innerCard} rounded-2xl p-4`}
+                  >
+                    <div className="flex items-center justify-between gap-3">
+                      <div>
+                        <div className="text-lg font-black tracking-wide">
+                          {number.phone_number}
+                        </div>
+                        <div className={`mt-2 flex gap-2 text-[9px] font-bold uppercase tracking-wider ${theme.textMuted}`}>
+                          {number.capabilities.sms && <span>SMS</span>}
+                          {number.capabilities.voice && <span>Voice</span>}
+                        </div>
+                      </div>
+                      <div className="text-right">
+                        <div className="text-sm font-black text-emerald-400">
+                          ${number.monthly_price.toFixed(2)}/mo
+                        </div>
+                        <button
+                          type="button"
+                          disabled
+                          className="mt-2 rounded-lg border border-slate-700 px-3 py-1.5 text-[9px] font-bold uppercase tracking-wider text-gray-500"
+                        >
+                          Get Number
+                        </button>
+                      </div>
+                    </div>
+                  </div>
+                ))}
+              </div>
+            )}
+          </div>
+
+          {numbers.length > 0 && (
+            <div className={`${theme.card} rounded-3xl p-6`}>
               <p className={`text-[10px] font-bold uppercase tracking-wider ${theme.textMuted}`}>
                 My NAVA Numbers
               </p>
               <h2 className="mt-1 text-xl font-bold">
                 {numbers.length} number{numbers.length === 1 ? "" : "s"}
               </h2>
-            </div>
-            <div className="rounded-xl border border-emerald-500/30 bg-emerald-500/10 px-3 py-2 text-[10px] font-bold text-emerald-400">
-              Telnyx powered
-            </div>
-          </div>
 
-          <div className="mt-5 space-y-3">
-            {numbers.map((number) => (
-              <Link
-                key={number.id}
-                href="/dashboard/sms/inbox"
-                className={`${theme.innerCard} block rounded-2xl p-4 transition hover:border-emerald-500/50 hover:bg-emerald-500/5 focus:outline-none focus:ring-2 focus:ring-emerald-400/50`}
-              >
-                <div className="flex flex-col gap-3 sm:flex-row sm:items-center sm:justify-between">
-                  <div>
-                    <div className="text-lg font-black tracking-wide">
-                      {number.phone_number}
+              <div className="mt-5 space-y-3">
+                {numbers.map((number) => (
+                  <Link
+                    key={number.id}
+                    href="/dashboard/sms/inbox"
+                    className={`${theme.innerCard} block rounded-2xl p-4 transition hover:border-emerald-500/50 hover:bg-emerald-500/5`}
+                  >
+                    <div className="flex flex-col gap-3 sm:flex-row sm:items-center sm:justify-between">
+                      <div>
+                        <div className="text-lg font-black tracking-wide">{number.phone_number}</div>
+                        <div className={`mt-1 text-[10px] ${theme.textMuted}`}>
+                          {number.country_code || "—"} · {number.status}
+                        </div>
+                      </div>
+                      <div className="text-xs font-bold text-emerald-400">Open SMS</div>
                     </div>
-                    <div className={`mt-1 text-[10px] ${theme.textMuted}`}>
-                      {number.country_code || "—"} · {number.status}
-                    </div>
-                  </div>
-
-                  <div className="text-left sm:text-right">
-                    <div className="text-xs font-bold text-emerald-400">
-                      Open SMS
-                    </div>
-                    <div className={`text-[10px] ${theme.textMuted}`}>
-                      Voice and dialer coming next
-                    </div>
-                  </div>
-                </div>
-              </Link>
-            ))}
-          </div>
-        </div>
+                  </Link>
+                ))}
+              </div>
+            </div>
+          )}
+        </>
       )}
     </div>
   );
