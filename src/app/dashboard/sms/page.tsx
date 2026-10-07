@@ -38,6 +38,16 @@ export default function PhonePage() {
   const [numbers, setNumbers] = useState<PhoneNumber[]>([]);
   const [availableNumbers, setAvailableNumbers] = useState<AvailableNumber[]>([]);
   const [country, setCountry] = useState("US");
+  const [searchType, setSearchType] = useState("any");
+  const [pattern, setPattern] = useState("");
+  const [areaCode, setAreaCode] = useState("");
+  const [city, setCity] = useState("");
+  const [state, setState] = useState("");
+  const [rateCenter, setRateCenter] = useState("");
+  const [numberType, setNumberType] = useState("");
+  const [capability, setCapability] = useState("sms");
+  const [quickship, setQuickship] = useState(false);
+  const [reservable, setReservable] = useState(false);
   const [searching, setSearching] = useState(false);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState("");
@@ -114,7 +124,12 @@ export default function PhonePage() {
         throw new Error("Your session has expired. Please sign in again.");
       }
 
-      const response = await fetch(`/api/phone/available?country=${encodeURIComponent(country)}`, {
+      const params = new URLSearchParams({
+        country, searchType, pattern, areaCode, city, state, rateCenter,
+        numberType, capability, quickship: String(quickship), reservable: String(reservable),
+      });
+
+      const response = await fetch(`/api/phone/available?${params.toString()}`, {
         headers: { Authorization: `Bearer ${session.access_token}` },
         cache: "no-store",
       });
@@ -229,27 +244,29 @@ export default function PhonePage() {
               </p>
             </div>
 
-            <div className="mt-5 flex flex-col gap-3 sm:flex-row">
-              <select
-                value={country}
-                onChange={(event) => setCountry(event.target.value)}
-                className={`${theme.innerCard} rounded-xl px-4 py-3 text-sm outline-none focus:border-emerald-400`}
-              >
-                {countries.map(([code, flag, name]) => (
-                  <option key={code} value={code}>
-                    {flag} {name}
-                  </option>
-                ))}
+            <div className="mt-5 grid gap-3 sm:grid-cols-2 lg:grid-cols-4">
+              <select value={country} onChange={(event) => setCountry(event.target.value)} className="${theme.innerCard} rounded-xl px-4 py-3 text-sm outline-none focus:border-emerald-400">
+                {countries.map(([code, flag, name]) => (<option key={code} value={code}>{flag} {name}</option>))}
               </select>
-
-              <button
-                type="button"
-                onClick={searchNumbers}
-                disabled={searching}
-                className="rounded-xl bg-emerald-500 px-5 py-3 text-sm font-bold text-slate-950 transition hover:bg-emerald-400 disabled:cursor-not-allowed disabled:opacity-60"
-              >
-                {searching ? "Searching..." : "Search Numbers"}
-              </button>
+              <select value={capability} onChange={(event) => setCapability(event.target.value)} className="${theme.innerCard} rounded-xl px-4 py-3 text-sm outline-none focus:border-emerald-400">
+                <option value="sms">SMS</option><option value="voice">Voice</option><option value="mms">MMS</option><option value="emergency">Voice + Emergency</option>
+              </select>
+              <select value={numberType} onChange={(event) => setNumberType(event.target.value)} className="${theme.innerCard} rounded-xl px-4 py-3 text-sm outline-none focus:border-emerald-400">
+                <option value="">Any number type</option><option value="local">Local</option><option value="toll_free">Toll-free</option><option value="mobile">Mobile</option><option value="national">National</option><option value="shared_cost">Shared cost</option>
+              </select>
+              <select value={searchType} onChange={(event) => setSearchType(event.target.value)} className="${theme.innerCard} rounded-xl px-4 py-3 text-sm outline-none focus:border-emerald-400">
+                <option value="any">No number pattern</option><option value="starts">Starts with</option><option value="ends">Ends with</option><option value="contains">Contains</option>
+              </select>
+              {searchType !== "any" && <input value={pattern} onChange={(event) => setPattern(event.target.value.replace(/\D/g, "").slice(0, 15))} placeholder="Number code" inputMode="numeric" className="${theme.innerCard} rounded-xl px-4 py-3 text-sm outline-none focus:border-emerald-400" />}
+              <input value={areaCode} onChange={(event) => setAreaCode(event.target.value.replace(/\D/g, "").slice(0, 6))} placeholder="Area code" inputMode="numeric" className="${theme.innerCard} rounded-xl px-4 py-3 text-sm outline-none focus:border-emerald-400" />
+              <input value={city} onChange={(event) => setCity(event.target.value)} placeholder="City / region" className="${theme.innerCard} rounded-xl px-4 py-3 text-sm outline-none focus:border-emerald-400" />
+              {(country === "US" || country === "CA") && <input value={state} onChange={(event) => setState(event.target.value.toUpperCase().slice(0, 3))} placeholder="State / province" className="${theme.innerCard} rounded-xl px-4 py-3 text-sm outline-none focus:border-emerald-400" />}
+              <input value={rateCenter} onChange={(event) => setRateCenter(event.target.value)} placeholder="Rate center" className="${theme.innerCard} rounded-xl px-4 py-3 text-sm outline-none focus:border-emerald-400" />
+            </div>
+            <div className="mt-3 flex flex-wrap items-center gap-4 text-xs">
+              <label className="flex items-center gap-2"><input type="checkbox" checked={quickship} onChange={(event) => setQuickship(event.target.checked)} /> Quickship</label>
+              <label className="flex items-center gap-2"><input type="checkbox" checked={reservable} onChange={(event) => setReservable(event.target.checked)} /> Reservable</label>
+              <button type="button" onClick={searchNumbers} disabled={searching} className="rounded-xl bg-emerald-500 px-5 py-3 text-sm font-bold text-slate-950 transition hover:bg-emerald-400 disabled:cursor-not-allowed disabled:opacity-60">{searching ? "Searching..." : "Search Numbers"}</button>
             </div>
 
             {availableNumbers.length === 0 && !searching && (
