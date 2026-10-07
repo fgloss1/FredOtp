@@ -53,6 +53,7 @@ export default function PhonePage() {
   const [error, setError] = useState("");
   const [purchasingNumber, setPurchasingNumber] = useState("");
   const myNumbersRef = useRef<HTMLDivElement | null>(null);
+  const scrollToMyNumbersRef = useRef(false);
 
   useEffect(() => {
     const checkTheme = () => {
@@ -109,6 +110,19 @@ export default function PhonePage() {
       cancelled = true;
     };
   }, []);
+
+  useEffect(() => {
+    if (!scrollToMyNumbersRef.current || numbers.length === 0) return;
+
+    scrollToMyNumbersRef.current = false;
+    const scrollToNumbers = () => {
+      myNumbersRef.current?.scrollIntoView({ behavior: "smooth", block: "start" });
+    };
+
+    requestAnimationFrame(() => {
+      requestAnimationFrame(scrollToNumbers);
+    });
+  }, [numbers.length]);
 
   const searchNumbers = async () => {
     try {
@@ -171,10 +185,8 @@ export default function PhonePage() {
       if (!response.ok) throw new Error(data?.error || "Unable to get this number.");
 
       setAvailableNumbers((current) => current.filter((item) => item.phone_number !== phoneNumber));
+      scrollToMyNumbersRef.current = true;
       setNumbers((current) => [data.number, ...current]);
-      requestAnimationFrame(() => {
-        myNumbersRef.current?.scrollIntoView({ behavior: "smooth", block: "start" });
-      });
     } catch (err: any) {
       setError(err?.message || "Unable to get this number.");
     } finally {
@@ -321,7 +333,7 @@ export default function PhonePage() {
           </div>
 
           {numbers.length > 0 && (
-            <div className={`${theme.card} rounded-3xl p-6`}>
+            <div ref={myNumbersRef} className={`${theme.card} rounded-3xl p-6`}>
               <p className={`text-[10px] font-bold uppercase tracking-wider ${theme.textMuted}`}>
                 My NAVA Numbers
               </p>
