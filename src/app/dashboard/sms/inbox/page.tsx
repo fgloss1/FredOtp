@@ -60,6 +60,7 @@ export default function Page() {
   const [error, setError] = useState("");
   const [notice, setNotice] = useState("");
   const [composeOpen, setComposeOpen] = useState(false);
+  const [addNumberOpen, setAddNumberOpen] = useState(false);
   const messagesEndRef = useRef<HTMLDivElement | null>(null);
   const composerRef = useRef<HTMLTextAreaElement | null>(null);
 
@@ -225,6 +226,17 @@ export default function Page() {
     }
   };
 
+  const openAddNumber = () => {
+    setError("");
+    setNotice("");
+    setAddNumberOpen(true);
+  };
+
+  const refreshNumbers = async () => {
+    await loadInbox();
+    setNotice("Your NAVA numbers are up to date.");
+  };
+
   const openCompose = () => {
     setError("");
     setNotice("");
@@ -270,8 +282,8 @@ export default function Page() {
 
             <button
               type="button"
-              onClick={openCompose}
-              aria-label="New message"
+              onClick={openAddNumber}
+              aria-label="Add NAVA number"
               className="flex h-9 w-9 items-center justify-center rounded-full bg-emerald-500 text-xl font-light text-slate-950 shadow-lg shadow-emerald-500/20 transition hover:bg-emerald-400"
             >
               +
@@ -316,8 +328,18 @@ export default function Page() {
             <div className="grid min-h-[620px] lg:grid-cols-[245px_minmax(0,1fr)]">
               <aside className={`hidden border-r p-3 lg:block ${theme.divider}`}>
                 <div className="flex items-center justify-between px-3 pb-3 pt-2">
-                  <p className={`text-[10px] font-bold uppercase tracking-[0.16em] ${theme.faint}`}>Your Numbers</p>
-                  <span className={`rounded-full px-2 py-1 text-[9px] ${theme.soft} ${theme.faint}`}>{numbers.length}</span>
+                  <div>
+                    <p className={`text-[10px] font-bold uppercase tracking-[0.16em] ${theme.faint}`}>Your Numbers</p>
+                    <p className={`mt-1 text-[9px] ${theme.faint}`}>SMS lines</p>
+                  </div>
+                  <button
+                    type="button"
+                    onClick={openAddNumber}
+                    aria-label="Add NAVA number"
+                    className="flex h-7 w-7 items-center justify-center rounded-full bg-emerald-500 text-lg font-light text-slate-950 transition hover:bg-emerald-400"
+                  >
+                    +
+                  </button>
                 </div>
 
                 <div className="space-y-1">
@@ -512,6 +534,64 @@ export default function Page() {
           )}
         </div>
       </div>
+
+      {addNumberOpen && (
+        <div className="fixed inset-0 z-50 flex items-end justify-center bg-black/60 p-0 backdrop-blur-sm sm:items-center sm:p-6">
+          <div className={`w-full max-w-md rounded-t-[30px] border p-5 shadow-2xl sm:rounded-[28px] ${theme.panel}`}>
+            <div className="mx-auto mb-4 h-1 w-10 rounded-full bg-slate-600 sm:hidden" />
+            <div className="flex items-start justify-between gap-4">
+              <div>
+                <h2 className="text-lg font-bold">Add NAVA SMS Number</h2>
+                <p className={`mt-1 text-xs leading-relaxed ${theme.muted}`}>
+                  Get another NAVA number for SMS. Once you add it, it will appear automatically in your Messages list.
+                </p>
+              </div>
+              <button
+                type="button"
+                onClick={() => setAddNumberOpen(false)}
+                className={`flex h-8 w-8 shrink-0 items-center justify-center rounded-full text-lg ${theme.soft}`}
+                aria-label="Close"
+              >
+                ×
+              </button>
+            </div>
+
+            <div className={`mt-5 rounded-2xl border p-4 ${theme.soft}`}>
+              <div className="flex items-center gap-3">
+                <div className="flex h-11 w-11 items-center justify-center rounded-full bg-emerald-500/10 text-xl">📱</div>
+                <div className="min-w-0">
+                  <p className="text-sm font-bold">Choose a new number</p>
+                  <p className={`mt-1 text-[10px] ${theme.muted}`}>
+                    Browse countries, search numbers and add one to your NAVA Phone.
+                  </p>
+                </div>
+              </div>
+            </div>
+
+            <div className="mt-4 space-y-2">
+              <Link
+                href="/dashboard/sms"
+                onClick={() => setAddNumberOpen(false)}
+                className="flex w-full items-center justify-between rounded-2xl bg-emerald-500 px-4 py-3 text-sm font-bold text-slate-950 transition hover:bg-emerald-400"
+              >
+                <span>Get a new NAVA number</span>
+                <span>›</span>
+              </Link>
+              <button
+                type="button"
+                onClick={refreshNumbers}
+                className={`w-full rounded-2xl border px-4 py-3 text-xs font-semibold transition hover:border-emerald-400 hover:text-emerald-400 ${theme.input}`}
+              >
+                Refresh my numbers
+              </button>
+            </div>
+
+            <p className={`mt-4 text-center text-[9px] ${theme.faint}`}>
+              Numbers you already own stay together in the left Messages panel.
+            </p>
+          </div>
+        </div>
+      )}
 
       {composeOpen && (
         <div className="fixed inset-0 z-50 flex items-end justify-center bg-black/60 p-0 backdrop-blur-sm sm:items-center sm:p-6">
