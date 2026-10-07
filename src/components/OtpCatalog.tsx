@@ -57,6 +57,28 @@ const CATEGORIES = [
   { id: 'gaming', label: ' Gaming' },
 ];
 
+const ACTIVE_ORDER_STORAGE_KEY = 'nava-active-otp-order';
+
+function storeActiveOrderId(orderId: string) {
+  if (typeof window === 'undefined') return;
+
+  try {
+    sessionStorage.setItem(ACTIVE_ORDER_STORAGE_KEY, orderId);
+  } catch {
+    /* session storage unavailable */
+  }
+}
+
+function clearStoredActiveOrderId() {
+  if (typeof window === 'undefined') return;
+
+  try {
+    sessionStorage.removeItem(ACTIVE_ORDER_STORAGE_KEY);
+  } catch {
+    /* session storage unavailable */
+  }
+}
+
 const DARK_LOGO_KEYS = ['match', 'uber', 'tiktok', 'apple', 'steam', 'x', 'twitter'];
 
 function isDarkLogo(slug: string, displayName: string): boolean {
@@ -272,6 +294,7 @@ export default function OtpCatalog({ onBalanceRefresh, userBalance }: OtpCatalog
   const countdownRef = useRef<ReturnType<typeof setInterval> | null>(null);
   const chimePlayedForRef = useRef<string | null>(null);
   const prevCodeRef = useRef<string | null>(null);
+  const restoreAttemptedRef = useRef(false);
 
   const pushActivity = useCallback((order: ActiveOrder, overrideStatus?: ActiveOrder['status']) => {
     const status = overrideStatus || order.status;
@@ -311,6 +334,7 @@ export default function OtpCatalog({ onBalanceRefresh, userBalance }: OtpCatalog
       const left = Math.max(0, Math.floor((end - Date.now()) / 1000));
       setSecondsLeft(left);
       if (left <= 0) {
+        clearStoredActiveOrderId();
         setActiveOrder((prev) => {
           if (!prev || prev.status !== 'pending') return prev;
           const expired = { ...prev, status: 'expired' as const };
@@ -426,6 +450,9 @@ export default function OtpCatalog({ onBalanceRefresh, userBalance }: OtpCatalog
             return next;
           });
           if (['completed', 'canceled', 'expired', 'banned', 'refunded'].includes(status)) {
+            if (['canceled', 'expired', 'banned', 'refunded'].includes(status)) {
+              clearStoredActiveOrderId();
+            }
             stopPolling();
             if (onBalanceRefresh) onBalanceRefresh();
           }
@@ -438,6 +465,101 @@ export default function OtpCatalog({ onBalanceRefresh, userBalance }: OtpCatalog
   );
 
   useEffect(() => () => stopPolling(), [stopPolling]);
+
+  useEffect(() => {
+    if (restoreAttemptedRef.current) return;
+    restoreAttemptedRef.current = true;
+
+    if (typeof window === 'undefined') return;
+
+    const storedOrderId = sessionStorage.getItem(ACTIVE_ORDER_STORAGE_KEY);
+    if (!storedOrderId) return;
+
+    let disposed = false;
+
+    async function restoreStoredOrder() {
+      try {
+        const { data: { session } } = await supabase.auth.getSession();
+
+        if (!session?.access_token) return;
+
+        const res = await fetch(
+          "/api/otp?orderId=" + encodeURIComponent(storedOrderId!),
+          {
+            headers: {
+              Authorization: "Bearer " + session.access_token,
+            },
+            cache: "no-store",
+          }
+        );
+
+        if (res.status === 404) {
+          clearStoredActiveOrderId();
+          return;
+        }
+
+        if (!res.ok) return;
+
+        const data = await res.json();
+
+        if (disposed || !data || data.error) return;
+
+        const status = String(data.status || 'pending').toLowerCase() as ActiveOrder['status'];
+
+        if (['canceled', 'expired', 'banned', 'refunded'].includes(status)) {
+          clearStoredActiveOrderId();
+          return;
+        }
+
+        const restoredOrder: ActiveOrder = {
+          orderId: String(data.id || data.orderId || storedOrderId),
+          phoneNumber: String(data.number || data.phone_number || data.phoneNumber || ''),
+          country: String(data.country || data.country_code || ''),
+          service: String(data.service || data.service_name || 'OTP'),
+          price: Number(data.price_usd || data.priceUSD || 0),
+          status,
+          code: data.sms_code || data.code || null,
+          sms: data.sms || data.sms_text || null,
+          expiresAt: String(
+            data.expires_at ||
+            data.expiresAt ||
+            new Date(Date.now() + 15 * 60_000).toISOString()
+          ),
+        };
+
+        if (!restoredOrder.orderId || !restoredOrder.phoneNumber) {
+          return;
+        }
+
+        chimePlayedForRef.current = null;
+        prevCodeRef.current = restoredOrder.code;
+
+        setActiveOrder(restoredOrder);
+        pushActivity(restoredOrder, restoredOrder.status);
+
+        if (restoredOrder.status === 'pending') {
+          startPolling(restoredOrder.orderId);
+        }
+
+        window.requestAnimationFrame(() => {
+          window.requestAnimationFrame(() => {
+            document.getElementById('nava-otp-card')?.scrollIntoView({
+              behavior: 'smooth',
+              block: 'center',
+            });
+          });
+        });
+      } catch {
+        /* ignore transient restore errors */
+      }
+    }
+
+    restoreStoredOrder();
+
+    return () => {
+      disposed = true;
+    };
+  }, [pushActivity, startPolling]);
 
   async function handlePurchase(country: ServiceCountry) {
     if (!selectedService) return;
@@ -488,6 +610,7 @@ export default function OtpCatalog({ onBalanceRefresh, userBalance }: OtpCatalog
       };
       chimePlayedForRef.current = null;
       prevCodeRef.current = null;
+      storeActiveOrderId(resolvedOrderId);
       setActiveOrder(order);
       pushActivity(order, 'pending');
       if (onBalanceRefresh) onBalanceRefresh();
@@ -522,6 +645,7 @@ export default function OtpCatalog({ onBalanceRefresh, userBalance }: OtpCatalog
         throw new Error(data.error || 'Unable to cancel order.');
       }
       stopPolling();
+      clearStoredActiveOrderId();
       const canceled: ActiveOrder = { ...activeOrder, status: 'canceled' };
       setActiveOrder(canceled);
       pushActivity(canceled, 'canceled');
@@ -646,7 +770,10 @@ export default function OtpCatalog({ onBalanceRefresh, userBalance }: OtpCatalog
         {activeOrder ? (
           <div className="max-w-xl mx-auto space-y-5">
             {/* ACTIVE ORDER CARD */}
-            <div className={`p-5 rounded-2xl border-2 ${darkMode ? 'border-gray-700 bg-[#161f33]' : 'border-slate-300 bg-white'} shadow-inner`}>
+            <div
+              id="nava-otp-card"
+              className={`p-5 rounded-2xl border-2 ${darkMode ? 'border-gray-700 bg-[#161f33]' : 'border-slate-300 bg-white'} shadow-inner`}
+            >
               <div className="flex items-center justify-between mb-4 gap-2">
                 <div className="flex items-center gap-2.5 min-w-0">
                   <div className={`w-7 h-7 rounded-lg flex items-center justify-center overflow-hidden shrink-0 border-2 ${darkMode ? 'bg-slate-800/90 border-slate-600/60' : 'bg-slate-100 border-slate-300'}`}>
@@ -720,6 +847,43 @@ export default function OtpCatalog({ onBalanceRefresh, userBalance }: OtpCatalog
                   <div className="py-4 flex flex-col items-center justify-center gap-3">
                     <div className="w-5 h-5 border-2 border-emerald-500 border-t-transparent rounded-full animate-spin" />
                     <span className={`text-xs ${theme.textMuted}`}>Listening for SMS…</span>
+                    <div className={`w-full rounded-2xl border-2 px-4 py-3.5 text-left shadow-lg ${
+                      darkMode
+                        ? 'border-sky-400/25 bg-gradient-to-r from-sky-500/10 via-violet-500/10 to-emerald-500/10'
+                        : 'border-sky-200 bg-gradient-to-r from-sky-50 via-violet-50 to-emerald-50'
+                    }`}>
+                      <div className="flex items-start gap-3">
+                        <div className={`shrink-0 w-9 h-9 rounded-xl flex items-center justify-center border-2 ${
+                          darkMode
+                            ? 'bg-violet-500/15 border-violet-400/25'
+                            : 'bg-violet-100 border-violet-200'
+                        }`}>
+                          <span className="text-lg leading-none">✨</span>
+                        </div>
+
+                        <div className="min-w-0 flex-1">
+                          <div className="flex items-center gap-2 flex-wrap">
+                            <span className={`text-xs font-extrabold tracking-wide ${
+                              darkMode ? 'text-white' : 'text-slate-900'
+                            }`}>
+                              Your code is on the way
+                            </span>
+
+                            <span className={`text-[9px] font-bold uppercase tracking-wider px-2 py-0.5 rounded-full border-2 ${
+                              darkMode
+                                ? 'text-sky-300 bg-sky-500/10 border-sky-400/20'
+                                : 'text-sky-700 bg-sky-100 border-sky-200'
+                            }`}>
+                              Live delivery
+                            </span>
+                          </div>
+
+                          <p className={`text-[11px] leading-relaxed mt-1.5 ${theme.textMuted}`}>
+                            Some verification SMS can take a little longer to arrive. Your number is still active and we’re listening — your code will appear here automatically as soon as it arrives.
+                          </p>
+                        </div>
+                      </div>
+                    </div>
                     {secondsLeft !== null && (<span className={`text-[11px] font-mono ${theme.textSubtle}`}>Auto-refund if no code by {formatCountdown(secondsLeft)}</span>)}
                   </div>
                 )}
@@ -732,7 +896,7 @@ export default function OtpCatalog({ onBalanceRefresh, userBalance }: OtpCatalog
                   {isCanceling ? 'Refunding…' : 'Cancel & Refund'}
                 </button>
               )}
-              <button type="button" onClick={() => { stopPolling(); setActiveOrder(null); handleClearService(); }} className={`ml-auto px-5 py-2.5 text-xs font-bold rounded-lg transition-colors border-2 ${darkMode ? 'bg-gray-800 hover:bg-gray-700 text-white border-gray-700' : 'bg-white hover:bg-slate-50 text-slate-900 border-slate-300'}`}>
+              <button type="button" onClick={() => { stopPolling(); clearStoredActiveOrderId(); setActiveOrder(null); handleClearService(); }} className={`ml-auto px-5 py-2.5 text-xs font-bold rounded-lg transition-colors border-2 ${darkMode ? 'bg-gray-800 hover:bg-gray-700 text-white border-gray-700' : 'bg-white hover:bg-slate-50 text-slate-900 border-slate-300'}`}>
                 Buy Another Number
               </button>
             </div>

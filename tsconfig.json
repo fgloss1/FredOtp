@@ -30,6 +30,8 @@
   "exclude": [
     "node_modules",
     "_BACKUPS",
-    "_INSPECTION"
+    "_INSPECTION",
+    "_SAFE_BACKUPS",
+    "nava-otp-SAFE-BACKUP-20261007"
   ]
 }
