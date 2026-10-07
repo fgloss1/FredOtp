@@ -16,7 +16,7 @@ export async function GET(req: Request) {
     const { data, error } = await supabaseAdmin
       .from("nava_phone_numbers")
       .select(
-        "id, phone_number, telnyx_phone_number_id, status, country_code, capabilities, monthly_price, created_at"
+        "id, phone_number, status, country_code, capabilities, monthly_price, created_at"
       )
       .eq("user_id", user.id)
       .neq("status", "released")
