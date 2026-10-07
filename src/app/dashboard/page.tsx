@@ -22,6 +22,11 @@ function isPendingStatus(status: string) {
   return s === "pending" || s.includes("waiting");
 }
 
+function isCompletedStatus(status: string) {
+  const s = (status || "").toLowerCase();
+  return s === "completed" || s === "received";
+}
+
 function isWithinHoldWindow(createdAtIso: string) {
   const t = new Date(createdAtIso).getTime();
   if (Number.isNaN(t)) return false;
@@ -101,10 +106,14 @@ export default function DashboardPage() {
 
         if (stale.length > 0) {
           setIsCleaning(true);
-          const { data: { session } } = await supabase.auth.getSession();
-        for (const o of stale) {
+          const {
+            data: { session },
+          } = await supabase.auth.getSession();
+
+          for (const o of stale) {
             try {
               if (!session?.access_token) break;
+
               await fetch("/api/rentals/expire", {
                 method: "POST",
                 headers: {
@@ -117,6 +126,7 @@ export default function DashboardPage() {
               console.warn("Expire failed", o.id, e);
             }
           }
+
           setIsCleaning(false);
 
           const { data: refreshed } = await supabase
@@ -140,8 +150,10 @@ export default function DashboardPage() {
 
   const refreshAllData = useCallback(async () => {
     if (!currentUserId) return;
+
     try {
       const { supabase } = await import("@/lib/supabase");
+
       const { data: profile } = await supabase
         .from("profiles")
         .select("balance")
@@ -162,6 +174,7 @@ export default function DashboardPage() {
     import("@/lib/supabase").then(({ supabase }) => {
       supabase.auth.getUser().then(({ data }) => {
         const user = data?.user;
+
         if (user) {
           setCurrentUserId(user.id);
 
@@ -187,23 +200,34 @@ export default function DashboardPage() {
         setActiveCurrency(saved);
       }
     };
+
     syncCurrency();
+
     window.addEventListener("nava-currency-change", syncCurrency);
+
     return () => window.removeEventListener("nava-currency-change", syncCurrency);
   }, [loadRentalsAndExpireStale]);
 
   useEffect(() => {
     if (!currentUserId) return;
+
     const t = setInterval(() => loadRentalsAndExpireStale(currentUserId), 15000);
+
     return () => clearInterval(t);
   }, [currentUserId, loadRentalsAndExpireStale]);
 
   const handleCancelFromTable = async (rentalId: string) => {
     setCancelingId(rentalId);
+
     try {
       const { supabase } = await import("@/lib/supabase");
-      const { data: { session } } = await supabase.auth.getSession();
+
+      const {
+        data: { session },
+      } = await supabase.auth.getSession();
+
       if (!session?.access_token) return;
+
       const res = await fetch("/api/otp/cancel", {
         method: "POST",
         headers: {
@@ -212,6 +236,7 @@ export default function DashboardPage() {
         },
         body: JSON.stringify({ orderId: rentalId }),
       });
+
       if (res.ok) {
         await refreshAllData();
       }
@@ -224,10 +249,18 @@ export default function DashboardPage() {
 
   const displayRentals = useMemo(() => {
     const pending = activeRentals.filter((r) => isPendingStatus(r.status));
-    const completed = activeRentals.filter((r) => !isPendingStatus(r.status));
+
+    const completed = activeRentals.filter(
+      (r) => isCompletedStatus(r.status) || !!r.sms_code
+    );
+
     const maxPending = Math.min(3, pending.length);
     const maxCompleted = Math.max(0, 3 - maxPending);
-    return [...pending.slice(0, maxPending), ...completed.slice(0, maxCompleted)];
+
+    return [
+      ...pending.slice(0, maxPending),
+      ...completed.slice(0, maxCompleted),
+    ];
   }, [activeRentals]);
 
   const theme = darkMode
@@ -240,7 +273,7 @@ export default function DashboardPage() {
         borderLine: "border-gray-800",
       }
     : {
-        cardBg: "bg-white border-slate-300 shadow-md", // Sharp card with clear shadow
+        cardBg: "bg-white border-slate-300 shadow-md",
         textTitle: "text-slate-900 font-extrabold",
         textMuted: "text-slate-700 font-bold",
         textSubtle: "text-slate-500 font-semibold",
@@ -252,9 +285,11 @@ export default function DashboardPage() {
 
   const formatPrice = (priceUSD: number) => {
     const val = priceUSD * currObj.rate;
+
     if (activeCurrency === "NGN" || activeCurrency === "KES") {
       return `${currObj.symbol}${Math.round(val).toLocaleString()}`;
     }
+
     return `${currObj.symbol}${val.toFixed(2)}`;
   };
 
@@ -265,7 +300,11 @@ export default function DashboardPage() {
   const pendingRentals = activeRentals.filter((r) => isPendingStatus(r.status));
 
   const getServiceLogoUrl = (serviceName: string) => {
-    const slug = serviceName.toLowerCase().replace(/\s+/g, '').replace(/[^a-z0-9]/g, '');
+    const slug = serviceName
+      .toLowerCase()
+      .replace(/\s+/g, "")
+      .replace(/[^a-z0-9]/g, "");
+
     return `https://cdn.simpleicons.org/${slug}/10B981`;
   };
 
@@ -273,43 +312,91 @@ export default function DashboardPage() {
     <div className="p-4 sm:p-8 max-w-7xl mx-auto space-y-6">
       {/* Top Header Metric Cards */}
       <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
-        <div className={`${theme.cardBg} border rounded-2xl p-5 flex items-center justify-between transition-colors`}>
+        <div
+          className={`${theme.cardBg} border rounded-2xl p-5 flex items-center justify-between transition-colors`}
+        >
           <div>
-            <span className={`text-xs uppercase tracking-wider block ${theme.textMuted}`}>Wallet Balance</span>
+            <span
+              className={`text-xs uppercase tracking-wider block ${theme.textMuted}`}
+            >
+              Wallet Balance
+            </span>
+
             <div className="flex items-baseline gap-2 mt-1">
-              <span className={`text-2xl font-mono ${theme.textTitle}`}>{formatPrice(userBalance)}</span>
+              <span className={`text-2xl font-mono ${theme.textTitle}`}>
+                {formatPrice(userBalance)}
+              </span>
+
               {activeCurrency !== "NGN" && (
-                <span className="text-xs font-mono text-emerald-600 dark:text-emerald-400 font-bold">≈ {formatPriceNGN(userBalance)}</span>
+                <span className="text-xs font-mono text-emerald-600 dark:text-emerald-400 font-bold">
+                  ≈ {formatPriceNGN(userBalance)}
+                </span>
               )}
             </div>
           </div>
-          <a href="/dashboard/wallet" className="px-3.5 py-2 rounded-xl bg-emerald-500/10 hover:bg-emerald-500/20 text-emerald-600 dark:text-emerald-400 border border-emerald-500/30 text-xs font-extrabold transition">
+
+          <a
+            href="/dashboard/wallet"
+            className="px-3.5 py-2 rounded-xl bg-emerald-500/10 hover:bg-emerald-500/20 text-emerald-600 dark:text-emerald-400 border border-emerald-500/30 text-xs font-extrabold transition"
+          >
             + Top Up
           </a>
         </div>
 
-        <div className={`${theme.cardBg} border rounded-2xl p-5 flex items-center justify-between transition-colors`}>
+        <div
+          className={`${theme.cardBg} border rounded-2xl p-5 flex items-center justify-between transition-colors`}
+        >
           <div>
-            <span className={`text-xs uppercase tracking-wider block ${theme.textMuted}`}>Active Numbers</span>
+            <span
+              className={`text-xs uppercase tracking-wider block ${theme.textMuted}`}
+            >
+              Active Numbers
+            </span>
+
             <div className="flex items-baseline gap-2 mt-1">
-              <span className={`text-2xl font-mono ${theme.textTitle}`}>{pendingRentals.length}</span>
+              <span className={`text-2xl font-mono ${theme.textTitle}`}>
+                {pendingRentals.length}
+              </span>
+
               <span className="text-xs text-amber-600 dark:text-amber-500 font-extrabold">
-                {isCleaning ? "Clearing expired…" : pendingRentals.length > 0 ? "Waiting for SMS" : "No Active Lines"}
+                {isCleaning
+                  ? "Clearing expired…"
+                  : pendingRentals.length > 0
+                  ? "Waiting for SMS"
+                  : "No Active Lines"}
               </span>
             </div>
           </div>
-          <div className="w-10 h-10 rounded-xl bg-blue-500/10 border border-blue-500/20 flex items-center justify-center text-blue-600 font-bold text-lg">📱</div>
+
+          <div className="w-10 h-10 rounded-xl bg-blue-500/10 border border-blue-500/20 flex items-center justify-center text-blue-600 font-bold text-lg">
+            📱
+          </div>
         </div>
 
-        <div className={`${theme.cardBg} border rounded-2xl p-5 flex items-center justify-between transition-colors`}>
+        <div
+          className={`${theme.cardBg} border rounded-2xl p-5 flex items-center justify-between transition-colors`}
+        >
           <div>
-            <span className={`text-xs uppercase tracking-wider block ${theme.textMuted}`}>Verification Guarantee</span>
+            <span
+              className={`text-xs uppercase tracking-wider block ${theme.textMuted}`}
+            >
+              Verification Guarantee
+            </span>
+
             <div className="flex items-baseline gap-2 mt-1">
-              <span className="text-2xl font-mono font-black text-emerald-600 dark:text-emerald-500">100%</span>
-              <span className={`text-xs ${theme.textSubtle}`}>Auto-Refund · 15 min</span>
+              <span className="text-2xl font-mono font-black text-emerald-600 dark:text-emerald-500">
+                100%
+              </span>
+
+              <span className={`text-xs ${theme.textSubtle}`}>
+                Auto-Refund · 15 min
+              </span>
             </div>
           </div>
-          <div className="w-10 h-10 rounded-xl bg-emerald-500/10 border border-emerald-500/20 flex items-center justify-center text-emerald-600 font-bold text-lg">🛡️</div>
+
+          <div className="w-10 h-10 rounded-xl bg-emerald-500/10 border border-emerald-500/20 flex items-center justify-center text-emerald-600 font-bold text-lg">
+            🛡️
+          </div>
         </div>
       </div>
 
@@ -320,25 +407,43 @@ export default function DashboardPage() {
       <div className={`space-y-4 pt-4 border-t ${theme.borderLine}`}>
         <div className="flex items-center justify-between">
           <h2 className={`text-base ${theme.textTitle}`}>Active now</h2>
+
           <div className="flex items-center gap-2">
-            <span className={`text-xs ${theme.textSubtle}`}>{displayRentals.length} {displayRentals.length === 1 ? "line" : "lines"}</span>
-            <Link href="/dashboard/history" className="text-xs font-extrabold text-emerald-600 hover:text-emerald-500 transition-colors">
+            <span className={`text-xs ${theme.textSubtle}`}>
+              {pendingRentals.length}{" "}
+              {pendingRentals.length === 1 ? "line" : "lines"}
+            </span>
+
+            <Link
+              href="/dashboard/history"
+              className="text-xs font-extrabold text-emerald-600 hover:text-emerald-500 transition-colors"
+            >
               View all →
             </Link>
           </div>
         </div>
 
         {displayRentals.length === 0 ? (
-          <div className={`${theme.cardBg} border rounded-xl p-8 text-center text-xs ${theme.textMuted}`}>
-            No active or recent lines. Select a country and service above to purchase an OTP number.
+          <div
+            className={`${theme.cardBg} border rounded-xl p-8 text-center text-xs ${theme.textMuted}`}
+          >
+            No active or recent lines. Select a country and service above to
+            purchase an OTP number.
           </div>
         ) : (
           <>
             <div className="space-y-3">
               {displayRentals.map((rental) => {
                 const isPending = isPendingStatus(rental.status);
-                const isCompleted = rental.status === "completed" || !!rental.sms_code;
-                const isCanceled = rental.status === "canceled" || rental.status === "refunded";
+                const isCompleted =
+                  isCompletedStatus(rental.status) || !!rental.sms_code;
+                const isCanceled =
+                  rental.status === "canceled" ||
+                  rental.status === "refunded";
+
+                const isExpired =
+                  rental.status === "expired" ||
+                  rental.status === "timeout";
 
                 return (
                   <div
@@ -346,31 +451,59 @@ export default function DashboardPage() {
                     className={`${theme.cardBg} border rounded-xl p-4 flex flex-col sm:flex-row items-start sm:items-center justify-between gap-4 transition-colors`}
                   >
                     <div className="flex items-center gap-3">
-                      <div className={`w-9 h-9 rounded-xl border flex items-center justify-center shrink-0 overflow-hidden ${theme.iconBg}`}>
+                      <div
+                        className={`w-9 h-9 rounded-xl border flex items-center justify-center shrink-0 overflow-hidden ${theme.iconBg}`}
+                      >
                         <img
                           src={getServiceLogoUrl(rental.service_name)}
                           alt={rental.service_name}
                           className="w-5 h-5 object-contain"
                           onError={(e) => {
-                            (e.target as HTMLImageElement).style.display = 'none';
-                            const fallback = e.target as HTMLImageElement;
-                            fallback.parentElement!.innerHTML = `<span class="text-sm font-extrabold text-emerald-600">${rental.service_name.charAt(0)}</span>`;
+                            (e.target as HTMLImageElement).style.display =
+                              "none";
+
+                            const fallback =
+                              e.target as HTMLImageElement;
+
+                            fallback.parentElement!.innerHTML = `<span class="text-sm font-extrabold text-emerald-600">${rental.service_name.charAt(
+                              0
+                            )}</span>`;
                           }}
                         />
                       </div>
+
                       <div>
                         <div className="flex items-center gap-2 flex-wrap">
-                          <span className={`font-extrabold text-xs uppercase ${theme.textTitle}`}>{rental.service_name}</span>
+                          <span
+                            className={`font-extrabold text-xs uppercase ${theme.textTitle}`}
+                          >
+                            {rental.service_name}
+                          </span>
+
                           <span className="text-[10px] px-2 py-0.5 rounded bg-blue-500/10 text-blue-600 dark:text-blue-400 font-extrabold uppercase">
                             {rental.country_name}
                           </span>
-                          <span className={`text-[10px] ${theme.textSubtle}`}>{rental.created_label}</span>
+
+                          <span
+                            className={`text-[10px] ${theme.textSubtle}`}
+                          >
+                            {rental.created_label}
+                          </span>
                         </div>
-                        <div className={`text-sm font-mono font-bold mt-0.5 ${theme.textTitle}`}>{rental.phone_number}</div>
+
+                        <div
+                          className={`text-sm font-mono font-bold mt-0.5 ${theme.textTitle}`}
+                        >
+                          {rental.phone_number}
+                        </div>
+
                         {rental.sms_code && (
                           <div className="text-xs font-mono font-bold mt-1 text-emerald-600 flex items-center gap-1.5">
                             <span>Code:</span>
-                            <span className="text-sm bg-emerald-500/10 px-2 py-0.5 rounded border border-emerald-500/30">{rental.sms_code}</span>
+
+                            <span className="text-sm bg-emerald-500/10 px-2 py-0.5 rounded border border-emerald-500/30">
+                              {rental.sms_code}
+                            </span>
                           </div>
                         )}
                       </div>
@@ -378,10 +511,31 @@ export default function DashboardPage() {
 
                     <div className="flex items-center gap-4 w-full sm:w-auto justify-between sm:justify-end">
                       <div className="text-right">
-                        <span className={`text-xs font-extrabold uppercase block ${isCompleted ? "text-emerald-600" : isCanceled ? "text-rose-600" : "text-amber-600 animate-pulse"}`}>
-                          {isCompleted ? "Completed" : isCanceled ? "Refunded" : "Listening for SMS..."}
+                        <span
+                          className={`text-xs font-extrabold uppercase block ${
+                            isCompleted
+                              ? "text-emerald-600"
+                              : isCanceled
+                              ? "text-rose-600"
+                              : isExpired
+                              ? "text-orange-600"
+                              : "text-amber-600 animate-pulse"
+                          }`}
+                        >
+                          {isCompleted
+                            ? "Completed"
+                            : isCanceled
+                            ? "Refunded"
+                            : isExpired
+                            ? "Expired"
+                            : "Listening for SMS..."}
                         </span>
-                        <span className={`text-[10px] font-mono ${theme.textSubtle}`}>{formatPrice(rental.price_usd)}</span>
+
+                        <span
+                          className={`text-[10px] font-mono ${theme.textSubtle}`}
+                        >
+                          {formatPrice(rental.price_usd)}
+                        </span>
                       </div>
 
                       {isPending && (
@@ -391,7 +545,9 @@ export default function DashboardPage() {
                           disabled={cancelingId === rental.id}
                           className="px-3 py-1.5 rounded-lg bg-rose-500/10 hover:bg-rose-500/20 text-rose-600 border border-rose-500/30 text-xs font-bold transition cursor-pointer"
                         >
-                          {cancelingId === rental.id ? "Refunding..." : "Cancel"}
+                          {cancelingId === rental.id
+                            ? "Refunding..."
+                            : "Cancel"}
                         </button>
                       )}
                     </div>
@@ -402,7 +558,10 @@ export default function DashboardPage() {
 
             {displayRentals.length > 0 && (
               <div className="flex justify-end pt-2">
-                <Link href="/dashboard/history" className="text-xs font-extrabold text-emerald-600 hover:text-emerald-500 transition-colors flex items-center gap-1">
+                <Link
+                  href="/dashboard/history"
+                  className="text-xs font-extrabold text-emerald-600 hover:text-emerald-500 transition-colors flex items-center gap-1"
+                >
                   View full history →
                 </Link>
               </div>
