@@ -31,9 +31,9 @@ export async function POST(req: Request) {
     if (!apiKey) return NextResponse.json({ error: "NAVA Phone number service is temporarily unavailable." }, { status: 503 });
 
     const exactParams = new URLSearchParams();
-    const nationalNumber = phoneNumber.replace(/\D/g, "").replace(/^\d{1,3}/, (prefix) => {
-      return prefix === "1" ? "" : prefix;
-    });
+    const digits = phoneNumber.replace(/\D/g, "");
+    const callingCode = countryCode === "US" || countryCode === "CA" ? "1" : countryCode === "GB" ? "44" : countryCode === "AU" ? "61" : countryCode === "DE" ? "49" : countryCode === "FR" ? "33" : countryCode === "NL" ? "31" : countryCode === "NG" ? "234" : "";
+    const nationalNumber = callingCode && digits.startsWith(callingCode) ? digits.slice(callingCode.length) : digits;
     exactParams.set("filter[country_code]", countryCode);
     exactParams.set("filter[phone_number][starts_with]", nationalNumber);
     exactParams.set("filter[limit]", "5");
