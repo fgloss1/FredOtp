@@ -27,7 +27,7 @@ export async function POST(req: Request) {
     if (!apiKey) return NextResponse.json({ error: "NAVA Phone number service is temporarily unavailable." }, { status: 503 });
 
     const exactParams = new URLSearchParams();
-    exactParams.set("filter[phone_number]", phoneNumber);
+    exactParams.set("filter[phone_number]", phoneNumber.replace(/\D/g, ""));
     exactParams.set("filter[limit]", "1");
     exactParams.append("filter[features]", "sms");
 
