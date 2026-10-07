@@ -48,18 +48,55 @@ export async function POST(req: Request) {
         return NextResponse.json({ error: "The selected NAVA Phone price is invalid." }, { status: 400 });
       }
 
-      return NextResponse.json({
-        success: true,
-        simulated: true,
-        number: {
-          id: "simulation-" + phoneNumber.replace(/\D/g, ""),
+      const { data: existingNumber, error: existingNumberError } = await supabaseAdmin
+        .from("nava_phone_numbers")
+        .select("id, phone_number, status, country_code, capabilities, monthly_price, created_at")
+        .eq("user_id", authUser.id)
+        .eq("phone_number", phoneNumber)
+        .maybeSingle();
+
+      if (existingNumberError) {
+        console.error("NAVA Phone simulation lookup error:", existingNumberError);
+        return NextResponse.json(
+          { error: "Unable to save your NAVA Phone number." },
+          { status: 500 }
+        );
+      }
+
+      if (existingNumber) {
+        return NextResponse.json({
+          success: true,
+          simulated: true,
+          number: existingNumber,
+          message: "Simulation successful. No number was purchased and no wallet was charged.",
+        });
+      }
+
+      const { data: phoneRow, error: phoneInsertError } = await supabaseAdmin
+        .from("nava_phone_numbers")
+        .insert({
+          user_id: authUser.id,
           phone_number: phoneNumber,
           status: "active",
           country_code: countryCode,
           capabilities: { sms: true, voice: false },
           monthly_price: requestedMonthlyPrice,
-          created_at: new Date().toISOString(),
-        },
+        })
+        .select("id, phone_number, status, country_code, capabilities, monthly_price, created_at")
+        .single();
+
+      if (phoneInsertError || !phoneRow) {
+        console.error("NAVA Phone simulation save failed:", phoneInsertError);
+        return NextResponse.json(
+          { error: "Unable to save your NAVA Phone number." },
+          { status: 500 }
+        );
+      }
+
+      return NextResponse.json({
+        success: true,
+        simulated: true,
+        number: phoneRow,
         message: "Simulation successful. No number was purchased and no wallet was charged.",
       });
     }
