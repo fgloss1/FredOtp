@@ -236,9 +236,17 @@ export default function Page() {
   const startQuickReply = () => {
     if (conversationPeer) {
       setRecipient(conversationPeer);
-      setComposeOpen(true);
+      composerRef.current?.focus();
     } else {
       openCompose();
+    }
+  };
+
+  const handleInlineComposerFocus = () => {
+    if (!conversationPeer) {
+      openCompose();
+    } else if (!recipient) {
+      setRecipient(conversationPeer);
     }
   };
 
@@ -462,22 +470,36 @@ export default function Page() {
                         +
                       </button>
 
-                      <button
-                        type="button"
-                        onClick={startQuickReply}
-                        className={`flex min-h-10 flex-1 items-center rounded-full border px-4 py-2.5 text-left text-xs ${theme.input} ${theme.faint} transition hover:border-emerald-400`}
-                      >
-                        Message
-                      </button>
+                      <textarea
+                        ref={composerRef}
+                        value={text}
+                        onChange={(event) => {
+                          setText(event.target.value.slice(0, 1600));
+                          if (!recipient && conversationPeer) setRecipient(conversationPeer);
+                        }}
+                        onFocus={handleInlineComposerFocus}
+                        onKeyDown={handleComposerKeyDown}
+                        rows={1}
+                        placeholder={conversationPeer ? "Message" : "Start a new message"}
+                        aria-label="Message"
+                        className="min-h-10 max-h-28 flex-1 resize-none rounded-[20px] border border-slate-300 bg-white px-4 py-2.5 text-sm text-slate-900 shadow-sm outline-none placeholder:text-slate-400 focus:border-emerald-400 focus:ring-2 focus:ring-emerald-400/20"
+                      />
 
                       <button
                         type="button"
-                        onClick={startQuickReply}
-                        disabled={!conversationPeer}
+                        onClick={() => {
+                          if (!conversationPeer) {
+                            openCompose();
+                            return;
+                          }
+                          if (!recipient) setRecipient(conversationPeer);
+                          void sendMessage();
+                        }}
+                        disabled={sending || !text.trim()}
                         className="flex h-10 w-10 shrink-0 items-center justify-center rounded-full bg-emerald-500 text-lg font-bold text-slate-950 transition hover:bg-emerald-400 disabled:cursor-not-allowed disabled:opacity-40"
-                        aria-label="Reply"
+                        aria-label="Send message"
                       >
-                        ↑
+                        {sending ? "…" : "↑"}
                       </button>
                     </div>
                     <p className={`mt-2 hidden text-center text-[9px] sm:block ${theme.faint}`}>
@@ -544,7 +566,6 @@ export default function Page() {
                 <span className={`text-[9px] ${theme.faint}`}>{text.length}/1600</span>
               </div>
               <textarea
-                ref={composerRef}
                 value={text}
                 onChange={(event) => setText(event.target.value.slice(0, 1600))}
                 onKeyDown={handleComposerKeyDown}
