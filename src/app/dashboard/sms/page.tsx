@@ -1,7 +1,7 @@
 "use client";
 
 import Link from "next/link";
-import { useEffect, useState } from "react";
+import { useEffect, useRef, useState } from "react";
 
 type PhoneNumber = {
   id: string;
@@ -52,6 +52,7 @@ export default function PhonePage() {
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState("");
   const [purchasingNumber, setPurchasingNumber] = useState("");
+  const myNumbersRef = useRef<HTMLDivElement | null>(null);
 
   useEffect(() => {
     const checkTheme = () => {
@@ -171,6 +172,9 @@ export default function PhonePage() {
 
       setAvailableNumbers((current) => current.filter((item) => item.phone_number !== phoneNumber));
       setNumbers((current) => [data.number, ...current]);
+      requestAnimationFrame(() => {
+        myNumbersRef.current?.scrollIntoView({ behavior: "smooth", block: "start" });
+      });
     } catch (err: any) {
       setError(err?.message || "Unable to get this number.");
     } finally {
