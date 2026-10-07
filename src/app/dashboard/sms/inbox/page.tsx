@@ -41,6 +41,13 @@ function flagForCountry(countryCode: string | null) {
     .join("");
 }
 
+function formatMessageTime(value: string) {
+  return new Date(value).toLocaleTimeString([], {
+    hour: "numeric",
+    minute: "2-digit",
+  });
+}
+
 export default function Page() {
   const [darkMode, setDarkMode] = useState(true);
   const [numbers, setNumbers] = useState<PhoneNumber[]>([]);
@@ -54,6 +61,7 @@ export default function Page() {
   const [notice, setNotice] = useState("");
   const [composeOpen, setComposeOpen] = useState(false);
   const messagesEndRef = useRef<HTMLDivElement | null>(null);
+  const composerRef = useRef<HTMLTextAreaElement | null>(null);
 
   useEffect(() => {
     const checkTheme = () => setDarkMode(localStorage.getItem("nava-theme") !== "light");
@@ -71,6 +79,7 @@ export default function Page() {
         text: "text-white",
         muted: "text-slate-400",
         faint: "text-slate-500",
+        divider: "border-slate-800",
       }
     : {
         page: "bg-slate-50",
@@ -80,6 +89,7 @@ export default function Page() {
         text: "text-slate-900",
         muted: "text-slate-600",
         faint: "text-slate-500",
+        divider: "border-slate-200",
       };
 
   const selectedNumber = useMemo(
@@ -92,9 +102,20 @@ export default function Page() {
     [messages, selectedNumberId]
   );
 
+  const conversationPeer = useMemo(() => {
+    const last = selectedMessages[selectedMessages.length - 1];
+    if (!last) return null;
+    return last.direction === "inbound" ? last.from_number : last.to_number;
+  }, [selectedMessages]);
+
   const scrollToLatest = (smooth = true) => {
     requestAnimationFrame(() => {
-      messagesEndRef.current?.scrollIntoView({ behavior: smooth ? "smooth" : "auto", block: "end" });
+      requestAnimationFrame(() => {
+        messagesEndRef.current?.scrollIntoView({
+          behavior: smooth ? "smooth" : "auto",
+          block: "end",
+        });
+      });
     });
   };
 
@@ -137,6 +158,16 @@ export default function Page() {
     if (!loading) scrollToLatest(false);
   }, [selectedNumberId, loading]);
 
+  useEffect(() => {
+    if (!loading && selectedMessages.length > 0) scrollToLatest(true);
+  }, [selectedMessages.length, loading]);
+
+  useEffect(() => {
+    if (composeOpen) {
+      requestAnimationFrame(() => composerRef.current?.focus());
+    }
+  }, [composeOpen]);
+
   const sendMessage = async () => {
     if (!selectedNumberId || !recipient.trim() || !text.trim() || sending) return;
 
@@ -169,11 +200,17 @@ export default function Page() {
       setText("");
       setComposeOpen(false);
       setNotice("Message sent.");
-      scrollToLatest();
     } catch (err: any) {
       setError(err?.message || "Unable to send your message.");
     } finally {
       setSending(false);
+    }
+  };
+
+  const handleComposerKeyDown = (event: React.KeyboardEvent<HTMLTextAreaElement>) => {
+    if (event.key === "Enter" && !event.shiftKey) {
+      event.preventDefault();
+      void sendMessage();
     }
   };
 
@@ -196,16 +233,25 @@ export default function Page() {
     setComposeOpen(true);
   };
 
+  const startQuickReply = () => {
+    if (conversationPeer) {
+      setRecipient(conversationPeer);
+      setComposeOpen(true);
+    } else {
+      openCompose();
+    }
+  };
+
   return (
     <div className={`min-h-[calc(100vh-2rem)] ${theme.page} ${theme.text} rounded-[28px] font-sans`}>
-      <div className="mx-auto max-w-6xl px-2 py-2 sm:px-4 sm:py-4">
+      <div className="mx-auto max-w-6xl px-1 py-1 sm:px-4 sm:py-4">
         <div className={`overflow-hidden rounded-[28px] border ${theme.panel} shadow-2xl`}>
-          <header className={`flex items-center justify-between border-b px-4 py-4 sm:px-6 ${darkMode ? "border-slate-800" : "border-slate-200"}`}>
+          <header className={`flex items-center justify-between border-b px-4 py-3 sm:px-6 sm:py-4 ${theme.divider}`}>
             <Link
               href="/dashboard/sms"
-              className="flex items-center gap-2 text-sm font-semibold transition hover:opacity-80"
+              className="flex min-w-[70px] items-center gap-1 text-sm font-semibold transition hover:text-emerald-400"
             >
-              <span className="text-xl">‹</span>
+              <span className="text-2xl leading-none">‹</span>
               <span>Phone</span>
             </Link>
 
@@ -260,33 +306,54 @@ export default function Page() {
             </div>
           ) : (
             <div className="grid min-h-[620px] lg:grid-cols-[245px_minmax(0,1fr)]">
-              <aside className={`hidden border-r p-3 lg:block ${darkMode ? "border-slate-800" : "border-slate-200"}`}>
-                <div className="px-3 pb-3 pt-2">
-                  <p className={`text-[10px] font-bold uppercase tracking-[0.16em] ${theme.faint}`}>My NAVA Numbers</p>
+              <aside className={`hidden border-r p-3 lg:block ${theme.divider}`}>
+                <div className="flex items-center justify-between px-3 pb-3 pt-2">
+                  <p className={`text-[10px] font-bold uppercase tracking-[0.16em] ${theme.faint}`}>Your Numbers</p>
+                  <span className={`rounded-full px-2 py-1 text-[9px] ${theme.soft} ${theme.faint}`}>{numbers.length}</span>
                 </div>
+
                 <div className="space-y-1">
                   {numbers.map((number) => {
                     const active = number.id === selectedNumberId;
-                    const lastMessage = messages.filter((message) => message.phone_number_id === number.id).at(-1);
+                    const numberMessages = messages.filter((message) => message.phone_number_id === number.id);
+                    const lastMessage = numberMessages[numberMessages.length - 1];
+                    const peer = lastMessage
+                      ? lastMessage.direction === "inbound"
+                        ? lastMessage.from_number
+                        : lastMessage.to_number
+                      : null;
+
                     return (
                       <button
                         key={number.id}
                         type="button"
-                        onClick={() => setSelectedNumberId(number.id)}
-                        className={`w-full rounded-2xl px-3 py-3 text-left transition ${active ? "bg-emerald-500/10" : "hover:bg-white/[0.04]"}`}
+                        onClick={() => {
+                          setSelectedNumberId(number.id);
+                          setNotice("");
+                          setError("");
+                        }}
+                        className={`w-full rounded-2xl px-3 py-3 text-left transition ${active ? "bg-emerald-500/10 ring-1 ring-inset ring-emerald-500/10" : "hover:bg-white/[0.04]"}`}
                       >
                         <div className="flex items-center gap-3">
-                          <div className="flex h-10 w-10 shrink-0 items-center justify-center rounded-full bg-gradient-to-br from-emerald-400 to-cyan-500 text-sm font-bold text-slate-950">
+                          <div className="relative flex h-10 w-10 shrink-0 items-center justify-center rounded-full bg-gradient-to-br from-emerald-400 to-cyan-500 text-sm font-bold text-slate-950">
                             {flagForCountry(number.country_code)}
+                            {lastMessage && (
+                              <span className="absolute -right-0.5 -top-0.5 h-2.5 w-2.5 rounded-full border-2 border-[#0a1020] bg-emerald-400" />
+                            )}
                           </div>
-                          <div className="min-w-0">
+                          <div className="min-w-0 flex-1">
                             <p className={`truncate text-xs font-bold ${active ? "text-emerald-400" : ""}`}>
                               {formatPhoneNumber(number.phone_number)}
                             </p>
                             <p className={`mt-0.5 truncate text-[10px] ${theme.faint}`}>
-                              {lastMessage?.body || "No messages yet"}
+                              {peer ? formatPhoneNumber(peer) : "No conversations yet"}
                             </p>
                           </div>
+                          {numberMessages.length > 0 && (
+                            <span className={`rounded-full px-1.5 py-0.5 text-[8px] ${theme.soft} ${theme.faint}`}>
+                              {numberMessages.length}
+                            </span>
+                          )}
                         </div>
                       </button>
                     );
@@ -295,18 +362,19 @@ export default function Page() {
               </aside>
 
               <main className="flex min-w-0 flex-col">
-                <div className={`border-b px-4 py-4 sm:px-6 ${darkMode ? "border-slate-800" : "border-slate-200"}`}>
+                <div className={`border-b px-4 py-3 sm:px-6 ${theme.divider}`}>
                   <div className="flex items-center justify-between gap-3">
                     <div className="flex min-w-0 items-center gap-3">
-                      <div className="flex h-11 w-11 shrink-0 items-center justify-center rounded-full bg-gradient-to-br from-emerald-400 to-cyan-500 text-lg text-slate-950">
+                      <div className="relative flex h-11 w-11 shrink-0 items-center justify-center rounded-full bg-gradient-to-br from-emerald-400 to-cyan-500 text-lg text-slate-950 shadow-md">
                         {flagForCountry(selectedNumber?.country_code || null)}
+                        <span className="absolute bottom-0 right-0 h-3 w-3 rounded-full border-2 border-[#0a1020] bg-emerald-400" />
                       </div>
                       <div className="min-w-0">
                         <h2 className="truncate text-[15px] font-bold">
-                          {selectedNumber ? formatPhoneNumber(selectedNumber.phone_number) : "NAVA Number"}
+                          {conversationPeer ? formatPhoneNumber(conversationPeer) : "NAVA Messages"}
                         </h2>
-                        <p className={`mt-0.5 text-[10px] ${theme.faint}`}>
-                          {selectedNumber?.status === "active" ? "Active NAVA number" : "NAVA number"}
+                        <p className={`mt-0.5 truncate text-[10px] ${theme.faint}`}>
+                          {selectedNumber ? `via ${formatPhoneNumber(selectedNumber.phone_number)}` : "NAVA Phone"}
                         </p>
                       </div>
                     </div>
@@ -315,7 +383,7 @@ export default function Page() {
                       onClick={copyNumber}
                       className={`rounded-full border px-3 py-2 text-[10px] font-semibold transition ${theme.input} hover:border-emerald-400 hover:text-emerald-400`}
                     >
-                      Copy
+                      Copy number
                     </button>
                   </div>
 
@@ -334,7 +402,7 @@ export default function Page() {
                 </div>
 
                 <div className={`relative flex min-h-[420px] flex-1 flex-col overflow-hidden ${darkMode ? "bg-[#070c17]" : "bg-slate-50"}`}>
-                  <div className="pointer-events-none absolute inset-0 opacity-[0.025] [background-image:radial-gradient(circle_at_1px_1px,currentColor_1px,transparent_0)] [background-size:18px_18px]" />
+                  <div className="pointer-events-none absolute inset-0 opacity-[0.02] [background-image:radial-gradient(circle_at_1px_1px,currentColor_1px,transparent_0)] [background-size:18px_18px]" />
 
                   <div className="relative flex-1 space-y-3 overflow-y-auto px-4 py-6 sm:px-8">
                     {selectedMessages.length === 0 ? (
@@ -358,9 +426,10 @@ export default function Page() {
                       <>
                         <div className="flex justify-center pb-2">
                           <span className={`rounded-full px-3 py-1 text-[9px] font-medium ${darkMode ? "bg-slate-800/70 text-slate-400" : "bg-slate-200 text-slate-500"}`}>
-                            Messages
+                            Today
                           </span>
                         </div>
+
                         {selectedMessages.map((message) => {
                           const outbound = message.direction === "outbound";
                           return (
@@ -370,7 +439,8 @@ export default function Page() {
                                   {message.body}
                                 </div>
                                 <p className={`mt-1 px-1 text-[9px] ${outbound ? "text-right" : "text-left"} ${theme.faint}`}>
-                                  {outbound ? "Sent" : "Received"} · {new Date(message.created_at).toLocaleTimeString([], { hour: "numeric", minute: "2-digit" })}
+                                  {formatMessageTime(message.created_at)}
+                                  {outbound && ` · ${message.status === "sent" ? "Delivered" : message.status}`}
                                 </p>
                               </div>
                             </div>
@@ -381,7 +451,7 @@ export default function Page() {
                     )}
                   </div>
 
-                  <div className={`relative border-t p-3 sm:p-4 ${darkMode ? "border-slate-800 bg-[#090f1d]/95" : "border-slate-200 bg-white/95"}`}>
+                  <div className={`relative border-t p-3 sm:p-4 ${theme.divider} ${darkMode ? "bg-[#090f1d]/95" : "bg-white/95"}`}>
                     <div className="flex items-end gap-2">
                       <button
                         type="button"
@@ -391,22 +461,28 @@ export default function Page() {
                       >
                         +
                       </button>
+
                       <button
                         type="button"
-                        onClick={openCompose}
+                        onClick={startQuickReply}
                         className={`flex min-h-10 flex-1 items-center rounded-full border px-4 py-2.5 text-left text-xs ${theme.input} ${theme.faint} transition hover:border-emerald-400`}
                       >
-                        New message...
+                        Message
                       </button>
+
                       <button
                         type="button"
-                        onClick={openCompose}
-                        className="flex h-10 w-10 shrink-0 items-center justify-center rounded-full bg-emerald-500 text-lg font-bold text-slate-950 transition hover:bg-emerald-400"
-                        aria-label="Compose message"
+                        onClick={startQuickReply}
+                        disabled={!conversationPeer}
+                        className="flex h-10 w-10 shrink-0 items-center justify-center rounded-full bg-emerald-500 text-lg font-bold text-slate-950 transition hover:bg-emerald-400 disabled:cursor-not-allowed disabled:opacity-40"
+                        aria-label="Reply"
                       >
                         ↑
                       </button>
                     </div>
+                    <p className={`mt-2 hidden text-center text-[9px] sm:block ${theme.faint}`}>
+                      Press Enter to send · Shift + Enter for a new line
+                    </p>
                   </div>
                 </div>
               </main>
@@ -419,6 +495,7 @@ export default function Page() {
         <div className="fixed inset-0 z-50 flex items-end justify-center bg-black/60 p-0 backdrop-blur-sm sm:items-center sm:p-6">
           <div className={`w-full max-w-lg rounded-t-[30px] border p-5 shadow-2xl sm:rounded-[28px] ${theme.panel}`}>
             <div className="mx-auto mb-4 h-1 w-10 rounded-full bg-slate-600 sm:hidden" />
+
             <div className="flex items-center justify-between">
               <div>
                 <h2 className="text-lg font-bold">New Message</h2>
@@ -452,7 +529,7 @@ export default function Page() {
             <div className="mt-4">
               <label className={`text-[10px] font-bold uppercase tracking-[0.12em] ${theme.faint}`}>To</label>
               <input
-                autoFocus
+                autoFocus={!conversationPeer}
                 value={recipient}
                 onChange={(event) => setRecipient(event.target.value)}
                 placeholder="+1 555 123 4567"
@@ -467,8 +544,10 @@ export default function Page() {
                 <span className={`text-[9px] ${theme.faint}`}>{text.length}/1600</span>
               </div>
               <textarea
+                ref={composerRef}
                 value={text}
                 onChange={(event) => setText(event.target.value.slice(0, 1600))}
+                onKeyDown={handleComposerKeyDown}
                 placeholder="Message..."
                 rows={5}
                 className={`mt-2 w-full resize-none rounded-2xl border px-4 py-3 text-sm outline-none focus:border-emerald-400 ${theme.input}`}
