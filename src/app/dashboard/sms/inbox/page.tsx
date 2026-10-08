@@ -81,6 +81,19 @@ export default function Page() {
     return () => window.removeEventListener("nava-theme-change", checkTheme);
   }, []);
 
+  useEffect(() => {
+    const htmlOverflow = document.documentElement.style.overflow;
+    const bodyOverflow = document.body.style.overflow;
+
+    document.documentElement.style.overflow = "hidden";
+    document.body.style.overflow = "hidden";
+
+    return () => {
+      document.documentElement.style.overflow = htmlOverflow;
+      document.body.style.overflow = bodyOverflow;
+    };
+  }, []);
+
   const theme = darkMode
     ? {
         page: "bg-[#050914]",
