@@ -48,11 +48,16 @@ function formatMessageTime(value: string) {
   });
 }
 
+function getMessagePeer(message: Message) {
+  return message.direction === "inbound" ? message.from_number : message.to_number;
+}
+
 export default function Page() {
   const [darkMode, setDarkMode] = useState(true);
   const [numbers, setNumbers] = useState<PhoneNumber[]>([]);
   const [messages, setMessages] = useState<Message[]>([]);
   const [selectedNumberId, setSelectedNumberId] = useState("");
+  const [selectedPeer, setSelectedPeer] = useState("");
   const [recipient, setRecipient] = useState("");
   const [text, setText] = useState("");
   const [loading, setLoading] = useState(true);
@@ -103,16 +108,20 @@ export default function Page() {
     [numbers, selectedNumberId]
   );
 
-  const selectedMessages = useMemo(
+  const selectedNumberMessages = useMemo(
     () => messages.filter((message) => message.phone_number_id === selectedNumberId),
     [messages, selectedNumberId]
   );
 
-  const conversationPeer = useMemo(() => {
-    const last = selectedMessages[selectedMessages.length - 1];
-    if (!last) return null;
-    return last.direction === "inbound" ? last.from_number : last.to_number;
-  }, [selectedMessages]);
+  const selectedMessages = useMemo(
+    () =>
+      selectedNumberMessages.filter(
+        (message) => !selectedPeer || getMessagePeer(message) === selectedPeer
+      ),
+    [selectedNumberMessages, selectedPeer]
+  );
+
+  const conversationPeer = selectedPeer || null;
 
   const scrollToLatest = (smooth = true) => {
     requestAnimationFrame(() => {
@@ -141,11 +150,18 @@ export default function Page() {
       if (!response.ok) throw new Error(data?.error || "Unable to load your messages.");
 
       const loadedNumbers = Array.isArray(data?.numbers) ? data.numbers : [];
+      const loadedMessages = Array.isArray(data?.messages) ? data.messages : [];
       setNumbers(loadedNumbers);
-      setMessages(Array.isArray(data?.messages) ? data.messages : []);
+      setMessages(loadedMessages);
 
       if (!selectedNumberId && loadedNumbers.length > 0) {
-        setSelectedNumberId(loadedNumbers[0].id);
+        const firstNumber = loadedNumbers[0];
+        const firstNumberMessages = loadedMessages.filter(
+          (message: Message) => message.phone_number_id === firstNumber.id
+        );
+        const latestMessage = firstNumberMessages[firstNumberMessages.length - 1];
+        setSelectedNumberId(firstNumber.id);
+        setSelectedPeer(latestMessage ? getMessagePeer(latestMessage) : "");
       }
     } catch (err: any) {
       setError(err?.message || "Unable to load your messages.");
@@ -263,6 +279,7 @@ export default function Page() {
   const openCompose = () => {
     setError("");
     setNotice("");
+    setSelectedPeer("");
     setRecipient("");
     setText("");
     setMobilePeer("");
@@ -273,6 +290,7 @@ export default function Page() {
 
   const openMobileThread = (numberId: string, peer: string) => {
     setSelectedNumberId(numberId);
+    setSelectedPeer(peer);
     setMobilePeer(peer);
     setRecipient(peer);
     setText("");
@@ -619,53 +637,107 @@ export default function Page() {
                   </button>
                 </div>
 
+
                 <div className="space-y-1">
                   {numbers.map((number) => {
-                    const active = number.id === selectedNumberId;
-                    const numberMessages = messages.filter((message) => message.phone_number_id === number.id);
-                    const lastMessage = numberMessages[numberMessages.length - 1];
-                    const peer = lastMessage
-                      ? lastMessage.direction === "inbound"
-                        ? lastMessage.from_number
-                        : lastMessage.to_number
-                      : null;
-
-                    return (
-                      <button
-                        key={number.id}
-                        type="button"
-                        onClick={() => {
-                          setSelectedNumberId(number.id);
-                          setNotice("");
-                          setError("");
-                        }}
-                        className={`w-full rounded-2xl px-3 py-3 text-left transition ${active ? "bg-emerald-500/10 ring-1 ring-inset ring-emerald-500/10" : "hover:bg-white/[0.04]"}`}
-                      >
-                        <div className="flex items-center gap-3">
-                          <div className="relative flex h-10 w-10 shrink-0 items-center justify-center rounded-full bg-gradient-to-br from-emerald-400 to-cyan-500 text-sm font-bold text-slate-950">
-                            {flagForCountry(number.country_code)}
-                            {lastMessage && (
-                              <span className="absolute -right-0.5 -top-0.5 h-2.5 w-2.5 rounded-full border-2 border-[#0a1020] bg-emerald-400" />
-                            )}
-                          </div>
-                          <div className="min-w-0 flex-1">
-                            <p className={`truncate text-xs font-bold ${active ? "text-emerald-400" : ""}`}>
-                              {formatPhoneNumber(number.phone_number)}
-                            </p>
-                            <p className={`mt-0.5 truncate text-[10px] ${theme.faint}`}>
-                              {peer ? formatPhoneNumber(peer) : "No conversations yet"}
-                            </p>
-                          </div>
-                          {numberMessages.length > 0 && (
-                            <span className={`rounded-full px-1.5 py-0.5 text-[8px] ${theme.soft} ${theme.faint}`}>
-                              {numberMessages.length}
-                            </span>
-                          )}
-                        </div>
-                      </button>
+                    const numberMessages = messages.filter(
+                      (message) => message.phone_number_id === number.id
                     );
+                    const threads = Array.from(new Set(numberMessages.map(getMessagePeer)))
+                      .map((peer) => ({
+                        peer,
+                        threadMessages: numberMessages.filter(
+                          (message) => getMessagePeer(message) === peer
+                        ),
+                      }))
+                      .sort((a, b) => {
+                        const aLast = a.threadMessages[a.threadMessages.length - 1];
+                        const bLast = b.threadMessages[b.threadMessages.length - 1];
+                        return (
+                          new Date(bLast?.created_at || 0).getTime() -
+                          new Date(aLast?.created_at || 0).getTime()
+                        );
+                      });
+
+                    if (threads.length === 0) {
+                      return (
+                        <button
+                          key={number.id}
+                          type="button"
+                          onClick={() => {
+                            setSelectedNumberId(number.id);
+                            setSelectedPeer("");
+                            setNotice("");
+                            setError("");
+                          }}
+                          className="w-full rounded-2xl px-3 py-3 text-left transition hover:bg-white/[0.04]"
+                        >
+                          <div className="flex items-center gap-3">
+                            <div className="flex h-10 w-10 shrink-0 items-center justify-center rounded-full bg-gradient-to-br from-emerald-400 to-cyan-500 text-sm font-bold text-slate-950">
+                              {flagForCountry(number.country_code)}
+                            </div>
+                            <div className="min-w-0 flex-1">
+                              <p className="truncate text-xs font-bold">
+                                {formatPhoneNumber(number.phone_number)}
+                              </p>
+                              <p className={`mt-0.5 truncate text-[10px] ${theme.faint}`}>
+                                No conversations yet
+                              </p>
+                            </div>
+                          </div>
+                        </button>
+                      );
+                    }
+
+                    return threads.map(({ peer, threadMessages }) => {
+                      const lastMessage = threadMessages[threadMessages.length - 1];
+                      const active =
+                        number.id === selectedNumberId && peer === selectedPeer;
+
+                      return (
+                        <button
+                          key={`${number.id}-${peer}`}
+                          type="button"
+                          onClick={() => {
+                            setSelectedNumberId(number.id);
+                            setSelectedPeer(peer);
+                            setRecipient(peer);
+                            setNotice("");
+                            setError("");
+                          }}
+                          className={`w-full rounded-2xl px-3 py-3 text-left transition ${active ? "bg-emerald-500/10 ring-1 ring-inset ring-emerald-500/10" : "hover:bg-white/[0.04]"}`}
+                        >
+                          <div className="flex items-center gap-3">
+                            <div className="relative flex h-10 w-10 shrink-0 items-center justify-center rounded-full bg-gradient-to-br from-emerald-400 to-cyan-500 text-sm font-bold text-slate-950">
+                              {flagForCountry(number.country_code)}
+                              <span className="absolute -right-0.5 -top-0.5 h-2.5 w-2.5 rounded-full border-2 border-[#0a1020] bg-emerald-400" />
+                            </div>
+                            <div className="min-w-0 flex-1">
+                              <p className={`truncate text-xs font-bold ${active ? "text-emerald-400" : ""}`}>
+                                {formatPhoneNumber(peer)}
+                              </p>
+                              <p className={`mt-0.5 truncate text-[10px] ${theme.faint}`}>
+                                via {formatPhoneNumber(number.phone_number)}
+                              </p>
+                            </div>
+                            <div className="flex shrink-0 flex-col items-end gap-1">
+                              <span className={`text-[9px] ${theme.faint}`}>
+                                {formatMessageTime(lastMessage.created_at)}
+                              </span>
+                              <span className={`rounded-full px-1.5 py-0.5 text-[8px] ${theme.soft} ${theme.faint}`}>
+                                {threadMessages.length}
+                              </span>
+                            </div>
+                          </div>
+                          <p className={`mt-1 truncate pl-[52px] text-[9px] ${theme.faint}`}>
+                            {lastMessage.body}
+                          </p>
+                        </button>
+                      );
+                    });
                   })}
                 </div>
+
               </aside>
 
               <main className="flex min-w-0 flex-col">
@@ -747,7 +819,19 @@ export default function Page() {
                                 </div>
                                 <p className={`mt-1 px-1 text-[9px] ${outbound ? "text-right" : "text-left"} ${theme.faint}`}>
                                   {formatMessageTime(message.created_at)}
-                                  {outbound && ` · ${message.status === "sent" ? "Delivered" : message.status}`}
+                                  {outbound && ` · ${
+                                    message.status === "delivered"
+                                      ? "Delivered"
+                                      : message.status === "sent"
+                                        ? "Sent"
+                                        : message.status === "queued"
+                                          ? "Queued"
+                                          : message.status === "unconfirmed"
+                                            ? "Delivery unconfirmed"
+                                            : message.status === "failed"
+                                              ? "Failed"
+                                              : message.status
+                                  }`}
                                 </p>
                               </div>
                             </div>
