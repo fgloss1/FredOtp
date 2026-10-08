@@ -30,8 +30,9 @@ type TelnyxInboundPayload = {
       direction?: string;
       id?: string; // Telnyx message id
       from?: { phone_number?: string };
-      to?: Array<{ phone_number?: string }> | { phone_number?: string };
+      to?: Array<{ phone_number?: string; status?: string }> | { phone_number?: string; status?: string };
       text?: string;
+      errors?: Array<{ code?: string; title?: string; detail?: string }>;
       type?: string;
       received_at?: string;
       encoding?: string;
@@ -126,6 +127,33 @@ function verifyTelnyxSignature(opts: {
   }
 }
 
+function isOutboundDeliveryEvent(body: TelnyxInboundPayload): boolean {
+  const eventType = String(body?.data?.event_type || "").toLowerCase();
+  return eventType === "message.sent" || eventType === "message.finalized";
+}
+
+function outboundDeliveryStatus(body: TelnyxInboundPayload): {
+  providerMessageId: string | null;
+  status: string;
+  errors: Array<{ code?: string; title?: string; detail?: string }>;
+} {
+  const payload = body.data?.payload;
+  const providerMessageId = payload?.id || body.data?.id || null;
+  const firstTo = Array.isArray(payload?.to) ? payload.to[0] : payload?.to;
+  const rawStatus = String(firstTo?.status || "").toLowerCase();
+  const eventType = String(body?.data?.event_type || "").toLowerCase();
+
+  let status = rawStatus || (eventType === "message.sent" ? "sent" : "completed");
+  if (status === "sending_failed" || status === "delivery_failed") status = "failed";
+  if (status === "delivery_unconfirmed") status = "unconfirmed";
+
+  return {
+    providerMessageId,
+    status,
+    errors: Array.isArray(payload?.errors) ? payload.errors : [],
+  };
+}
+
 function isInboundSmsEvent(body: TelnyxInboundPayload): boolean {
   const eventType = String(body?.data?.event_type || "").toLowerCase();
   const direction = String(body?.data?.payload?.direction || "").toLowerCase();
@@ -177,6 +205,64 @@ export async function POST(req: NextRequest) {
     body = JSON.parse(rawBody) as TelnyxInboundPayload;
   } catch {
     return NextResponse.json({ error: "Invalid JSON" }, { status: 400 });
+  }
+
+  if (isOutboundDeliveryEvent(body)) {
+    const { providerMessageId, status, errors } = outboundDeliveryStatus(body);
+
+    if (!providerMessageId) {
+      return NextResponse.json({
+        received: true,
+        handled: false,
+        reason: "outbound_missing_provider_message_id",
+      });
+    }
+
+    try {
+      const supabase = getServiceSupabase();
+      const { data: updated, error: updateError } = await supabase
+        .from("nava_phone_messages")
+        .update({ status })
+        .eq("provider_message_id", providerMessageId)
+        .select("id")
+        .maybeSingle();
+
+      if (updateError) {
+        console.error("[telnyx-webhook] outbound status update failed:", updateError);
+        return NextResponse.json({ error: "Status update failed" }, { status: 500 });
+      }
+
+      if (errors.length > 0) {
+        console.warn("[telnyx-webhook] outbound delivery status:", {
+          providerMessageId,
+          status,
+          errors: errors.map((error) => ({
+            code: error?.code,
+            title: error?.title,
+            detail: error?.detail,
+          })),
+        });
+      } else {
+        console.log("[telnyx-webhook] outbound delivery status:", {
+          providerMessageId,
+          status,
+        });
+      }
+
+      return NextResponse.json({
+        received: true,
+        handled: true,
+        updated: Boolean(updated?.id),
+        status,
+        provider_message_id: providerMessageId,
+      });
+    } catch (err: any) {
+      console.error("[telnyx-webhook] outbound status handler failed:", err);
+      return NextResponse.json(
+        { error: err?.message || "Outbound status handler error" },
+        { status: 500 },
+      );
+    }
   }
 
   // Always ACK non-inbound quickly (delivery updates, etc.)
