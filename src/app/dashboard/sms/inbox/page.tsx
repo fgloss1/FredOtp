@@ -56,6 +56,9 @@ export default function Page() {
   const [darkMode, setDarkMode] = useState(true);
   const [numbers, setNumbers] = useState<PhoneNumber[]>([]);
   const [messages, setMessages] = useState<Message[]>([]);
+  const [contactNames, setContactNames] = useState<Record<string, string>>({});
+  const [contactNameOpen, setContactNameOpen] = useState(false);
+  const [contactNameDraft, setContactNameDraft] = useState("");
   const [selectedNumberId, setSelectedNumberId] = useState("");
   const [selectedPeer, setSelectedPeer] = useState("");
   const [recipient, setRecipient] = useState("");
@@ -79,6 +82,15 @@ export default function Page() {
     checkTheme();
     window.addEventListener("nava-theme-change", checkTheme);
     return () => window.removeEventListener("nava-theme-change", checkTheme);
+  }, []);
+
+  useEffect(() => {
+    try {
+      const saved = localStorage.getItem("nava-contact-names");
+      if (saved) setContactNames(JSON.parse(saved));
+    } catch {
+      setContactNames({});
+    }
   }, []);
 
   useEffect(() => {
@@ -137,6 +149,31 @@ export default function Page() {
   );
 
   const conversationPeer = selectedPeer || null;
+  const selectedContactKey =
+    selectedNumberId && selectedPeer ? `${selectedNumberId}::${selectedPeer}` : "";
+  const selectedContactName = selectedContactKey
+    ? contactNames[selectedContactKey] || ""
+    : "";
+
+  const openContactNameEditor = () => {
+    if (!selectedContactKey) return;
+    setContactNameDraft(selectedContactName);
+    setContactNameOpen(true);
+    setError("");
+    setNotice("");
+  };
+
+  const saveContactName = () => {
+    if (!selectedContactKey) return;
+    const next = { ...contactNames };
+    const cleanName = contactNameDraft.trim();
+    if (cleanName) next[selectedContactKey] = cleanName;
+    else delete next[selectedContactKey];
+    setContactNames(next);
+    localStorage.setItem("nava-contact-names", JSON.stringify(next));
+    setContactNameOpen(false);
+    setNotice(cleanName ? "Contact name saved." : "Contact name removed.");
+  };
 
   const conversationThreads = useMemo(() => {
     return messages
@@ -734,9 +771,12 @@ export default function Page() {
                             </div>
                             <div className="min-w-0 flex-1">
                               <div className="flex items-center justify-between gap-2">
-                                <p className={`truncate text-xs font-bold ${
+                                <p className={`text-xs font-bold whitespace-nowrap ${
                                   active ? "text-emerald-400" : ""
                                 }`}>
+                                  {contactNames[`${phoneNumberId}::${peer}`] || formatPhoneNumber(peer)}
+                                </p>
+                                <p className={`text-[10px] font-mono whitespace-nowrap ${theme.faint}`}>
                                   {formatPhoneNumber(peer)}
                                 </p>
                                 <span className={`shrink-0 text-[9px] ${theme.faint}`}>
@@ -769,9 +809,29 @@ export default function Page() {
                         <span className="absolute bottom-0 right-0 h-3 w-3 rounded-full border-2 border-[#0a1020] bg-emerald-400" />
                       </div>
                       <div className="min-w-0">
-                        <h2 className="truncate text-[15px] font-bold">
-                          {conversationPeer ? formatPhoneNumber(conversationPeer) : "NAVA Messages"}
-                        </h2>
+                        <div className="flex min-w-0 items-center gap-2">
+                          <div className="min-w-0">
+                            <h2 className="text-[15px] font-bold whitespace-nowrap">
+                              {conversationPeer
+                                ? selectedContactName || formatPhoneNumber(conversationPeer)
+                                : "NAVA Messages"}
+                            </h2>
+                            {conversationPeer && (
+                              <p className={`text-[11px] font-mono whitespace-nowrap ${theme.faint}`}>
+                                {formatPhoneNumber(conversationPeer)}
+                              </p>
+                            )}
+                          </div>
+                          {conversationPeer && (
+                            <button
+                              type="button"
+                              onClick={openContactNameEditor}
+                              className={`shrink-0 rounded-full border px-2 py-1 text-[9px] font-semibold ${theme.input} hover:border-emerald-400 hover:text-emerald-400`}
+                            >
+                              {selectedContactName ? "Edit name" : "Add name"}
+                            </button>
+                          )}
+                        </div>
                         <p className={`mt-0.5 truncate text-[10px] ${theme.faint}`}>
                           {selectedNumber ? `via ${formatPhoneNumber(selectedNumber.phone_number)}` : "NAVA Phone"}
                         </p>
@@ -862,7 +922,7 @@ export default function Page() {
                     )}
                   </div>
 
-                  <div className={`sticky bottom-0 z-20 shrink-0 border-t p-3 sm:p-4 ${theme.divider} ${darkMode ? "bg-[#090f1d]/98" : "bg-white/98"} backdrop-blur-xl`}>
+                  <div className={`sticky bottom-0 z-20 mb-3 shrink-0 border-t p-3 sm:p-4 ${theme.divider} ${darkMode ? "bg-[#090f1d]/98" : "bg-white/98"} backdrop-blur-xl rounded-2xl shadow-xl`}>
                     <div className="flex items-end gap-2">
                       <button
                         type="button"
@@ -917,6 +977,32 @@ export default function Page() {
       </div>
       </div>
 
+
+      {contactNameOpen && (
+        <div className="fixed inset-0 z-[60] flex items-center justify-center bg-black/65 p-4 backdrop-blur-sm">
+          <div className={`w-full max-w-sm rounded-[24px] border p-5 shadow-2xl ${theme.panel}`}>
+            <div className="flex items-center justify-between gap-3">
+              <div>
+                <h2 className="text-lg font-bold">{selectedContactName ? "Edit contact name" : "Add contact name"}</h2>
+                <p className={`mt-1 text-xs ${theme.muted}`}>{conversationPeer ? formatPhoneNumber(conversationPeer) : ""}</p>
+              </div>
+              <button type="button" onClick={() => setContactNameOpen(false)} className={`flex h-8 w-8 items-center justify-center rounded-full ${theme.soft}`} aria-label="Close">×</button>
+            </div>
+            <input
+              autoFocus
+              value={contactNameDraft}
+              onChange={(event) => setContactNameDraft(event.target.value.slice(0, 80))}
+              onKeyDown={(event) => { if (event.key === "Enter") saveContactName(); }}
+              placeholder="e.g. Google Voice"
+              className={`mt-5 w-full rounded-2xl border px-4 py-3 text-sm outline-none focus:border-emerald-400 ${theme.input}`}
+            />
+            <div className="mt-4 flex gap-2">
+              <button type="button" onClick={() => setContactNameOpen(false)} className={`flex-1 rounded-full border px-4 py-3 text-xs font-semibold ${theme.input}`}>Cancel</button>
+              <button type="button" onClick={saveContactName} className="flex-1 rounded-full bg-emerald-500 px-4 py-3 text-xs font-bold text-slate-950">Save name</button>
+            </div>
+          </div>
+        </div>
+      )}
       {addNumberOpen && (
         <div className="fixed inset-0 z-50 flex items-end justify-center bg-black/60 p-0 backdrop-blur-sm sm:items-center sm:p-6">
           <div className={`w-full max-w-md rounded-t-[30px] border p-5 shadow-2xl sm:rounded-[28px] ${theme.panel}`}>
