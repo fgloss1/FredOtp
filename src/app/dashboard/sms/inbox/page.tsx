@@ -658,329 +658,253 @@ export default function Page() {
           )}
         </div>
       </div>
-      <div className="hidden lg:block">
-      <div className="mx-auto max-w-6xl px-1 py-1 sm:px-4 sm:py-4">
-        <div className={`overflow-hidden rounded-[28px] border ${theme.panel} shadow-2xl`}>
-          <header className={`flex items-center justify-between border-b px-4 py-3 sm:px-6 sm:py-4 ${theme.divider}`}>
-            <Link
-              href="/dashboard/sms"
-              className="flex min-w-[70px] items-center gap-1 text-sm font-semibold transition hover:text-emerald-400"
-            >
-              <span className="text-2xl leading-none">‹</span>
-              <span>Phone</span>
-            </Link>
+  
+    <div className="hidden lg:flex flex-col h-screen w-full bg-white text-slate-900 overflow-hidden">
+      <header className="h-16 shrink-0 border-b border-slate-200 bg-white flex items-center px-4">
+        <div className="w-80 shrink-0 flex items-center gap-3">
+          <button type="button" className="h-9 w-9 rounded-full border border-slate-200 text-slate-600 flex items-center justify-center hover:bg-slate-50" aria-label="Open navigation menu">☰</button>
+          <Link href="/dashboard" className="flex items-center gap-2">
+            <span className="h-8 w-8 rounded-xl bg-emerald-500 text-black font-black flex items-center justify-center">N</span>
+            <span className="text-lg font-black tracking-wider text-emerald-600">NAVA</span>
+          </Link>
+        </div>
 
-            <div className="text-center">
-              <h1 className="text-[17px] font-bold tracking-tight">Messages</h1>
-              <p className={`text-[10px] ${theme.faint}`}>NAVA Phone</p>
-            </div>
+        <div className="flex-1 flex justify-center px-8">
+          <div className="w-full max-w-xl relative">
+            <span className="absolute left-4 top-1/2 -translate-y-1/2 text-slate-400">⌕</span>
+            <input type="search" placeholder="Search messages, contacts and numbers" className="h-10 w-full rounded-full border border-slate-200 bg-slate-50 pl-10 pr-5 text-sm text-slate-900 outline-none placeholder:text-slate-400 focus:border-emerald-400 focus:bg-white" aria-label="Search" />
+          </div>
+        </div>
 
-            <select
-              value={selectedNumberId}
-              onChange={(event) => handleNumberSelectorChange(event.target.value)}
-              className={`max-w-[270px] rounded-full border px-4 py-2.5 text-sm font-extrabold tracking-tight outline-none focus:border-emerald-400 ${theme.input}`}
-              aria-label="Select your NAVA number"
-            >
-              {numbers.map((number) => (
-                <option key={number.id} value={number.id}>
-                  {formatPhoneNumber(number.phone_number)}
-                </option>
-              ))}
-              <option value="__buy__">＋ Add a new number</option>
-            </select>
-          </header>
+        <div className="w-80 shrink-0 flex items-center justify-end gap-2">
+          <Link href="/dashboard/wallet" className="rounded-full border border-slate-200 bg-white px-4 py-2 text-sm font-extrabold text-slate-700 hover:bg-slate-50">
+            {"$"}{userBalance.toFixed(2)}
+          </Link>
+          <button type="button" className="h-9 rounded-full border border-slate-200 px-4 text-sm font-bold text-slate-700 hover:bg-slate-50" aria-label="User profile">{userEmail}</button>
+          <button type="button" className="h-9 w-9 rounded-full border border-slate-200 text-slate-600 flex items-center justify-center hover:bg-slate-50" aria-label="Settings">⚙</button>
+        </div>
+      </header>
 
-          {error && (
-            <div className="mx-4 mt-3 rounded-2xl border border-red-500/25 bg-red-500/10 px-4 py-3 text-xs text-red-400 sm:mx-6">
-              {error}
-            </div>
-          )}
-          {notice && (
-            <div className="mx-4 mt-3 rounded-2xl border border-emerald-500/25 bg-emerald-500/10 px-4 py-3 text-xs text-emerald-400 sm:mx-6">
-              {notice}
-            </div>
-          )}
+      <div className="flex flex-1 min-h-0 overflow-hidden">
+        <nav className="w-16 shrink-0 border-r border-slate-200 bg-white flex flex-col items-center py-4 gap-2">
+          <button type="button" className="h-11 w-11 rounded-xl text-slate-500 hover:bg-slate-50 flex items-center justify-center" aria-label="Calls">☎</button>
+          <button type="button" className="h-11 w-11 rounded-xl bg-emerald-50 text-emerald-600 flex items-center justify-center" aria-label="Messages">💬</button>
+          <button type="button" className="h-11 w-11 rounded-xl text-slate-500 hover:bg-slate-50 flex items-center justify-center" aria-label="Voicemail">◉</button>
+        </nav>
 
-          {loading ? (
-            <div className="flex min-h-[620px] items-center justify-center">
-              <div className="text-center">
-                <div className="mx-auto h-8 w-8 animate-spin rounded-full border-2 border-emerald-400 border-t-transparent" />
-                <p className={`mt-3 text-xs ${theme.muted}`}>Loading Messages...</p>
-              </div>
-            </div>
-          ) : numbers.length === 0 ? (
-            <div className="flex min-h-[620px] items-center justify-center px-6">
-              <div className="max-w-sm text-center">
-                <div className="mx-auto flex h-16 w-16 items-center justify-center rounded-full bg-emerald-500/10 text-3xl">📱</div>
-                <h2 className="mt-5 text-xl font-bold">No NAVA number yet</h2>
-                <p className={`mt-2 text-sm leading-relaxed ${theme.muted}`}>
-                  Get a NAVA Phone number and your Messages inbox will be ready here.
-                </p>
-                <Link
-                  href="/dashboard/sms"
-                  className="mt-6 inline-flex rounded-full bg-emerald-500 px-6 py-3 text-sm font-bold text-slate-950 transition hover:bg-emerald-400"
-                >
-                  Get a Number
-                </Link>
-              </div>
-            </div>
-          ) : (
-            <div className="grid min-h-[520px] lg:h-[calc(100dvh-220px)] lg:min-h-[520px] lg:grid-cols-[245px_minmax(0,1fr)]">
+        <section className="w-80 shrink-0 border-r border-slate-200 bg-white flex flex-col min-h-0">
+          <div className="h-16 shrink-0 border-b border-slate-200 px-4 flex items-center">
+            <button type="button" onClick={openCompose} className="w-full rounded-full bg-emerald-500 px-4 py-2.5 text-sm font-bold text-slate-950 hover:bg-emerald-400">+ Send new message</button>
+          </div>
 
-              <aside className={`hidden border-r p-3 lg:block ${theme.divider}`}>
-                <div className="px-3 pb-3 pt-2">
-                  <p className={`text-[10px] font-bold uppercase tracking-[0.16em] ${theme.faint}`}>
-                    Conversations
-                  </p>
-                  <p className={`mt-1 text-[9px] ${theme.faint}`}>
-                    Your messages
-                  </p>
-                </div>
+          <div className="flex-1 overflow-y-auto no-scrollbar p-2">
+            {conversationThreads.length === 0 ? (
+              <div className="h-full flex items-center justify-center px-4 text-center text-sm text-slate-400">No conversations yet</div>
+            ) : (
+              <div className="space-y-1">
+                {conversationThreads.map(({ key, phoneNumberId, peer, threadMessages }) => {
+                  const lastMessage = threadMessages[threadMessages.length - 1];
+                  const contactName = contactNames[phoneNumberId + "::" + peer] || "";
+                  const active = phoneNumberId === selectedNumberId && peer === selectedPeer;
 
-                <div className="space-y-1">
-                  {conversationThreads.length === 0 ? (
-                    <div className={`rounded-2xl px-3 py-8 text-center text-[10px] ${theme.faint}`}>
-                      No conversations yet
-                    </div>
-                  ) : (
-                    conversationThreads.map(({ key, phoneNumberId, peer, threadMessages, number }) => {
-                      const lastMessage = threadMessages[threadMessages.length - 1];
-                      const active =
-                        phoneNumberId === selectedNumberId && peer === selectedPeer;
-
-                      return (
-                        <button
-                          key={key}
-                          type="button"
-                          onClick={() => {
-                            setSelectedNumberId(phoneNumberId);
-                            setSelectedPeer(peer);
-                            setRecipient(peer);
-                            setNotice("");
-                            setError("");
-                          }}
-                          className={`w-full rounded-2xl px-3 py-3 text-left transition ${
-                            active
-                              ? "bg-emerald-500/10 ring-1 ring-inset ring-emerald-500/10"
-                              : "hover:bg-white/[0.04]"
-                          }`}
-                        >
-                          <div className="flex items-center gap-3">
-                            <div className="flex h-10 w-10 shrink-0 items-center justify-center rounded-full bg-gradient-to-br from-emerald-400 to-cyan-500 text-sm font-bold text-slate-950">
-                              {flagForCountry(number?.country_code || null)}
-                            </div>
-                            <div className="min-w-0 flex-1">
-                              <div className="flex items-start justify-between gap-2">
-                                <div className="min-w-0">
-                                  <p className={`text-xs font-bold whitespace-nowrap ${
-                                    active ? "text-emerald-400" : ""
-                                  }`}>
-                                    {contactNames[`${phoneNumberId}::${peer}`] || "Unknown contact"}
-                                  </p>
-                                  <p className={`mt-0.5 text-[11px] font-mono font-semibold whitespace-nowrap ${theme.text}`}>
-                                    {formatPhoneNumber(peer)}
-                                  </p>
-                                </div>
-                                <span className={`shrink-0 pt-0.5 text-[9px] ${theme.faint}`}>
-                                  {formatMessageTime(lastMessage.created_at)}
-                                </span>
-                              </div>
-                              <p className={`mt-1 truncate text-[9px] ${theme.faint}`}>
-                                {lastMessage.body}
+                  return (
+                    <button
+                      key={key}
+                      type="button"
+                      onClick={() => {
+                        setSelectedNumberId(phoneNumberId);
+                        setSelectedPeer(peer);
+                        setRecipient(peer);
+                        setNotice("");
+                        setError("");
+                      }}
+                      className={"w-full rounded-2xl px-3 py-3 text-left transition " + (active ? "bg-emerald-50 ring-1 ring-inset ring-emerald-200" : "hover:bg-slate-50")}
+                    >
+                      <div className="flex items-start gap-3">
+                        <div className="h-11 w-11 shrink-0 rounded-full bg-slate-100 flex items-center justify-center text-xs font-bold text-slate-500">
+                          {contactName ? contactName.slice(0, 2).toUpperCase() : peer.slice(-2)}
+                        </div>
+                        <div className="min-w-0 flex-1">
+                          <div className="flex items-start justify-between gap-2">
+                            <div className="min-w-0">
+                              <p className={"text-sm font-extrabold leading-tight whitespace-nowrap " + (active ? "text-emerald-700" : "text-slate-900")}>
+                                {contactName || formatPhoneNumber(peer)}
                               </p>
-                              {number && (
-                                <p className={`mt-1 truncate text-[8px] ${theme.faint}`}>
-                                  via {formatPhoneNumber(number.phone_number)}
-                                </p>
-                              )}
+                              {contactName && <p className="mt-0.5 text-xs font-mono font-semibold text-slate-600 whitespace-nowrap">{formatPhoneNumber(peer)}</p>}
                             </div>
+                            <span className="shrink-0 text-[10px] text-slate-400">{formatMessageTime(lastMessage.created_at)}</span>
                           </div>
-                        </button>
-                      );
-                    })
+                          <p className="mt-1 truncate text-xs text-slate-500">{lastMessage.body}</p>
+                        </div>
+                      </div>
+                    </button>
+                  );
+                })}
+              </div>
+            )}
+          </div>
+        </section>
+
+        <section className="flex-1 min-w-0 min-h-0 border-r border-slate-200 bg-white flex flex-col">
+          <header className="h-16 shrink-0 border-b border-slate-200 px-5 flex items-center justify-between">
+            <div className="min-w-0 flex items-center gap-3">
+              <div className="h-10 w-10 shrink-0 rounded-full bg-emerald-50 text-emerald-600 flex items-center justify-center font-bold">
+                {selectedPeer ? (selectedContactName || selectedPeer.slice(-2)) : "N"}
+              </div>
+              <div className="min-w-0">
+                <div className="flex items-center gap-2">
+                  <h2 className="text-base font-extrabold text-slate-900 whitespace-nowrap">
+                    {selectedPeer ? (selectedContactName || formatPhoneNumber(selectedPeer)) : "Select a conversation"}
+                  </h2>
+                  {selectedPeer && (
+                    <button type="button" onClick={openContactNameEditor} className="rounded-full border border-slate-200 px-2.5 py-1 text-[10px] font-semibold text-slate-500 hover:border-emerald-400 hover:text-emerald-600">
+                      {selectedContactName ? "Edit name" : "Add name"}
+                    </button>
                   )}
                 </div>
-              </aside>
-
-              <main className="flex min-h-0 min-w-0 flex-col overflow-hidden">
-                <div className={`sticky top-0 z-20 shrink-0 border-b px-4 py-3 sm:px-6 ${theme.divider} ${darkMode ? "bg-[#0a1020]/98" : "bg-white/98"} backdrop-blur-xl`}>
-                  <div className="flex items-center justify-between gap-3">
-                    <div className="flex min-w-0 items-center gap-3">
-                      <div className="relative flex h-11 w-11 shrink-0 items-center justify-center rounded-full bg-gradient-to-br from-emerald-400 to-cyan-500 text-lg text-slate-950 shadow-md">
-                        {flagForCountry(selectedNumber?.country_code || null)}
-                        <span className="absolute bottom-0 right-0 h-3 w-3 rounded-full border-2 border-[#0a1020] bg-emerald-400" />
-                      </div>
-                      <div className="min-w-0">
-                        <div className="flex min-w-0 items-center gap-2">
-                          <div className="min-w-0">
-                            <h2 className="text-[15px] font-bold whitespace-nowrap">
-                              {conversationPeer
-                                ? selectedContactName || formatPhoneNumber(conversationPeer)
-                                : "NAVA Messages"}
-                            </h2>
-                            {conversationPeer && (
-                              <p className={`text-[11px] font-mono whitespace-nowrap ${theme.faint}`}>
-                                {formatPhoneNumber(conversationPeer)}
-                              </p>
-                            )}
-                          </div>
-                          {conversationPeer && (
-                            <button
-                              type="button"
-                              onClick={openContactNameEditor}
-                              className={`shrink-0 rounded-full border px-2 py-1 text-[9px] font-semibold ${theme.input} hover:border-emerald-400 hover:text-emerald-400`}
-                            >
-                              {selectedContactName ? "Edit name" : "Add name"}
-                            </button>
-                          )}
-                        </div>
-                        <p className={`mt-0.5 truncate text-[10px] ${theme.faint}`}>
-                          {selectedNumber ? `via ${formatPhoneNumber(selectedNumber.phone_number)}` : "NAVA Phone"}
-                        </p>
-                      </div>
-                    </div>
-                    <button
-                      type="button"
-                      onClick={copyNumber}
-                      className={`rounded-full border px-3 py-2 text-[10px] font-semibold transition ${theme.input} hover:border-emerald-400 hover:text-emerald-400`}
-                    >
-                      Copy number
-                    </button>
-                  </div>
-
-                  <div className="mt-3 flex gap-2 overflow-x-auto pb-1 lg:hidden">
-                    {numbers.map((number) => (
-                      <button
-                        key={number.id}
-                        type="button"
-                        onClick={() => setSelectedNumberId(number.id)}
-                        className={`shrink-0 rounded-full border px-3 py-2 text-[10px] font-semibold ${number.id === selectedNumberId ? "border-emerald-400 bg-emerald-500/10 text-emerald-400" : `${theme.input} ${theme.muted}`}`}
-                      >
-                        {flagForCountry(number.country_code)} {formatPhoneNumber(number.phone_number)}
-                      </button>
-                    ))}
-                  </div>
-                </div>
-
-                <div className={`relative flex min-h-0 flex-1 flex-col overflow-hidden ${darkMode ? "bg-[#070c17]" : "bg-slate-50"}`}>
-                  <div className="pointer-events-none absolute inset-0 opacity-[0.02] [background-image:radial-gradient(circle_at_1px_1px,currentColor_1px,transparent_0)] [background-size:18px_18px]" />
-
-                  <div className="relative min-h-0 flex-1 space-y-3 overflow-y-auto overscroll-contain px-4 py-6 sm:px-8">
-                    {selectedMessages.length === 0 ? (
-                      <div className={`flex min-h-[360px] items-center justify-center text-center ${theme.muted}`}>
-                        <div>
-                          <div className="mx-auto flex h-14 w-14 items-center justify-center rounded-full bg-emerald-500/10 text-2xl">💬</div>
-                          <p className="mt-4 text-sm font-semibold">No messages yet</p>
-                          <p className={`mt-1 max-w-xs text-xs ${theme.faint}`}>
-                            Start a conversation using your NAVA number.
-                          </p>
-                          <button
-                            type="button"
-                            onClick={openCompose}
-                            className="mt-4 rounded-full bg-emerald-500 px-5 py-2.5 text-xs font-bold text-slate-950 transition hover:bg-emerald-400"
-                          >
-                            New Message
-                          </button>
-                        </div>
-                      </div>
-                    ) : (
-                      <>
-                        <div className="flex justify-center pb-2">
-                          <span className={`rounded-full px-3 py-1 text-[9px] font-medium ${darkMode ? "bg-slate-800/70 text-slate-400" : "bg-slate-200 text-slate-500"}`}>
-                            Today
-                          </span>
-                        </div>
-
-                        {selectedMessages.map((message) => {
-                          const outbound = message.direction === "outbound";
-                          return (
-                            <div key={message.id} className={`flex ${outbound ? "justify-end" : "justify-start"}`}>
-                              <div className={`max-w-[82%] sm:max-w-[70%] ${outbound ? "items-end" : "items-start"}`}>
-                                <div className={`rounded-[22px] px-4 py-2.5 text-[13px] leading-relaxed shadow-sm ${outbound ? "rounded-br-[7px] bg-emerald-500 text-slate-950" : `${theme.soft} rounded-bl-[7px] border`}`}>
-                                  {message.body}
-                                </div>
-                                <p className={`mt-1 px-1 text-[9px] ${outbound ? "text-right" : "text-left"} ${theme.faint}`}>
-                                  {formatMessageTime(message.created_at)}
-                                  {outbound && ` · ${
-                                    message.status === "delivered"
-                                      ? "Delivered"
-                                      : message.status === "sent"
-                                        ? "Sent"
-                                        : message.status === "queued"
-                                          ? "Queued"
-                                          : message.status === "unconfirmed"
-                                            ? "Delivery unconfirmed"
-                                            : message.status === "failed"
-                                              ? "Failed"
-                                              : message.status
-                                  }`}
-                                </p>
-                              </div>
-                            </div>
-                          );
-                        })}
-                        <div ref={messagesEndRef} />
-                      </>
-                    )}
-                  </div>
-
-                  <div className={`sticky bottom-0 z-20 mx-3 mb-4 shrink-0 border p-3 sm:p-4 ${theme.divider} ${darkMode ? "bg-[#090f1d]/98" : "bg-white/98"} backdrop-blur-xl rounded-2xl shadow-xl`}>
-                    <div className="flex items-end gap-2">
-                      <button
-                        type="button"
-                        onClick={openCompose}
-                        className={`flex h-10 w-10 shrink-0 items-center justify-center rounded-full border text-xl transition hover:border-emerald-400 hover:text-emerald-400 ${theme.input}`}
-                        aria-label="New message"
-                      >
-                        +
-                      </button>
-
-                      <textarea
-                        ref={composerRef}
-                        value={text}
-                        onChange={(event) => {
-                          setText(event.target.value.slice(0, 1600));
-                          if (!recipient && conversationPeer) setRecipient(conversationPeer);
-                        }}
-                        onFocus={handleInlineComposerFocus}
-                        onKeyDown={handleComposerKeyDown}
-                        rows={1}
-                        placeholder={conversationPeer ? "Message" : "Start a new message"}
-                        aria-label="Message"
-                        className="min-h-10 max-h-28 flex-1 resize-none rounded-[20px] border border-slate-300 bg-white px-4 py-2.5 text-sm text-slate-900 shadow-sm outline-none placeholder:text-slate-400 focus:border-emerald-400 focus:ring-2 focus:ring-emerald-400/20"
-                      />
-
-                      <button
-                        type="button"
-                        onClick={() => {
-                          if (!conversationPeer) {
-                            openCompose();
-                            return;
-                          }
-                          if (!recipient) setRecipient(conversationPeer);
-                          void sendMessage();
-                        }}
-                        disabled={sending || !text.trim()}
-                        className="flex h-10 w-10 shrink-0 items-center justify-center rounded-full bg-emerald-500 text-lg font-bold text-slate-950 transition hover:bg-emerald-400 disabled:cursor-not-allowed disabled:opacity-40"
-                        aria-label="Send message"
-                      >
-                        {sending ? "…" : "↑"}
-                      </button>
-                    </div>
-                    <p className={`mt-2 hidden text-center text-[9px] sm:block ${theme.faint}`}>
-                      Press Enter to send · Shift + Enter for a new line
-                    </p>
-                  </div>
-                </div>
-              </main>
+                {selectedPeer && <p className="text-xs font-mono font-bold text-slate-600 whitespace-nowrap">{formatPhoneNumber(selectedPeer)}</p>}
+              </div>
             </div>
-          )}
-        </div>
-      </div>
-      </div>
 
+            <button
+              type="button"
+              disabled={!selectedPeer}
+              onClick={() => {
+                const input = document.getElementById("nava-dialer-input");
+                if (input instanceof HTMLInputElement && selectedPeer) {
+                  input.value = formatPhoneNumber(selectedPeer);
+                  input.focus();
+                }
+              }}
+              className="h-10 w-10 shrink-0 rounded-full border border-slate-200 text-slate-600 flex items-center justify-center hover:bg-slate-50 disabled:opacity-40"
+              aria-label="Call contact"
+            >☎</button>
+          </header>
 
-      {contactNameOpen && (
+          <div className="flex-1 min-h-0 overflow-y-auto no-scrollbar p-4">
+            {error && <div className="mb-3 rounded-2xl border border-red-200 bg-red-50 px-4 py-2 text-xs text-red-600">{error}</div>}
+            {notice && <div className="mb-3 rounded-2xl border border-emerald-200 bg-emerald-50 px-4 py-2 text-xs text-emerald-700">{notice}</div>}
+            {selectedMessages.length === 0 ? (
+              <div className="h-full flex items-center justify-center text-center text-sm text-slate-400">Select a conversation from the left.</div>
+            ) : (
+              <div className="space-y-3">
+                {selectedMessages.map((message) => {
+                  const outbound = message.direction === "outbound";
+                  return (
+                    <div key={message.id} className={"flex " + (outbound ? "justify-end" : "justify-start")}>
+                      <div className={"max-w-[72%] rounded-2xl px-4 py-2.5 text-sm shadow-sm " + (outbound ? "bg-emerald-500 text-slate-950 rounded-br-md" : "bg-slate-100 text-slate-800 rounded-bl-md")}>
+                        {message.body}
+                        <div className={"mt-1 text-[9px] " + (outbound ? "text-slate-900/60" : "text-slate-400")}>
+                          {formatMessageTime(message.created_at)}
+                          {outbound && (" · " + (
+                            message.status === "delivered" ? "Delivered" :
+                            message.status === "sent" ? "Sent" :
+                            message.status === "queued" ? "Queued" :
+                            message.status === "unconfirmed" ? "Delivery unconfirmed" :
+                            message.status === "failed" ? "Failed" :
+                            message.status
+                          ))}
+                        </div>
+                      </div>
+                    </div>
+                  );
+                })}
+              </div>
+            )}
+          </div>
+
+          <footer className="shrink-0 border-t border-slate-200 bg-white px-4 py-3 pb-5">
+            <div className="flex items-end gap-2 rounded-2xl border border-slate-200 bg-slate-50 p-2">
+              <button type="button" className="h-10 w-10 shrink-0 rounded-full border border-slate-200 bg-white text-slate-500 flex items-center justify-center hover:bg-slate-50" aria-label="Attach">📎</button>
+              <textarea
+                ref={composerRef}
+                value={text}
+                onChange={(event) => {
+                  setText(event.target.value.slice(0, 1600));
+                  if (!recipient && conversationPeer) setRecipient(conversationPeer);
+                }}
+                onFocus={handleInlineComposerFocus}
+                onKeyDown={handleComposerKeyDown}
+                rows={1}
+                placeholder={conversationPeer ? "Message" : "Select a conversation"}
+                disabled={!conversationPeer}
+                className="min-h-10 max-h-28 flex-1 resize-none rounded-xl border-0 bg-transparent px-2 py-2 text-sm text-slate-900 outline-none placeholder:text-slate-400 disabled:opacity-50"
+              />
+              <button type="button" onClick={sendMessage} disabled={sending || !conversationPeer || !text.trim()} className="h-10 w-10 shrink-0 rounded-full bg-emerald-500 text-slate-950 flex items-center justify-center font-bold hover:bg-emerald-400 disabled:opacity-40" aria-label="Send">↑</button>
+            </div>
+          </footer>
+        </section>
+
+        <aside className="w-80 shrink-0 bg-slate-50 flex flex-col min-h-0">
+          <header className="h-16 shrink-0 border-b border-slate-200 px-4 flex items-center justify-between">
+            <div className="min-w-0">
+              <p className="text-xs font-semibold text-slate-500">Call as</p>
+              <select
+                value={selectedNumberId}
+                onChange={(event) => {
+                  if (event.target.value === "__buy__") {
+                    openAddNumber();
+                    return;
+                  }
+                  setSelectedNumberId(event.target.value);
+                  setSelectedPeer("");
+                  setRecipient("");
+                }}
+                className="w-full max-w-[240px] rounded-lg border border-slate-200 bg-white px-3 py-2 text-lg font-extrabold text-slate-900 outline-none focus:border-emerald-400"
+                aria-label="Select NAVA number to call from"
+              >
+                {numbers.map((number) => <option key={number.id} value={number.id}>{formatPhoneNumber(number.phone_number)}</option>)}
+                <option value="__buy__">＋ Add a new number</option>
+              </select>
+            </div>
+            <button type="button" onClick={openAddNumber} className="h-9 w-9 shrink-0 rounded-full bg-emerald-500 text-slate-950 font-bold flex items-center justify-center hover:bg-emerald-400" aria-label="Add new number">+</button>
+          </header>
+
+          <div className="flex-1 min-h-0 overflow-y-auto no-scrollbar px-5 py-5">
+            <input id="nava-dialer-input" type="tel" placeholder="Enter a name or number" className="w-full rounded-full border border-slate-200 bg-white px-4 py-3 text-sm text-slate-900 outline-none focus:border-emerald-400" aria-label="Enter a name or number" />
+
+            <div id="nava-keypad" className="mt-5 grid grid-cols-3 gap-3">
+              {[
+                ["1", ""], ["2", "ABC"], ["3", "DEF"],
+                ["4", "GHI"], ["5", "JKL"], ["6", "MNO"],
+                ["7", "PQRS"], ["8", "TUV"], ["9", "WXYZ"],
+                ["*", ""], ["0", "+"], ["#", ""],
+              ].map(([digit, letters]) => (
+                <button
+                  key={digit}
+                  type="button"
+                  onClick={() => {
+                    const input = document.getElementById("nava-dialer-input");
+                    if (input instanceof HTMLInputElement) {
+                      input.value += digit;
+                      input.focus();
+                    }
+                  }}
+                  className="h-16 rounded-full border border-slate-200 bg-white text-slate-900 flex flex-col items-center justify-center hover:bg-slate-100"
+                >
+                  <span className="text-lg font-bold leading-none">{digit}</span>
+                  {letters && <span className="mt-1 text-[9px] tracking-[0.18em] text-slate-400">{letters}</span>}
+                </button>
+              ))}
+            </div>
+          </div>
+
+          <footer className="shrink-0 border-t border-slate-200 bg-white p-4 pb-5">
+            <div className="flex items-center gap-2">
+              <button
+                type="button"
+                onClick={() => {
+                  const keypad = document.getElementById("nava-keypad");
+                  if (keypad) keypad.classList.toggle("hidden");
+                }}
+                className="rounded-full border border-slate-200 px-3 py-3 text-xs font-semibold text-slate-600 hover:bg-slate-50"
+              >Hide keypad</button>
+              <button type="button" className="flex-1 rounded-full bg-emerald-500 px-4 py-3 text-sm font-bold text-slate-950 hover:bg-emerald-400">☎ Call</button>
+            </div>
+          </footer>
+        </aside>
+      </div>
+    </div>      {contactNameOpen && (
         <div className="fixed inset-0 z-[60] flex items-center justify-center bg-black/65 p-4 backdrop-blur-sm">
           <div className={`w-full max-w-sm rounded-[24px] border p-5 shadow-2xl ${theme.panel}`}>
             <div className="flex items-center justify-between gap-3">
