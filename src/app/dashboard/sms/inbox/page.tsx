@@ -115,9 +115,11 @@ export default function Page() {
 
   const selectedMessages = useMemo(
     () =>
-      selectedNumberMessages.filter(
-        (message) => !selectedPeer || getMessagePeer(message) === selectedPeer
-      ),
+      selectedPeer
+        ? selectedNumberMessages.filter(
+            (message) => getMessagePeer(message) === selectedPeer
+          )
+        : [],
     [selectedNumberMessages, selectedPeer]
   );
 
@@ -156,12 +158,8 @@ export default function Page() {
 
       if (!selectedNumberId && loadedNumbers.length > 0) {
         const firstNumber = loadedNumbers[0];
-        const firstNumberMessages = loadedMessages.filter(
-          (message: Message) => message.phone_number_id === firstNumber.id
-        );
-        const latestMessage = firstNumberMessages[firstNumberMessages.length - 1];
-        setSelectedNumberId(firstNumber.id);
-        setSelectedPeer(latestMessage ? getMessagePeer(latestMessage) : "");
+        setSelectedNumberId(loadedNumbers[0].id);
+        setSelectedPeer("");
       }
     } catch (err: any) {
       setError(err?.message || "Unable to load your messages.");
@@ -620,7 +618,7 @@ export default function Page() {
               </div>
             </div>
           ) : (
-            <div className="grid min-h-[620px] lg:grid-cols-[245px_minmax(0,1fr)]">
+            <div className="grid min-h-[520px] lg:h-[calc(100dvh-220px)] lg:min-h-[520px] lg:grid-cols-[245px_minmax(0,1fr)]">
               <aside className={`hidden border-r p-3 lg:block ${theme.divider}`}>
                 <div className="flex items-center justify-between px-3 pb-3 pt-2">
                   <div>
@@ -638,7 +636,8 @@ export default function Page() {
                 </div>
 
 
-                <div className="space-y-1">
+
+                <div className="space-y-2">
                   {numbers.map((number) => {
                     const numberMessages = messages.filter(
                       (message) => message.phone_number_id === number.id
@@ -659,88 +658,103 @@ export default function Page() {
                         );
                       });
 
-                    if (threads.length === 0) {
-                      return (
+                    const numberActive = number.id === selectedNumberId && !selectedPeer;
+
+                    return (
+                      <div key={number.id} className="rounded-2xl">
                         <button
-                          key={number.id}
                           type="button"
                           onClick={() => {
                             setSelectedNumberId(number.id);
                             setSelectedPeer("");
+                            setRecipient("");
                             setNotice("");
                             setError("");
                           }}
-                          className="w-full rounded-2xl px-3 py-3 text-left transition hover:bg-white/[0.04]"
+                          className={
+                            "w-full rounded-2xl px-3 py-3 text-left transition " +
+                            (numberActive
+                              ? "bg-emerald-500/10 ring-1 ring-inset ring-emerald-500/10"
+                              : "hover:bg-white/[0.04]")
+                          }
                         >
                           <div className="flex items-center gap-3">
                             <div className="flex h-10 w-10 shrink-0 items-center justify-center rounded-full bg-gradient-to-br from-emerald-400 to-cyan-500 text-sm font-bold text-slate-950">
                               {flagForCountry(number.country_code)}
                             </div>
                             <div className="min-w-0 flex-1">
-                              <p className="truncate text-xs font-bold">
+                              <p
+                                className={
+                                  "truncate text-xs font-bold " +
+                                  (numberActive ? "text-emerald-400" : "")
+                                }
+                              >
                                 {formatPhoneNumber(number.phone_number)}
                               </p>
-                              <p className={`mt-0.5 truncate text-[10px] ${theme.faint}`}>
-                                No conversations yet
+                              <p className={"mt-0.5 truncate text-[10px] " + theme.faint}>
+                                {threads.length > 0
+                                  ? threads.length +
+                                    " conversation" +
+                                    (threads.length === 1 ? "" : "s")
+                                  : "No conversations yet"}
                               </p>
                             </div>
                           </div>
                         </button>
-                      );
-                    }
 
-                    return threads.map(({ peer, threadMessages }) => {
-                      const lastMessage = threadMessages[threadMessages.length - 1];
-                      const active =
-                        number.id === selectedNumberId && peer === selectedPeer;
+                        {threads.length > 0 && (
+                          <div className="ml-4 mt-1 space-y-1 border-l border-slate-800 pl-2">
+                            {threads.map(({ peer, threadMessages }) => {
+                              const lastMessage = threadMessages[threadMessages.length - 1];
+                              const active =
+                                number.id === selectedNumberId && peer === selectedPeer;
 
-                      return (
-                        <button
-                          key={`${number.id}-${peer}`}
-                          type="button"
-                          onClick={() => {
-                            setSelectedNumberId(number.id);
-                            setSelectedPeer(peer);
-                            setRecipient(peer);
-                            setNotice("");
-                            setError("");
-                          }}
-                          className={`w-full rounded-2xl px-3 py-3 text-left transition ${active ? "bg-emerald-500/10 ring-1 ring-inset ring-emerald-500/10" : "hover:bg-white/[0.04]"}`}
-                        >
-                          <div className="flex items-center gap-3">
-                            <div className="relative flex h-10 w-10 shrink-0 items-center justify-center rounded-full bg-gradient-to-br from-emerald-400 to-cyan-500 text-sm font-bold text-slate-950">
-                              {flagForCountry(number.country_code)}
-                              <span className="absolute -right-0.5 -top-0.5 h-2.5 w-2.5 rounded-full border-2 border-[#0a1020] bg-emerald-400" />
-                            </div>
-                            <div className="min-w-0 flex-1">
-                              <p className={`truncate text-xs font-bold ${active ? "text-emerald-400" : ""}`}>
-                                {formatPhoneNumber(peer)}
-                              </p>
-                              <p className={`mt-0.5 truncate text-[10px] ${theme.faint}`}>
-                                via {formatPhoneNumber(number.phone_number)}
-                              </p>
-                            </div>
-                            <div className="flex shrink-0 flex-col items-end gap-1">
-                              <span className={`text-[9px] ${theme.faint}`}>
-                                {formatMessageTime(lastMessage.created_at)}
-                              </span>
-                              <span className={`rounded-full px-1.5 py-0.5 text-[8px] ${theme.soft} ${theme.faint}`}>
-                                {threadMessages.length}
-                              </span>
-                            </div>
+                              return (
+                                <button
+                                  key={number.id + "-" + peer}
+                                  type="button"
+                                  onClick={() => {
+                                    setSelectedNumberId(number.id);
+                                    setSelectedPeer(peer);
+                                    setRecipient(peer);
+                                    setNotice("");
+                                    setError("");
+                                  }}
+                                  className={
+                                    "w-full rounded-xl px-3 py-2.5 text-left transition " +
+                                    (active
+                                      ? "bg-emerald-500/10 ring-1 ring-inset ring-emerald-500/10"
+                                      : "hover:bg-white/[0.04]")
+                                  }
+                                >
+                                  <div className="flex items-center justify-between gap-2">
+                                    <p
+                                      className={
+                                        "truncate text-[11px] font-semibold " +
+                                        (active ? "text-emerald-400" : "")
+                                      }
+                                    >
+                                      {formatPhoneNumber(peer)}
+                                    </p>
+                                    <span className={"shrink-0 text-[8px] " + theme.faint}>
+                                      {formatMessageTime(lastMessage.created_at)}
+                                    </span>
+                                  </div>
+                                  <p className={"mt-1 truncate text-[9px] " + theme.faint}>
+                                    {lastMessage.body}
+                                  </p>
+                                </button>
+                              );
+                            })}
                           </div>
-                          <p className={`mt-1 truncate pl-[52px] text-[9px] ${theme.faint}`}>
-                            {lastMessage.body}
-                          </p>
-                        </button>
-                      );
-                    });
+                        )}
+                      </div>
+                    );
                   })}
                 </div>
+                            </aside>
 
-              </aside>
-
-              <main className="flex min-w-0 flex-col">
+              <main className="flex min-h-0 min-w-0 flex-col">
                 <div className={`border-b px-4 py-3 sm:px-6 ${theme.divider}`}>
                   <div className="flex items-center justify-between gap-3">
                     <div className="flex min-w-0 items-center gap-3">
@@ -780,7 +794,7 @@ export default function Page() {
                   </div>
                 </div>
 
-                <div className={`relative flex min-h-[420px] flex-1 flex-col overflow-hidden ${darkMode ? "bg-[#070c17]" : "bg-slate-50"}`}>
+                <div className={`relative flex min-h-0 flex-1 flex-col overflow-hidden ${darkMode ? "bg-[#070c17]" : "bg-slate-50"}`}>
                   <div className="pointer-events-none absolute inset-0 opacity-[0.02] [background-image:radial-gradient(circle_at_1px_1px,currentColor_1px,transparent_0)] [background-size:18px_18px]" />
 
                   <div className="relative flex-1 space-y-3 overflow-y-auto px-4 py-6 sm:px-8">
@@ -842,7 +856,7 @@ export default function Page() {
                     )}
                   </div>
 
-                  <div className={`relative border-t p-3 sm:p-4 ${theme.divider} ${darkMode ? "bg-[#090f1d]/95" : "bg-white/95"}`}>
+                  <div className={`sticky bottom-0 z-10 shrink-0 border-t p-3 sm:p-4 ${theme.divider} ${darkMode ? "bg-[#090f1d]/95" : "bg-white/95"}`}>
                     <div className="flex items-end gap-2">
                       <button
                         type="button"
