@@ -636,7 +636,7 @@ export default function Page() {
                   {formatPhoneNumber(number.phone_number)}
                 </option>
               ))}
-              <option value="__buy__">+ Buy another number</option>
+              <option value="__buy__">＋ Add a new number</option>
             </select>
           </header>
 
