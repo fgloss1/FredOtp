@@ -760,8 +760,8 @@ export default function Page() {
                 </div>
               </aside>
 
-              <main className="flex min-h-0 min-w-0 flex-col">
-                <div className={`border-b px-4 py-3 sm:px-6 ${theme.divider}`}>
+              <main className="flex min-h-0 min-w-0 flex-col overflow-hidden">
+                <div className={`sticky top-0 z-20 shrink-0 border-b px-4 py-3 sm:px-6 ${theme.divider} ${darkMode ? "bg-[#0a1020]/98" : "bg-white/98"} backdrop-blur-xl`}>
                   <div className="flex items-center justify-between gap-3">
                     <div className="flex min-w-0 items-center gap-3">
                       <div className="relative flex h-11 w-11 shrink-0 items-center justify-center rounded-full bg-gradient-to-br from-emerald-400 to-cyan-500 text-lg text-slate-950 shadow-md">
@@ -803,7 +803,7 @@ export default function Page() {
                 <div className={`relative flex min-h-0 flex-1 flex-col overflow-hidden ${darkMode ? "bg-[#070c17]" : "bg-slate-50"}`}>
                   <div className="pointer-events-none absolute inset-0 opacity-[0.02] [background-image:radial-gradient(circle_at_1px_1px,currentColor_1px,transparent_0)] [background-size:18px_18px]" />
 
-                  <div className="relative flex-1 space-y-3 overflow-y-auto px-4 py-6 sm:px-8">
+                  <div className="relative min-h-0 flex-1 space-y-3 overflow-y-auto overscroll-contain px-4 py-6 sm:px-8">
                     {selectedMessages.length === 0 ? (
                       <div className={`flex min-h-[360px] items-center justify-center text-center ${theme.muted}`}>
                         <div>
@@ -862,7 +862,7 @@ export default function Page() {
                     )}
                   </div>
 
-                  <div className={`sticky bottom-0 z-10 shrink-0 border-t p-3 sm:p-4 ${theme.divider} ${darkMode ? "bg-[#090f1d]/95" : "bg-white/95"}`}>
+                  <div className={`sticky bottom-0 z-20 shrink-0 border-t p-3 sm:p-4 ${theme.divider} ${darkMode ? "bg-[#090f1d]/98" : "bg-white/98"} backdrop-blur-xl`}>
                     <div className="flex items-end gap-2">
                       <button
                         type="button"
