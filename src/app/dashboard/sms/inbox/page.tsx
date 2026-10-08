@@ -678,7 +678,7 @@ export default function Page() {
             <select
               value={selectedNumberId}
               onChange={(event) => handleNumberSelectorChange(event.target.value)}
-              className={`max-w-[220px] rounded-full border px-3 py-2 text-[10px] font-semibold outline-none focus:border-emerald-400 ${theme.input}`}
+              className={`max-w-[270px] rounded-full border px-4 py-2.5 text-sm font-extrabold tracking-tight outline-none focus:border-emerald-400 ${theme.input}`}
               aria-label="Select your NAVA number"
             >
               {numbers.map((number) => (
@@ -770,20 +770,22 @@ export default function Page() {
                               {flagForCountry(number?.country_code || null)}
                             </div>
                             <div className="min-w-0 flex-1">
-                              <div className="flex items-center justify-between gap-2">
-                                <p className={`text-xs font-bold whitespace-nowrap ${
-                                  active ? "text-emerald-400" : ""
-                                }`}>
-                                  {contactNames[`${phoneNumberId}::${peer}`] || formatPhoneNumber(peer)}
-                                </p>
-                                <p className={`text-[10px] font-mono whitespace-nowrap ${theme.faint}`}>
-                                  {formatPhoneNumber(peer)}
-                                </p>
-                                <span className={`shrink-0 text-[9px] ${theme.faint}`}>
+                              <div className="flex items-start justify-between gap-2">
+                                <div className="min-w-0">
+                                  <p className={`text-xs font-bold whitespace-nowrap ${
+                                    active ? "text-emerald-400" : ""
+                                  }`}>
+                                    {contactNames[`${phoneNumberId}::${peer}`] || "Unknown contact"}
+                                  </p>
+                                  <p className={`mt-0.5 text-[11px] font-mono font-semibold whitespace-nowrap ${theme.text}`}>
+                                    {formatPhoneNumber(peer)}
+                                  </p>
+                                </div>
+                                <span className={`shrink-0 pt-0.5 text-[9px] ${theme.faint}`}>
                                   {formatMessageTime(lastMessage.created_at)}
                                 </span>
                               </div>
-                              <p className={`mt-0.5 truncate text-[9px] ${theme.faint}`}>
+                              <p className={`mt-1 truncate text-[9px] ${theme.faint}`}>
                                 {lastMessage.body}
                               </p>
                               {number && (
