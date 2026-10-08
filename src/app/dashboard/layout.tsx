@@ -252,6 +252,7 @@ export default function AntiFlashLayout({ children }: { children: React.ReactNod
   const allNavItems = [
     { href: "/dashboard", label: "Rent a number", icon: "phone", adminOnly: false },
     { href: "/dashboard/sms", label: "Phone", icon: "chat", adminOnly: false },
+    { href: "/dashboard/sms/inbox", label: "Messages", icon: "chat", adminOnly: false },
     { href: "/dashboard/rentals", label: "Rental Services", icon: "store", adminOnly: false },
     { href: "/dashboard/history", label: "History", icon: "history", adminOnly: false },
     { href: "/dashboard/wallet", label: "Wallet & Top Up", icon: "wallet", adminOnly: false },
