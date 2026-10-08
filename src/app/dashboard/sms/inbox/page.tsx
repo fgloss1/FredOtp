@@ -125,9 +125,9 @@ export default function Page() {
     });
   };
 
-  const loadInbox = async () => {
+  const loadInbox = async (showLoading = true) => {
     try {
-      setLoading(true);
+      if (showLoading) setLoading(true);
       setError("");
       const { supabase } = await import("@/lib/supabase");
       const { data: { session } } = await supabase.auth.getSession();
@@ -162,7 +162,7 @@ export default function Page() {
 
   useEffect(() => {
     const refreshId = window.setInterval(() => {
-      void loadInbox();
+      void loadInbox(false);
     }, 5000);
 
     return () => window.clearInterval(refreshId);
