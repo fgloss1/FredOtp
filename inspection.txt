@@ -1,212 +1,351 @@
-PS C:\Users\Sire-F\OneDrive\Desktop\My Projects\nava-otp> Set-Location "C:\Users\Sire-F\OneDrive\Desktop\My Projects\nava-otp"
-PS C:\Users\Sire-F\OneDrive\Desktop\My Projects\nava-otp>
-PS C:\Users\Sire-F\OneDrive\Desktop\My Projects\nava-otp> $Path = ".\src\app\dashboard\sms\calling\page.tsx"
-PS C:\Users\Sire-F\OneDrive\Desktop\My Projects\nava-otp> $Lines = Get-Content $Path
-PS C:\Users\Sire-F\OneDrive\Desktop\My Projects\nava-otp>
-PS C:\Users\Sire-F\OneDrive\Desktop\My Projects\nava-otp> for ($i = 490; $i -le 690; $i++) {
->>     if ($i -lt $Lines.Count) {
->>         "{0}: {1}" -f ($i + 1), $Lines[$i]
->>     }
->> }
-491:             </div>
-492:           </div>
-493:         )}
-494:
-495:         <div className="mt-3 lg:mt-1 grid gap-3 lg:gap-2 lg:grid-cols-[1fr_260px]">
-496:           <section className={`rounded-3xl border p-4 sm:p-5 lg:p-3 ${theme.panel}`}>
-497:             {activeCall ? (
-498:               <div className="flex min-h-[520px] flex-col items-center justify-center text-center">
-499:                 <div className="flex h-24 w-24 items-center justify-center rounded-full bg-emerald-500/10 text-4xl">
-500:                   {selectedNumber ? flagForCountry(selectedNumber.country_code) : "N"}
-501:                 </div>
-502:
-503:                 <p className="mt-5 text-xl font-bold">
-504:                   {callPeer ? formatPhoneNumber(callPeer) : "NAVA Phone"}
-505:                 </p>
-506:
-507:                 <p className={`mt-1 text-sm ${theme.muted}`}>
-508:                   {callState === "active"
-509:                     ? formatDuration(seconds)
-510:                     : callState === "ringing"
-511:                       ? "Ringing..."
-512:                       : callState === "held"
-513:                         ? "On hold"
-514:                         : "Calling..."}
-515:                 </p>
-516:
-517:                 <div className="mt-10 grid grid-cols-2 gap-4 sm:grid-cols-3">
-518:                   <button
-519:                     type="button"
-520:                     onClick={toggleMute}
-521:                     className={`flex h-16 w-20 flex-col items-center justify-center rounded-2xl border text-xs ${
-522:                       muted
-523:                         ? "border-emerald-400 bg-emerald-500/10 text-emerald-400"
-524:                         : `${theme.soft} ${theme.muted}`
-525:                     }`}
-526:                   >
-527:                     <span className="text-xl">{muted ? "Mic off" : "Mic"}</span>
-528:                     <span className="mt-1 text-[9px]">{muted ? "Unmute" : "Mute"}</span>
-529:                   </button>
-530:
-531:                   <button
-532:                     type="button"
-533:                     onClick={() => void toggleHold()}
-534:                     className={`flex h-16 w-20 flex-col items-center justify-center rounded-2xl border text-xs ${
-535:                       held
-536:                         ? "border-amber-400 bg-amber-500/10 text-amber-400"
-537:                         : `${theme.soft} ${theme.muted}`
-538:                     }`}
-539:                   >
-540:                     <span className="text-xl">Hold</span>
-541:                     <span className="mt-1 text-[9px]">{held ? "Resume" : "Hold"}</span>
-542:                   </button>
-543:
-544:                   <button
-545:                     type="button"
-546:                     onClick={endCall}
-547:                     className="col-span-2 flex h-16 items-center justify-center rounded-2xl bg-red-500 text-xs font-bold text-white sm:col-span-1"
-548:                   >
-549:                     End call
-550:                   </button>
-551:                 </div>
-552:               </div>
-553:             ) : (
-554:               <div>
-555:                 <div className={`rounded-2xl border px-4 py-3 ${theme.soft}`}>
-556:                   <p className={`text-[9px] font-bold uppercase tracking-wider ${theme.faint}`}>
-557:                     Calling from
-558:                   </p>
-559:
-560:                   <select
-561:                     value={selectedNumberId}
-562:                     onChange={(event) => setSelectedNumberId(event.target.value)}
-563:                     className={`mt-2 w-full bg-transparent text-sm font-bold outline-none ${darkMode ? "text-white" : "text-slate-900"}`}
-564:                     disabled={loading || numbers.length === 0}
-565:                   >
-566:                     {numbers.length === 0 ? (
-567:                       <option value="">No NAVA number available</option>
-568:                     ) : (
-569:                       numbers
-570:                         .filter((number) => number.status === "active")
-571:                         .map((number) => (
-572:                           <option key={number.id} value={number.id}>
-573:                             {flagForCountry(number.country_code)} {formatPhoneNumber(number.phone_number)}
-574:                           </option>
-575:                         ))
-576:                     )}
-577:                   </select>
-578:                 </div>
-579:
-580:                 <div className="mt-4 lg:mt-2 text-center">
-581:                   <input
-582:                     value={destination}
-583:                     onChange={(event) =>
-584:                       setDestination(
-585:                         event.target.value.replace(/[^\d+]/g, "").slice(0, 16)
-586:                       )
-587:                     }
-588:                     inputMode="tel"
-589:                     placeholder="+1 555 123 4567"
-590:                     aria-label="Destination number"
-591:                     className={`w-full bg-transparent text-center text-3xl font-bold tracking-wide outline-none placeholder:text-slate-600`}
-592:                   />
-593:                   <p className={`mt-2 text-[10px] ${theme.faint}`}>
-594:                     Enter a phone number to call
-595:                   </p>
-596:                 </div>
-597:
-598:                 <div className="mx-auto mt-4 lg:mt-2 grid max-w-[300px] lg:max-w-[270px] grid-cols-3 gap-2 lg:gap-1">
-599:                   {["1", "2", "3", "4", "5", "6", "7", "8", "9", "*", "0", "#"].map((key) => (
-600:                     <button
-601:                       key={key}
-602:                       type="button"
-603:                       onClick={() => pressKey(key)}
-604:                       className={`h-14 lg:h-11 rounded-2xl lg:rounded-xl border text-lg lg:text-base font-semibold transition active:scale-95 ${
-605:                         theme.soft
-606:                       }`}
-607:                     >
-608:                       {key}
-609:                     </button>
-610:                   ))}
-611:                 </div>
-612:
-613:                 <div className="mx-auto mt-3 lg:mt-2 flex max-w-[300px] lg:max-w-[270px] items-center gap-2 lg:gap-1">
-614:                   <button
-615:                     type="button"
-616:                     onClick={clearDestination}
-617:                     className={`flex-1 rounded-2xl border px-4 py-3 text-xs font-semibold ${theme.soft} ${theme.muted}`}
-618:                   >
-619:                     Clear
-620:                   </button>
-621:
-622:                   <button
-623:                     type="button"
-624:                     onClick={placeCall}
-625:                     disabled={
-626:                       loading ||
-627:                       connecting ||
-628:                       !selectedNumber ||
-629:                       !destination.trim()
-630:                     }
-631:                     className="flex-1 rounded-2xl bg-emerald-500 px-4 py-3 text-xs font-bold text-slate-950 disabled:cursor-not-allowed disabled:opacity-40"
-632:                   >
-633:                     {connecting ? "Connecting..." : "Call"}
-634:                   </button>
-635:
-636:                   <button
-637:                     type="button"
-638:                     onClick={removeLastDigit}
-639:                     className={`flex-1 rounded-2xl border px-4 py-3 text-xs font-semibold ${theme.soft} ${theme.muted}`}
-640:                   >
-641:                     Delete
-642:                   </button>
-643:                 </div>
-644:               </div>
-645:             )}
-646:           </section>
-647:
-648:           <aside className={`rounded-3xl border p-5 lg:p-3 ${theme.panel}`}>
-649:             <p className={`text-[10px] font-bold uppercase tracking-wider ${theme.faint}`}>
-650:               Your NAVA numbers
-651:             </p>
-652:
-653:             <div className="mt-3 space-y-2">
-654:               {numbers.filter((number) => number.status === "active").map((number) => (
-655:                 <button
-656:                   key={number.id}
-657:                   type="button"
-658:                   onClick={() => setSelectedNumberId(number.id)}
-659:                   className={`w-full rounded-2xl border px-3 py-3 text-left ${
-660:                     selectedNumberId === number.id
-661:                       ? "border-emerald-500/40 bg-emerald-500/10"
-662:                       : theme.soft
-663:                   }`}
-664:                 >
-665:                   <div className="flex items-center gap-3">
-666:                     <span className="text-xl">{flagForCountry(number.country_code)}</span>
-667:                     <div className="min-w-0">
-668:                       <p className="truncate text-xs font-bold">
-669:                         {formatPhoneNumber(number.phone_number)}
-670:                       </p>
-671:                       <p className={`mt-1 text-[9px] ${theme.faint}`}>
-672:                         {number.capabilities?.voice === false ? "Voice unavailable" : "Voice ready"}
-673:                       </p>
-674:                     </div>
-675:                   </div>
-676:                 </button>
-677:               ))}
-678:             </div>
-679:
-680:             {numbers.length === 0 && !loading && (
-681:               <Link
-682:                 href="/dashboard/sms"
-683:                 className="mt-4 block rounded-2xl bg-emerald-500 px-4 py-3 text-center text-xs font-bold text-slate-950"
-684:               >
-685:                 Get a NAVA number
-686:               </Link>
-687:             )}
-688:           </aside>
-689:         </div>
-690:       </div>
-691:     </div>
-PS C:\Users\Sire-F\OneDrive\Desktop\My Projects\nava-otp>
+PS C:\Users\Sire-F\OneDrive\Desktop\My Projects\nava-otp> Get-Content ".\src\app\api\webhooks\telnyx\route.ts"
+import { NextRequest, NextResponse } from "next/server";
+import crypto from "crypto";
+import { createClient } from "@supabase/supabase-js";
+
+export const runtime = "nodejs";
+export const dynamic = "force-dynamic";
+
+/**
+ * Telnyx Messaging webhook
+ * - Verifies Ed25519 signature (Telnyx-Signature-Ed25519 + Telnyx-Timestamp)
+ * - Handles inbound SMS (message.received)
+ * - Maps "to" number â†’ nava_phone_numbers
+ * - Inserts into nava_phone_messages
+ *
+ * Env required:
+ *   TELNYX_PUBLIC_KEY          (base64 Ed25519 public key from Telnyx Mission Control)
+ *   NEXT_PUBLIC_SUPABASE_URL
+ *   SUPABASE_SERVICE_ROLE_KEY  (server-only; bypasses RLS for webhook inserts)
+ *
+ * Optional:
+ *   TELNYX_WEBHOOK_MAX_SKEW_SEC  (default 300)
+ */
+
+type TelnyxInboundPayload = {
+  data?: {
+    event_type?: string;
+    id?: string;
+    occurred_at?: string;
+    payload?: {
+      direction?: string;
+      id?: string; // Telnyx message id
+      from?: { phone_number?: string };
+      to?: Array<{ phone_number?: string }> | { phone_number?: string };
+      text?: string;
+      type?: string;
+      received_at?: string;
+      encoding?: string;
+      media?: unknown[];
+    };
+  };
+  meta?: unknown;
+};
+
+function getServiceSupabase() {
+  const url = process.env.NEXT_PUBLIC_SUPABASE_URL;
+  const key = process.env.SUPABASE_SERVICE_ROLE_KEY;
+  if (!url || !key) {
+    throw new Error("Missing NEXT_PUBLIC_SUPABASE_URL or SUPABASE_SERVICE_ROLE_KEY");
+  }
+  return createClient(url, key, {
+    auth: { persistSession: false, autoRefreshToken: false },
+  });
+}
+
+function normalizeE164(raw: string | null | undefined): string | null {
+  if (!raw) return null;
+  const trimmed = String(raw).trim();
+  if (!trimmed) return null;
+  const digits = trimmed.replace(/\D/g, "");
+  if (!digits) return null;
+  if (trimmed.startsWith("+")) return `+${digits}`;
+  // US fallback if 11 digits starting with 1, or 10-digit national
+  if (digits.length === 11 && digits.startsWith("1")) return `+${digits}`;
+  if (digits.length === 10) return `+1${digits}`;
+  return `+${digits}`;
+}
+
+function extractToNumbers(toField: TelnyxInboundPayload["data"]): string[] {
+  const payload = toField?.payload;
+  if (!payload?.to) return [];
+  if (Array.isArray(payload.to)) {
+    return payload.to
+      .map((t) => normalizeE164(t?.phone_number))
+      .filter((n): n is string => Boolean(n));
+  }
+  const single = normalizeE164((payload.to as { phone_number?: string })?.phone_number);
+  return single ? [single] : [];
+}
+
+/**
+ * Verify Telnyx Ed25519 webhook signature.
+ * Signed payload = `${timestamp}|${rawBody}`
+ * Header: telnyx-signature-ed25519 (base64), telnyx-timestamp (unix sec)
+ * @see https://developers.telnyx.com/docs/api/v2/overview#webhook-signing
+ */
+function verifyTelnyxSignature(opts: {
+  rawBody: string;
+  signatureB64: string | null;
+  timestamp: string | null;
+  publicKeyB64: string;
+  maxSkewSec: number;
+}): { ok: true } | { ok: false; reason: string } {
+  const { rawBody, signatureB64, timestamp, publicKeyB64, maxSkewSec } = opts;
+
+  if (!signatureB64 || !timestamp) {
+    return { ok: false, reason: "Missing Telnyx-Signature-Ed25519 or Telnyx-Timestamp" };
+  }
+
+  const ts = Number(timestamp);
+  if (!Number.isFinite(ts)) {
+    return { ok: false, reason: "Invalid Telnyx-Timestamp" };
+  }
+
+  const nowSec = Math.floor(Date.now() / 1000);
+  if (Math.abs(nowSec - ts) > maxSkewSec) {
+    return { ok: false, reason: "Timestamp outside allowed skew" };
+  }
+
+  try {
+    const publicKey = crypto.createPublicKey({
+      key: Buffer.from(publicKeyB64, "base64"),
+      format: "raw",
+      type: "ed25519",
+    });
+
+    const signedPayload = Buffer.from(`${timestamp}|${rawBody}`, "utf8");
+    const signature = Buffer.from(signatureB64, "base64");
+
+    const valid = crypto.verify(null, signedPayload, publicKey, signature);
+    if (!valid) return { ok: false, reason: "Invalid signature" };
+    return { ok: true };
+  } catch (err: any) {
+    return { ok: false, reason: `Signature verify error: ${err?.message || "unknown"}` };
+  }
+}
+
+function isInboundSmsEvent(body: TelnyxInboundPayload): boolean {
+  const eventType = String(body?.data?.event_type || "").toLowerCase();
+  const direction = String(body?.data?.payload?.direction || "").toLowerCase();
+  const msgType = String(body?.data?.payload?.type || "").toLowerCase();
+
+  // Primary: message.received
+  if (eventType === "message.received") return true;
+
+  // Fallback shapes some accounts emit
+  if (eventType.includes("message") && direction === "inbound") return true;
+  if (direction === "inbound" && (msgType === "sms" || msgType === "mms" || !msgType)) {
+    return Boolean(body?.data?.payload?.text || body?.data?.payload?.from);
+  }
+  return false;
+}
+
+export async function POST(req: NextRequest) {
+  const publicKey = process.env.TELNYX_PUBLIC_KEY;
+  if (!publicKey) {
+    console.error("[telnyx-webhook] TELNYX_PUBLIC_KEY is not set");
+    return NextResponse.json({ error: "Server misconfigured" }, { status: 500 });
+  }
+
+  const maxSkewSec = Number(process.env.TELNYX_WEBHOOK_MAX_SKEW_SEC || 300);
+  const rawBody = await req.text();
+
+  const signature =
+    req.headers.get("telnyx-signature-ed25519") ||
+    req.headers.get("Telnyx-Signature-Ed25519");
+  const timestamp =
+    req.headers.get("telnyx-timestamp") ||
+    req.headers.get("Telnyx-Timestamp");
+
+  const verified = verifyTelnyxSignature({
+    rawBody,
+    signatureB64: signature,
+    timestamp,
+    publicKeyB64: publicKey,
+    maxSkewSec,
+  });
+
+  if (!verified.ok) {
+    console.warn("[telnyx-webhook] auth failed:", verified.reason);
+    return NextResponse.json({ error: "Unauthorized" }, { status: 401 });
+  }
+
+  let body: TelnyxInboundPayload;
+  try {
+    body = JSON.parse(rawBody) as TelnyxInboundPayload;
+  } catch {
+    return NextResponse.json({ error: "Invalid JSON" }, { status: 400 });
+  }
+
+  // Always ACK non-inbound quickly (delivery updates, etc.)
+  if (!isInboundSmsEvent(body)) {
+    return NextResponse.json({
+      received: true,
+      handled: false,
+      event_type: body?.data?.event_type ?? null,
+    });
+  }
+
+  const payload = body.data?.payload;
+  const telnyxMessageId = payload?.id || body.data?.id || null;
+  const fromNumber = normalizeE164(payload?.from?.phone_number);
+  const toCandidates = extractToNumbers(body.data);
+  const text = typeof payload?.text === "string" ? payload.text : "";
+  const occurredAt =
+    payload?.received_at || body.data?.occurred_at || new Date().toISOString();
+
+  if (!fromNumber || toCandidates.length === 0) {
+    console.warn("[telnyx-webhook] inbound missing from/to", {
+      telnyxMessageId,
+      fromNumber,
+      toCandidates,
+    });
+    // Still 200 so Telnyx does not retry forever on malformed test payloads
+    return NextResponse.json({
+      received: true,
+      handled: false,
+      reason: "missing_from_or_to",
+    });
+  }
+
+  try {
+    const supabase = getServiceSupabase();
+
+    // Find NAVA number matching any "to" candidate (E.164)
+    const { data: navaNumbers, error: lookupError } = await supabase
+      .from("nava_phone_numbers")
+      .select("id, phone_number, user_id, status")
+      .in("phone_number", toCandidates)
+      .eq("status", "active")
+      .limit(5);
+
+    if (lookupError) {
+      console.error("[telnyx-webhook] number lookup failed:", lookupError);
+      return NextResponse.json({ error: "Lookup failed" }, { status: 500 });
+    }
+
+    const navaNumber = navaNumbers?.[0];
+    if (!navaNumber) {
+      console.warn("[telnyx-webhook] no NAVA number for to=", toCandidates);
+      return NextResponse.json({
+        received: true,
+        handled: false,
+        reason: "unknown_destination",
+        to: toCandidates,
+      });
+    }
+
+    const toNumber = normalizeE164(navaNumber.phone_number) || toCandidates[0];
+
+    // Idempotent insert: unique on telnyx_message_id if you add that column/constraint
+    const row = {
+      phone_number_id: navaNumber.id,
+      user_id: navaNumber.user_id ?? null,
+      direction: "inbound" as const,
+      from_number: fromNumber,
+      to_number: toNumber,
+      body: text,
+      status: "received",
+      telnyx_message_id: telnyxMessageId,
+      created_at: occurredAt,
+      raw: body, // optional audit column; remove if column does not exist
+    };
+
+    // Prefer upsert when telnyx_message_id is unique
+    const { data: inserted, error: insertError } = await supabase
+      .from("nava_phone_messages")
+      .upsert(row, {
+        onConflict: "telnyx_message_id",
+        ignoreDuplicates: true,
+      })
+      .select("id")
+      .maybeSingle();
+
+    // If upsert fails because column/constraint missing, fall back to plain insert
+    if (insertError) {
+      const msg = String(insertError.message || "");
+      const missingConflict =
+        msg.toLowerCase().includes("on conflict") ||
+        msg.toLowerCase().includes("telnyx_message_id") ||
+        msg.toLowerCase().includes("raw");
+
+      if (!missingConflict) {
+        console.error("[telnyx-webhook] insert failed:", insertError);
+        return NextResponse.json({ error: "Persist failed" }, { status: 500 });
+      }
+
+      // Fallback insert without optional columns
+      const fallback = {
+        phone_number_id: navaNumber.id,
+        direction: "inbound" as const,
+        from_number: fromNumber,
+        to_number: toNumber,
+        body: text,
+        status: "received",
+        created_at: occurredAt,
+      };
+
+      // Dedupe manually if possible
+      if (telnyxMessageId) {
+        const { data: existing } = await supabase
+          .from("nava_phone_messages")
+          .select("id")
+          .eq("from_number", fromNumber)
+          .eq("to_number", toNumber)
+          .eq("body", text)
+          .gte("created_at", new Date(Date.now() - 2 * 60 * 1000).toISOString())
+          .limit(1);
+
+        if (existing && existing.length > 0) {
+          return NextResponse.json({
+            received: true,
+            handled: true,
+            duplicate: true,
+            message_id: existing[0].id,
+          });
+        }
+      }
+
+      const { data: inserted2, error: insertError2 } = await supabase
+        .from("nava_phone_messages")
+        .insert(fallback)
+        .select("id")
+        .maybeSingle();
+
+      if (insertError2) {
+        console.error("[telnyx-webhook] fallback insert failed:", insertError2);
+        return NextResponse.json({ error: "Persist failed" }, { status: 500 });
+      }
+
+      return NextResponse.json({
+        received: true,
+        handled: true,
+        message_id: inserted2?.id ?? null,
+        phone_number_id: navaNumber.id,
+      });
+    }
+
+    return NextResponse.json({
+      received: true,
+      handled: true,
+      message_id: inserted?.id ?? null,
+      phone_number_id: navaNumber.id,
+    });
+  } catch (err: any) {
+    console.error("[telnyx-webhook] unhandled:", err);
+    return NextResponse.json(
+      { error: err?.message || "Webhook handler error" },
+      { status: 500 },
+    );
+  }
+}
+
+// Telnyx may occasionally GET for health checks
+export async function GET() {
+  return NextResponse.json({
+    ok: true,
+    service: "nava-telnyx-webhook",
+    ts: new Date().toISOString(),
+  });
+}
