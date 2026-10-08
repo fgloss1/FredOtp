@@ -139,6 +139,7 @@ function GlassIcon({ name, isActive = false }: { name: string; isActive?: boolea
 export default function AntiFlashLayout({ children }: { children: React.ReactNode }) {
   const pathname = usePathname();
   const router = useRouter();
+  const isPhoneInbox = pathname === "/dashboard/sms/inbox";
 
   const [authChecking, setAuthChecking] = useState(true);
 
@@ -252,6 +253,7 @@ export default function AntiFlashLayout({ children }: { children: React.ReactNod
   const allNavItems = [
     { href: "/dashboard", label: "Rent a number", icon: "phone", adminOnly: false },
     { href: "/dashboard/sms", label: "Phone", icon: "chat", adminOnly: false },
+    { href: "/dashboard/sms/inbox", label: "Messages", icon: "chat", adminOnly: false },
     { href: "/dashboard/rentals", label: "Rental Services", icon: "store", adminOnly: false },
     { href: "/dashboard/history", label: "History", icon: "history", adminOnly: false },
     { href: "/dashboard/wallet", label: "Wallet & Top Up", icon: "wallet", adminOnly: false },
@@ -292,7 +294,7 @@ export default function AntiFlashLayout({ children }: { children: React.ReactNod
 
   return (
     <div
-      className={`min-h-screen ${darkMode ? "bg-[#070b14] text-white" : "bg-slate-100 text-slate-900"} pb-20 md:pb-0`}
+      className={`min-h-screen ${darkMode ? "bg-[#070b14] text-white" : "bg-slate-100 text-slate-900"} ${isPhoneInbox ? "pb-0" : "pb-20 md:pb-0"}`}
     >
       <IdleTimer />
 
@@ -437,7 +439,7 @@ export default function AntiFlashLayout({ children }: { children: React.ReactNod
         </div>
       </header>
 
-      <div className="max-w-7xl mx-auto px-3 sm:px-4 py-6 md:py-8 flex gap-8">
+      <div className={`max-w-7xl mx-auto px-3 sm:px-4 flex gap-8 ${isPhoneInbox ? "py-0 md:py-0" : "py-6 md:py-8"}`}>
         <aside className="hidden md:block w-56 shrink-0 space-y-6">
           <nav className="space-y-1 sticky top-24">
             {navItems.map((item) => {
@@ -459,7 +461,7 @@ export default function AntiFlashLayout({ children }: { children: React.ReactNod
         <main className="flex-1 w-full overflow-hidden">{children}</main>
       </div>
 
-      <Footer />
+      {!isPhoneInbox && <Footer />}
 
       {isMobileDrawerOpen && (
         <div
@@ -536,6 +538,7 @@ export default function AntiFlashLayout({ children }: { children: React.ReactNod
         </div>
       </aside>
 
+      {!isPhoneInbox && (
       <nav className="md:hidden fixed bottom-0 left-0 right-0 z-40 bg-[#090e1a]/95 backdrop-blur-lg border-t border-slate-800/80 flex items-center justify-around h-16 px-1 text-white">
         {mobileBottomNavItems.map((item) => {
           const isActive = pathname === item.href;
@@ -554,6 +557,7 @@ export default function AntiFlashLayout({ children }: { children: React.ReactNod
           );
         })}
       </nav>
+      )}
     </div>
   );
 }
