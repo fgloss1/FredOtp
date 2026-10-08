@@ -618,8 +618,141 @@ export default function Page() {
               </div>
             </div>
           ) : (
-            <div className="flex min-h-[520px] lg:h-[calc(100dvh-220px)] lg:min-h-[520px] flex-col">
+            <div className="grid min-h-[520px] lg:h-[calc(100dvh-220px)] lg:min-h-[520px] lg:grid-cols-[245px_minmax(0,1fr)]">
+              <aside className={`hidden border-r p-3 lg:block ${theme.divider}`}>
+                <div className="flex items-center justify-between px-3 pb-3 pt-2">
+                  <div>
+                    <p className={`text-[10px] font-bold uppercase tracking-[0.16em] ${theme.faint}`}>Your Numbers</p>
+                    <p className={`mt-1 text-[9px] ${theme.faint}`}>SMS lines</p>
+                  </div>
+                  <button
+                    type="button"
+                    onClick={openAddNumber}
+                    aria-label="Add NAVA number"
+                    className="flex h-7 w-7 items-center justify-center rounded-full bg-emerald-500 text-lg font-light text-slate-950 transition hover:bg-emerald-400"
+                  >
+                    +
+                  </button>
+                </div>
 
+
+
+                <div className="space-y-2">
+                  {numbers.map((number) => {
+                    const numberMessages = messages.filter(
+                      (message) => message.phone_number_id === number.id
+                    );
+                    const threads = Array.from(new Set(numberMessages.map(getMessagePeer)))
+                      .map((peer) => ({
+                        peer,
+                        threadMessages: numberMessages.filter(
+                          (message) => getMessagePeer(message) === peer
+                        ),
+                      }))
+                      .sort((a, b) => {
+                        const aLast = a.threadMessages[a.threadMessages.length - 1];
+                        const bLast = b.threadMessages[b.threadMessages.length - 1];
+                        return (
+                          new Date(bLast?.created_at || 0).getTime() -
+                          new Date(aLast?.created_at || 0).getTime()
+                        );
+                      });
+
+                    const numberActive = number.id === selectedNumberId && !selectedPeer;
+
+                    return (
+                      <div key={number.id} className="rounded-2xl">
+                        <button
+                          type="button"
+                          onClick={() => {
+                            setSelectedNumberId(number.id);
+                            setSelectedPeer("");
+                            setRecipient("");
+                            setNotice("");
+                            setError("");
+                          }}
+                          className={
+                            "w-full rounded-2xl px-3 py-3 text-left transition " +
+                            (numberActive
+                              ? "bg-emerald-500/10 ring-1 ring-inset ring-emerald-500/10"
+                              : "hover:bg-white/[0.04]")
+                          }
+                        >
+                          <div className="flex items-center gap-3">
+                            <div className="flex h-10 w-10 shrink-0 items-center justify-center rounded-full bg-gradient-to-br from-emerald-400 to-cyan-500 text-sm font-bold text-slate-950">
+                              {flagForCountry(number.country_code)}
+                            </div>
+                            <div className="min-w-0 flex-1">
+                              <p
+                                className={
+                                  "truncate text-xs font-bold " +
+                                  (numberActive ? "text-emerald-400" : "")
+                                }
+                              >
+                                {formatPhoneNumber(number.phone_number)}
+                              </p>
+                              <p className={"mt-0.5 truncate text-[10px] " + theme.faint}>
+                                {threads.length > 0
+                                  ? threads.length +
+                                    " conversation" +
+                                    (threads.length === 1 ? "" : "s")
+                                  : "No conversations yet"}
+                              </p>
+                            </div>
+                          </div>
+                        </button>
+
+                        {threads.length > 0 && (
+                          <div className="ml-4 mt-1 space-y-1 border-l border-slate-800 pl-2">
+                            {threads.map(({ peer, threadMessages }) => {
+                              const lastMessage = threadMessages[threadMessages.length - 1];
+                              const active =
+                                number.id === selectedNumberId && peer === selectedPeer;
+
+                              return (
+                                <button
+                                  key={number.id + "-" + peer}
+                                  type="button"
+                                  onClick={() => {
+                                    setSelectedNumberId(number.id);
+                                    setSelectedPeer(peer);
+                                    setRecipient(peer);
+                                    setNotice("");
+                                    setError("");
+                                  }}
+                                  className={
+                                    "w-full rounded-xl px-3 py-2.5 text-left transition " +
+                                    (active
+                                      ? "bg-emerald-500/10 ring-1 ring-inset ring-emerald-500/10"
+                                      : "hover:bg-white/[0.04]")
+                                  }
+                                >
+                                  <div className="flex items-center justify-between gap-2">
+                                    <p
+                                      className={
+                                        "truncate text-[11px] font-semibold " +
+                                        (active ? "text-emerald-400" : "")
+                                      }
+                                    >
+                                      {formatPhoneNumber(peer)}
+                                    </p>
+                                    <span className={"shrink-0 text-[8px] " + theme.faint}>
+                                      {formatMessageTime(lastMessage.created_at)}
+                                    </span>
+                                  </div>
+                                  <p className={"mt-1 truncate text-[9px] " + theme.faint}>
+                                    {lastMessage.body}
+                                  </p>
+                                </button>
+                              );
+                            })}
+                          </div>
+                        )}
+                      </div>
+                    );
+                  })}
+                </div>
+                            </aside>
 
               <main className="flex min-h-0 min-w-0 flex-col">
                 <div className={`border-b px-4 py-3 sm:px-6 ${theme.divider}`}>
