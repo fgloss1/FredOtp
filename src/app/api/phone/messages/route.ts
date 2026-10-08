@@ -90,31 +90,28 @@ export async function POST(req: Request) {
       return NextResponse.json({ error: "That NAVA Phone number is not available." }, { status: 404 });
     }
 
-    const mode = String(process.env.NAVA_PHONE_PURCHASE_MODE || "live").trim().toLowerCase();
+    if (!process.env.TELNYX_API_KEY) {
+      console.error("NAVA SMS send failed: TELNYX_API_KEY is not configured.");
+      return NextResponse.json(
+        { error: "NAVA SMS sending is temporarily unavailable." },
+        { status: 503 }
+      );
+    }
+
     let providerMessageId: string | null = null;
     let status = "queued";
 
-    if (mode === "simulation") {
-      providerMessageId = "sim_" + Date.now() + "_" + Math.random().toString(36).slice(2, 9);
-      status = "sent";
-    } else if (mode === "live") {
-      try {
-        const result = await sendTelnyxSms({
-          from: number.phone_number,
-          to: recipient,
-          text: messageText,
-        });
-        providerMessageId = result.id;
-        status = result.status || "queued";
-      } catch (sendError) {
-        console.error("NAVA SMS send failed:", sendError);
-        return NextResponse.json({ error: "We could not send your message. Please try again." }, { status: 502 });
-      }
-    } else {
-      return NextResponse.json(
-        { error: "NAVA SMS sending is not enabled in this environment." },
-        { status: 503 }
-      );
+    try {
+      const result = await sendTelnyxSms({
+        from: number.phone_number,
+        to: recipient,
+        text: messageText,
+      });
+      providerMessageId = result.id;
+      status = result.status || "queued";
+    } catch (sendError) {
+      console.error("NAVA SMS send failed:", sendError);
+      return NextResponse.json({ error: "We could not send your message. Please try again." }, { status: 502 });
     }
 
     const { data: savedMessage, error: insertError } = await supabaseAdmin
