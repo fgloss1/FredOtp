@@ -34,7 +34,7 @@ export async function GET(req: Request) {
 
     const { data: messages, error: messagesError } = await supabaseAdmin
       .from("nava_phone_messages")
-      .select("id, phone_number_id, direction, from_number, to_number, body, status, created_at")
+      .select("id, phone_number_id, direction, from_number, to_number, body, status, provider_message_id, created_at")
       .eq("user_id", user.id)
       .in("phone_number_id", numberIds)
       .order("created_at", { ascending: true })
@@ -110,8 +110,12 @@ export async function POST(req: Request) {
       providerMessageId = result.id;
       status = result.status || "queued";
     } catch (sendError) {
+      const providerError = sendError instanceof Error ? sendError.message : "Unknown Telnyx error";
       console.error("NAVA SMS send failed:", sendError);
-      return NextResponse.json({ error: "We could not send your message. Please try again." }, { status: 502 });
+      return NextResponse.json(
+        { error: `Telnyx rejected the message: ${providerError}`, provider: "telnyx" },
+        { status: 502 }
+      );
     }
 
     const { data: savedMessage, error: insertError } = await supabaseAdmin
@@ -136,7 +140,15 @@ export async function POST(req: Request) {
 
     return NextResponse.json({
       success: true,
-      message: savedMessage,
+      message: {
+        ...savedMessage,
+        provider_message_id: providerMessageId,
+      },
+      delivery: {
+        provider: "telnyx",
+        provider_message_id: providerMessageId,
+        status,
+      },
     });
   } catch (error) {
     console.error("NAVA SMS send route error:", error);
