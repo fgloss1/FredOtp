@@ -924,7 +924,7 @@ export default function Page() {
                     )}
                   </div>
 
-                  <div className={`sticky bottom-0 z-20 mb-3 shrink-0 border-t p-3 sm:p-4 ${theme.divider} ${darkMode ? "bg-[#090f1d]/98" : "bg-white/98"} backdrop-blur-xl rounded-2xl shadow-xl`}>
+                  <div className={`sticky bottom-0 z-20 mx-3 mb-4 shrink-0 border p-3 sm:p-4 ${theme.divider} ${darkMode ? "bg-[#090f1d]/98" : "bg-white/98"} backdrop-blur-xl rounded-2xl shadow-xl`}>
                     <div className="flex items-end gap-2">
                       <button
                         type="button"
