@@ -1,198 +1,144 @@
-I understand this spec and I take it seriously. Before I touch any file, I'm going to do exactly what section 11 asks for: inspect first, propose a plan, change nothing yet.
+PS C:\Users\Sire-F\OneDrive\Desktop\My Projects\nava-otp>
+PS C:\Users\Sire-F\OneDrive\Desktop\My Projects\nava-otp> $Root = "C:\Users\Sire-F\OneDrive\Desktop\My Projects\nava-otp"
+PS C:\Users\Sire-F\OneDrive\Desktop\My Projects\nava-otp> Set-Location $Root
+PS C:\Users\Sire-F\OneDrive\Desktop\My Projects\nava-otp> $ErrorActionPreference = "Stop"
+PS C:\Users\Sire-F\OneDrive\Desktop\My Projects\nava-otp>
+PS C:\Users\Sire-F\OneDrive\Desktop\My Projects\nava-otp> Write-Host "`n=== REPOSITORY ===" -ForegroundColor Cyan
 
-Below is my inspection-and-plan response. I will not create tables, routes, migrations, or UI until you approve it, because this feature touches money, supplier legal boundaries, and existing OTP flows that must not break.
+=== REPOSITORY ===
+PS C:\Users\Sire-F\OneDrive\Desktop\My Projects\nava-otp> git rev-parse --show-toplevel
+C:/Users/Sire-F/OneDrive/Desktop/My Projects/nava-otp
+PS C:\Users\Sire-F\OneDrive\Desktop\My Projects\nava-otp>
+PS C:\Users\Sire-F\OneDrive\Desktop\My Projects\nava-otp> Write-Host "`n=== CURRENT BRANCH ===" -ForegroundColor Cyan
 
-1. What I need to inspect before writing any code
-To follow the “inspect the code before making changes” rule, I need read-only access to these parts of the current repo. Please confirm the paths exist (names below are the expected Next.js app-router convention):
+=== CURRENT BRANCH ===
+PS C:\Users\Sire-F\OneDrive\Desktop\My Projects\nava-otp> git branch --show-current
+NAVA-TELNYX-PHONE-WORK
+PS C:\Users\Sire-F\OneDrive\Desktop\My Projects\nava-otp>
+PS C:\Users\Sire-F\OneDrive\Desktop\My Projects\nava-otp> Write-Host "`n=== REMOTES ===" -ForegroundColor Cyan
 
-Existing rentals / 5SIMs flow (must stay untouched)
-src/app/dashboard/rentals/** — current UI
-src/app/api/rentals/** or src/app/api/5sims/** or src/app/api/otp/**
-Any lib/5sims*, lib/providers/5sims*, services/5sims*
-Payments / wallet (must be reused, not duplicated)
-src/app/api/wallet/**, src/app/api/payments/**, src/app/api/transactions/**
-lib/wallet*, lib/payments*
-Supabase tables used today: wallets, transactions, rentals, etc.
-Auth
-src/lib/supabase.ts (client) and server-side admin client file
-Session/authorization helpers used by existing API routes
-Any admin/role check (profiles.role, is_admin, etc.)
-Scheduling / background jobs
-Any of: src/app/api/cron/**, Vercel cron config in vercel.json, Supabase Edge Functions, a queue (BullMQ, Upstash QStash), or none
-Email sender already in use (Resend / Postmark / SMTP?)
-Database tooling
-Supabase SQL migration folder (supabase/migrations/**) or drizzle/ / prisma/ if present
-Naming convention used for existing tables (snake_case, prefix like nava_*)
-I will not assume any of the above exists. I need you to confirm or paste the file tree for src/app/api/ and src/app/dashboard/rentals/.
+=== REMOTES ===
+PS C:\Users\Sire-F\OneDrive\Desktop\My Projects\nava-otp> git remote -v
+origin  https://github.com/fgloss1/FredOtp.git (fetch)
+origin  https://github.com/fgloss1/FredOtp.git (push)
+PS C:\Users\Sire-F\OneDrive\Desktop\My Projects\nava-otp>
+PS C:\Users\Sire-F\OneDrive\Desktop\My Projects\nava-otp> Write-Host "`n=== WORKING TREE STATUS ===" -ForegroundColor Cyan
 
-2. What I will build (plan only — not code yet)
-Everything below is additive and isolated. The existing 5SIMs OTP flow is not touched.
+=== WORKING TREE STATUS ===
+PS C:\Users\Sire-F\OneDrive\Desktop\My Projects\nava-otp> git status --short
+ M package-lock.json
+ M package.json
+ M src/app/api/phone/messages/route.ts
+ M src/app/api/webhooks/telnyx/route.ts
+ M src/app/dashboard/layout.tsx
+ M src/app/dashboard/sms/calling/page.tsx
+MM src/app/dashboard/sms/inbox/page.tsx
+ M src/app/dashboard/sms/page.tsx
+ M src/components/IdleTimer.tsx
+?? _SAFE_BACKUPS/
+?? nava-otp-SAFE-BACKUP-20261007/
+?? nava-otp/
+?? src/app/api/phone/voice/
+?? src/app/dashboard/sms/calling/page.tsx.AI-BACKUP-20261008
+?? src/app/dashboard/sms/calling/page.tsx.OUTBOUND-CALL-WORKING-20261009
+?? src/app/dashboard/sms/calling/page.tsx.PRE-DIALER-LINK-FIX
+?? src/app/dashboard/sms/calling/page.tsx.PRE-READY-FIX-20261009
+?? src/app/dashboard/sms/inbox/page.tsx.PRE-DIALER-LINK-FIX
+?? src/app/dashboard/sms/inbox/page.tsx.PRE-IN-CALL-DTMF-20261009
+?? src/app/dashboard/sms/inbox/page.tsx.PRE-INLINE-TELNYX-20261009
+?? src/app/dashboard/sms/inbox/page.tsx.PRE-REMOTE-HANGUP-DIAGNOSTIC-20261009
+?? src/app/dashboard/sms/inbox/page.tsx.PRE-REMOTE-HANGUP-FIX-20261009
+?? src/app/dashboard/sms/inbox/page.tsx.backup
+?? tsconfig.tsbuildinfo
+PS C:\Users\Sire-F\OneDrive\Desktop\My Projects\nava-otp>
+PS C:\Users\Sire-F\OneDrive\Desktop\My Projects\nava-otp> Write-Host "`n=== TRACKED FILE CHANGES ===" -ForegroundColor Cyan
 
-2.1 New routes (customer)
-/dashboard/rentals — unchanged list; I only add a tab or secondary nav entry:
-“OTP Rentals” (existing)
-“US Mobile eSIM Plans” (new) → /dashboard/rentals/esim
-/dashboard/rentals/esim — catalogue
-/dashboard/rentals/esim/[planId] — plan detail + ZIP selection (only if supplier supports)
-/dashboard/rentals/esim/checkout/[planId] — price breakdown + pay with wallet
-/dashboard/rentals/esim/mine — My eSIMs
-/dashboard/rentals/esim/mine/[orderId] — single line, renew button, history
-2.2 New routes (admin, gated by existing role check)
-/dashboard/admin/esim/orders
-/dashboard/admin/esim/plans
-2.3 New API routes (all namespaced under /api/esim/* so nothing collides with 5SIMs)
-Customer:
+=== TRACKED FILE CHANGES ===
+PS C:\Users\Sire-F\OneDrive\Desktop\My Projects\nava-otp> git diff --name-status
+warning: in the working copy of 'package-lock.json', LF will be replaced by CRLF the next time Git touches it
+warning: in the working copy of 'package.json', LF will be replaced by CRLF the next time Git touches it
+warning: in the working copy of 'src/app/dashboard/sms/calling/page.tsx', LF will be replaced by CRLF the next time Git touches it
+M       package-lock.json
+M       package.json
+M       src/app/api/phone/messages/route.ts
+M       src/app/api/webhooks/telnyx/route.ts
+M       src/app/dashboard/layout.tsx
+M       src/app/dashboard/sms/calling/page.tsx
+M       src/app/dashboard/sms/inbox/page.tsx
+M       src/app/dashboard/sms/page.tsx
+M       src/components/IdleTimer.tsx
+PS C:\Users\Sire-F\OneDrive\Desktop\My Projects\nava-otp>
+PS C:\Users\Sire-F\OneDrive\Desktop\My Projects\nava-otp> Write-Host "`n=== ALREADY STAGED CHANGES ===" -ForegroundColor Cyan
 
-GET /api/esim/plans — list enabled plans
-GET /api/esim/plans/[id] — plan + current verified pricing snapshot
-POST /api/esim/orders — create pending order (quote lock, idempotency key)
-POST /api/esim/orders/[id]/pay — charge wallet via existing wallet service
-GET /api/esim/orders/[id] — status (ownership-checked)
-POST /api/esim/orders/[id]/renew — create renewal order (new row, not mutate original)
-Admin:
+=== ALREADY STAGED CHANGES ===
+PS C:\Users\Sire-F\OneDrive\Desktop\My Projects\nava-otp> git diff --cached --name-status
+M       src/app/dashboard/sms/inbox/page.tsx
+PS C:\Users\Sire-F\OneDrive\Desktop\My Projects\nava-otp>
+PS C:\Users\Sire-F\OneDrive\Desktop\My Projects\nava-otp> Write-Host "`n=== UNTRACKED FILES ===" -ForegroundColor Cyan
 
-GET /api/esim/admin/orders
-POST /api/esim/admin/orders/[id]/fulfill — attach phone number, QR, activation code, mark active
-POST /api/esim/admin/orders/[id]/fail — mark failed, trigger refund via existing wallet refund path
-POST /api/esim/admin/plans / PATCH / DELETE
-Cron (only if scheduler exists; otherwise flagged as “not enabled”):
+=== UNTRACKED FILES ===
+PS C:\Users\Sire-F\OneDrive\Desktop\My Projects\nava-otp> git ls-files --others --exclude-standard
+_SAFE_BACKUPS/OTP_API_TYPEFIX_20261007_182725/route.ts
+_SAFE_BACKUPS/OTP_RESTORE_FINAL_20261007_170641/OtpCatalog.tsx
+_SAFE_BACKUPS/OTP_RESTORE_FINAL_20261007_170641/otp-route.ts
+_SAFE_BACKUPS/OTP_SMS_NOTICE_20261007_185955/OtpCatalog.tsx
+_SAFE_BACKUPS/OTP_SMS_NOTICE_20261007_190126/OtpCatalog.tsx
+_SAFE_BACKUPS/OTP_UI_RESTORE_20261007_165734/OtpCatalog.tsx
+_SAFE_BACKUPS/OTP_UI_RESTORE_20261007_165734/dashboard-page.tsx
+_SAFE_BACKUPS/OTP_WHITESPACE_FIX_20261007_191520/OtpCatalog.tsx
+_SAFE_BACKUPS/TSCONFIG_FIX_20261007_184044/tsconfig.json
+_SAFE_BACKUPS/TYPECHECK_FIX_20261007_183030/OtpCatalog.tsx
+_SAFE_BACKUPS/TYPECHECK_FIX_20261007_183030/tsconfig.json
+_SAFE_BACKUPS/telnyx-route-before-crypto-fix-20261009_092224.ts
+_SAFE_BACKUPS/telnyx-route-before-schema-fix-20261009_031833.ts
+_SAFE_BACKUPS/telnyx-route-before-schema-fix-20261009_032008.ts
+nava-otp-SAFE-BACKUP-20261007/
+nava-otp/
+src/app/api/phone/voice/token/route.ts
+src/app/dashboard/sms/calling/page.tsx.AI-BACKUP-20261008
+src/app/dashboard/sms/calling/page.tsx.OUTBOUND-CALL-WORKING-20261009
+src/app/dashboard/sms/calling/page.tsx.PRE-DIALER-LINK-FIX
+src/app/dashboard/sms/calling/page.tsx.PRE-READY-FIX-20261009
+src/app/dashboard/sms/inbox/page.tsx.PRE-DIALER-LINK-FIX
+src/app/dashboard/sms/inbox/page.tsx.PRE-IN-CALL-DTMF-20261009
+src/app/dashboard/sms/inbox/page.tsx.PRE-INLINE-TELNYX-20261009
+src/app/dashboard/sms/inbox/page.tsx.PRE-REMOTE-HANGUP-DIAGNOSTIC-20261009
+src/app/dashboard/sms/inbox/page.tsx.PRE-REMOTE-HANGUP-FIX-20261009
+src/app/dashboard/sms/inbox/page.tsx.backup
+tsconfig.tsbuildinfo
+PS C:\Users\Sire-F\OneDrive\Desktop\My Projects\nava-otp>
+PS C:\Users\Sire-F\OneDrive\Desktop\My Projects\nava-otp> Write-Host "`n=== CHANGE SUMMARY ===" -ForegroundColor Cyan
 
-POST /api/esim/cron/renewal-reminders
-2.4 New database tables (Supabase SQL migration, prefixed nava_esim_* to stay separate)
-text
+=== CHANGE SUMMARY ===
+PS C:\Users\Sire-F\OneDrive\Desktop\My Projects\nava-otp> git diff --stat
+warning: in the working copy of 'package-lock.json', LF will be replaced by CRLF the next time Git touches it
+warning: in the working copy of 'package.json', LF will be replaced by CRLF the next time Git touches it
+warning: in the working copy of 'src/app/dashboard/sms/calling/page.tsx', LF will be replaced by CRLF the next time Git touches it
+ package-lock.json                      |   70 +
+ package.json                           |    1 +
+ src/app/api/phone/messages/route.ts    |   46 +
+ src/app/api/webhooks/telnyx/route.ts   |    4 +-
+ src/app/dashboard/layout.tsx           |  159 +-
+ src/app/dashboard/sms/calling/page.tsx |  781 +++++++-
+ src/app/dashboard/sms/inbox/page.tsx   | 3109 ++++++++++++++++++++++++--------
+ src/app/dashboard/sms/page.tsx         |  527 +++++-
+ src/components/IdleTimer.tsx           |    4 +-
+ 9 files changed, 3748 insertions(+), 953 deletions(-)
+PS C:\Users\Sire-F\OneDrive\Desktop\My Projects\nava-otp> git diff --cached --stat
+ src/app/dashboard/sms/inbox/page.tsx | 653 +++++++++++++++++++++--------------
+ 1 file changed, 389 insertions(+), 264 deletions(-)
+PS C:\Users\Sire-F\OneDrive\Desktop\My Projects\nava-otp>
+PS C:\Users\Sire-F\OneDrive\Desktop\My Projects\nava-otp> Write-Host "`n=== WHITESPACE CHECK ===" -ForegroundColor Cyan
 
-nava_esim_plans
-  id uuid pk
-  supplier text              -- e.g. 'nexitel'
-  carrier  text               -- e.g. 'purple', 'blue_att' (disabled until verified)
-  code     text unique        -- 'purple_text', 'purple_max'
-  name     text
-  description text
-  talk_minutes int            -- null = unlimited
-  text_allowance text         -- 'unlimited' or number
-  data_mb int                 -- null = unlimited
-  supports_zip boolean
-  duration_days int           -- e.g. 30
-  activation_price_cents int
-  renewal_price_cents int
-  regulatory_fee_cents int
-  tax_rate_bps int            -- basis points, or tax_cents_default
-  price_source text           -- 'manual_verified_2025_01_15'
-  price_verified_at timestamptz
-  fulfillment_method text     -- 'manual' | 'api_<name>'
-  is_purchasable boolean default false   -- master kill switch per plan
-  is_visible boolean default true
-  created_at, updated_at
-
-nava_esim_orders
-  id uuid pk
-  user_id uuid fk auth.users
-  plan_id uuid fk nava_esim_plans
-  type text                   -- 'activation' | 'renewal'
-  parent_line_id uuid null    -- renewal points to original active line
-  zip_code text null
-  -- price snapshot (never recomputed)
-  plan_price_cents int
-  regulatory_fee_cents int
-  tax_cents int
-  total_cents int
-  currency text default 'USD'
-  -- payment
-  payment_transaction_id uuid null fk <existing transactions table>
-  idempotency_key text unique
-  status text                 -- pending_payment | paid_awaiting_fulfillment |
-                              -- processing | active | renewal_pending |
-                              -- renewal_processing | renewal_completed |
-                              -- failed_requires_review | refunded
-  -- fulfillment (secret, server-only reads)
-  assigned_phone_number text null
-  activation_expiry_at timestamptz null
-  fulfilled_by uuid null
-  fulfilled_at timestamptz null
-  failure_reason text null
-  created_at, updated_at
-
-nava_esim_order_secrets        -- separate table so secrets never join into list queries
-  order_id uuid pk fk
-  qr_code_png bytea null       -- or storage path
-  activation_code_encrypted text null
-  instructions text null
-  created_at
-
-nava_esim_reminders
-  id uuid pk
-  order_id uuid fk
-  reminder_type text           -- 'expiry_7d' | 'expiry_3d' | 'expiry_1d'
-  sent_at timestamptz
-  channel text                 -- 'email' | 'inapp'
-  unique(order_id, reminder_type)   -- prevents duplicates
-All tables get RLS:
-
-nava_esim_plans: public read where is_visible = true.
-nava_esim_orders: user can read only user_id = auth.uid(); admins via role claim.
-nava_esim_order_secrets: no direct RLS select for users; served only through authenticated API that re-checks ownership and status = active.
-2.5 Money handling
-All math in integer cents, server-side.
-Browser never submits totals; it submits plan_id + optional zip_code + idempotency_key.
-Server recomputes quote from nava_esim_plans row, writes snapshot into nava_esim_orders.
-Wallet debit uses the existing wallet service inside a DB transaction with the order insert. Same idempotency key prevents double-charge on retry.
-Refund path = existing wallet credit function + status = refunded.
-2.6 Status machine (enforced server-side)
-text
-
-pending_payment
-  → paid_awaiting_fulfillment   (wallet charged)
-  → processing                  (admin picked it up)
-  → active                      (admin confirmed real supplier activation)
-  → failed_requires_review      (any step; triggers refund decision)
-
-active
-  → renewal_pending             (customer clicks Renew)
-  → renewal_processing          (wallet charged for renewal order row)
-  → renewal_completed           (admin confirms; expiry updated from supplier
-                                 confirmation, NOT from "now + duration")
-Payment success alone never advances past paid_awaiting_fulfillment / renewal_processing. This is the hard rule from section 4 and 8.
-
-2.7 Supplier reality (section 9)
-No Nexitel API will be called.
-No scraping of Nexitel retail checkout.
-fulfillment_method = 'manual' for every plan at launch.
-Global env flag ESIM_PUBLIC_SALES_ENABLED (default false). While false, catalogue is visible to admins only; customers see a “Coming soon — join waitlist” state. This matches: “keep real customer sales disabled or restricted to an appropriate test/admin mode”.
-Plans seeded with only what you’ve actually verified:
-PurpleText: activation $11.88 ($9 + $2 fee + $0.88 tax), renewal $12.96 ($10 + $2 + $0.96). price_source = 'manual_verified_checkout_<date>'.
-PurpleMax: created as is_purchasable = false until you confirm the real checkout total.
-Nexitel Blue / AT&T: not inserted, or inserted with is_visible = false.
-2.8 Reminders (section 7)
-I’ll implement the reminder sender as a route POST /api/esim/cron/renewal-reminders that:
-
-Finds active orders with activation_expiry_at in {7d, 3d, 1d} windows.
-Inserts a row into nava_esim_reminders with the unique constraint — insert fails → already sent → skip. No duplicates.
-Sends via existing email transport. In-app notification row written to whatever notifications table already exists (if any — I’ll check first).
-SMS reminders are not required, per your 10DLC note.
-Scheduling: I will not use setInterval in a route. If the project already has Vercel Cron or Supabase scheduled functions, I’ll wire the route to that. If none exists, I’ll stop and ask you which to add rather than inventing one.
-
-2.9 What I will not do
-Not touch /api/5sims/*, /api/rentals/*, or any existing table.
-Not change existing wallet/transactions schema.
-Not add a second wallet.
-Not display AT&T / Nexitel Blue as buyable.
-Not auto-activate on payment.
-Not deploy, not push, not merge, not change env in production.
-Not fabricate supplier confirmations in code or logs.
-3. What I need from you before I write a single file
-Please confirm or provide:
-
-File tree of src/app/api/ and src/app/dashboard/rentals/ (just ls -R, no contents needed yet).
-Wallet charge function name + file path that current 5SIMs rental uses to debit the user. I will reuse it exactly.
-Existing admin role check — how does the current code know a user is an admin?
-Scheduler — is there Vercel Cron, Supabase scheduled functions, Upstash QStash, or none?
-Email transport — Resend, Postmark, Supabase Auth email only, or none?
-Migrations folder path and tool (supabase/migrations, Drizzle, Prisma, raw SQL)?
-Confirm: should the eSIM entry point be a tab inside /dashboard/rentals or a sibling route /dashboard/rentals/esim? I recommend the sibling route so the existing page’s layout and data loaders are not modified at all.
-Confirm the launch posture: admin-only visible at first (I recommend this), or visible to all customers with a “waitlist” CTA?
-Once you answer those 8 items, I will:
-
-Post the exact list of files I will create (new only — no edits to existing route files unless you explicitly approve a nav link addition).
-Post the SQL migration for your review.
-Only then start implementing, in small commits on the current branch, no push.
-This keeps every non-negotiable in section 1 intact.
+=== WHITESPACE CHECK ===
+PS C:\Users\Sire-F\OneDrive\Desktop\My Projects\nava-otp> git diff --check
+warning: in the working copy of 'package-lock.json', LF will be replaced by CRLF the next time Git touches it
+warning: in the working copy of 'package.json', LF will be replaced by CRLF the next time Git touches it
+warning: in the working copy of 'src/app/dashboard/sms/calling/page.tsx', LF will be replaced by CRLF the next time Git touches it
+src/app/dashboard/layout.tsx:142: trailing whitespace.
++
+src/app/dashboard/layout.tsx:160: trailing whitespace.
++
+src/app/dashboard/layout.tsx:506: trailing whitespace.
++
+PS C:\Users\Sire-F\OneDrive\Desktop\My Projects\nava-otp>
