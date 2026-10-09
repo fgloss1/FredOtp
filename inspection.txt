@@ -1,344 +1,177 @@
-Thank you for those crucial corrections. You are 100% right on all three points:
+# NAVA SMS — eSIM PLANS, CHECKOUT, RENEWALS AND PRE-GIT TESTING
 
-Migration timestamp: 20260115 is behind 20261006_otp_wallet_security.sql. An out-of-order migration timestamp would cause migration ordering conflicts.
-ZIP-code & tax handling: Nexitel Purple permits state/ZIP selection, and taxes/regulatory fees can vary based on location. Storing supports_zip = false with fixed tax cents on the seed plan is inaccurate.
-Wallet verification: We must inspect src/app/api/otp/route.ts, src/lib/wallet.ts, src/app/api/wallet/route.ts, and supabase/migrations/ to verify beyond all doubt which database and column currently powers the live customer wallet before writing any debit code.
-I have not created, modified, committed, pushed, or deployed any files.
+## Objective
 
-Below is the deep inspection of the repository to resolve these three points, followed by the revised Stage A proposal for your review.
+Complete the eSIM/mobile-plan feature for NAVA SMS in the existing project. Work locally, inspect the existing source first, implement carefully, test everything possible, and prepare a verified change set before any Git push.
 
-Part 1: Repository Inspection Findings
-1. Existing Migrations in supabase/migrations/
-Inspecting supabase/migrations/ reveals the current migration files:
+This is an existing application. Do not rebuild it from scratch, redesign unrelated pages, or break existing functionality.
 
-20261006_otp_wallet_security.sql
-20261006_order_fulfillment.sql
-20261006_data_access_security.sql
-Correction applied: The new migration filename MUST be 20261007000000_nava_esim_init.sql (or 20261007_nava_esim_init.sql) to guarantee it runs strictly after October 6, 2026.
+## 1. PROTECT THE EXISTING PROJECT
 
-2. Wallet & Balance Inspection (src/app/api/otp/route.ts vs src/lib/wallet.ts)
-Let's trace how the live OTP system handles balance checks and debits:
+Before editing:
 
-In src/app/api/otp/route.ts (the active 5SIM OTP purchase flow):
-Balance Check:
-Queries Supabase profiles:
-TypeScript
+* Confirm the exact repository path, current Git branch, remote, and working-tree status.
+* Inspect the current eSIM/mobile-plan pages, checkout/payment flow, authentication, database schema, admin dashboard, notifications, and existing provider integrations.
+* Back up the files you intend to modify and record a checkpoint so changes can be reviewed and reverted.
+* Inspect the current 5SIM, Telnyx, wallet, payment, and order code before deciding where the new feature belongs.
+* Keep the existing 5SIM integration and all working verification, wallet, order, and payment behavior intact.
+* Do not replace environment files, expose secrets, reset branches, clean the repository, overwrite unrelated work, or rewrite entire files when a focused change is sufficient.
+* Work only on the approved working branch. Do not switch to `main`, modify a protected baseline, deploy, or push.
 
-const { data: profile } = await supabase
-  .from("profiles")
-  .select("balance")
-  .eq("id", user.id)
-  .single();
-Atomic Balance Adjustment:
-Calls the Supabase RPC otp_balance_adjust_atomic:
-TypeScript
+Do not guess about existing code. Inspect actual files and report the exact files and functions involved.
 
-const { data: adjustResult, error: adjustError } = await supabase.rpc(
-  "otp_balance_adjust_atomic",
-  {
-    p_user_id: user.id,
-    p_delta: -deductAmount, // negative for debit
-  }
-);
-RPC Implementation in 20261006_otp_wallet_security.sql:
-SQL
+## 2. INITIAL PLAN CATALOG
 
-CREATE OR REPLACE FUNCTION public.otp_balance_adjust_atomic(
-  p_user_id UUID,
-  p_delta NUMERIC
-)
-RETURNS JSONB ...
--- Atomically checks: (balance + p_delta) >= 0
--- Updates public.profiles SET balance = balance + p_delta WHERE id = p_user_id
-In src/lib/wallet.ts and src/app/api/wallet/route.ts (Drizzle):
-src/lib/wallet.ts references a Drizzle wallets table (wallets.balance).
-However, src/app/api/otp/route.ts (the live working 5SIM OTP endpoint) does NOT use Drizzle wallets. It uses Supabase public.profiles.balance via otp_balance_adjust_atomic.
-Conclusion: The customer's active wallet balance for phone services in this app is stored in Supabase public.profiles.balance via otp_balance_adjust_atomic.
-For eSIM, we will interact strictly with Supabase public.profiles.balance using the exact same atomic RPC pattern, ensuring customer funds are drawn from and refunded to the exact same wallet as OTP rentals.
+Create a configurable mobile-plan catalog using the following observed supplier details:
 
-3. ZIP Selection & Location-Based Tax Representation
-Nexitel Purple allows state/ZIP selection. Because tax rates and regulatory fees vary by jurisdiction:
+**PurpleText — T-Mobile network**
 
-supports_zip Flag: Set supports_zip = true on PurpleText and PurpleMax plans in nava_esim_plans.
-Flexible Pricing & Quote Calculation:
-On nava_esim_plans: The activation_tax_cents and activation_regulatory_fee_cents serve as baseline reference quotes ($9.00 plan + $2.00 fee + $0.88 tax = $11.88 total).
-On nava_esim_orders: The order records the exact customer-selected ZIP code and stores the frozen calculated quote snapshot (plan_price_cents, regulatory_fee_cents, tax_cents, total_cents).
-When a customer selects a ZIP code at checkout, the quote generator calculates or confirms the exact location tax/fee before generating the pending_payment order. The user is presented with the transparent itemized total ($11.88 for default test ZIP, or location-specific calculated breakdown) BEFORE paying.
-Part 2: Revised Stage A Proposal
-Revised Files to be Created (Stage A)
-supabase/migrations/20261007000000_nava_esim_init.sql
-supabase/storage/README-nava-esim-qr.md (documentation for private nava-esim-qr bucket)
-No existing files will be touched in Stage A.
+* 300 talk minutes.
+* Unlimited SMS.
+* Original activation quote: $9 plan + $2 regulatory fee + $0.88 tax = $11.88.
+* Renewal screen quote: $10 plan + $2 regulatory fee + $0.96 tax = $12.96.
 
-Revised Migration SQL (20261007000000_nava_esim_init.sql)
-SQL
+**PurpleMax — T-Mobile network**
 
--- =====================================================================
--- NAVA eSIM — Stage A: Additive Schema Initialization
--- Timestamp: 20261007000000 (Runs AFTER 20261006_otp_wallet_security.sql)
---
--- DOES NOT modify existing OTP, 5SIM, rentals, wallet, or auth tables.
--- Uses Supabase RLS and server-side RPC patterns consistent with
--- the existing public.profiles.balance wallet.
--- =====================================================================
+* Unlimited talk and text.
+* 500 MB data.
+* Initial quoted plan price: $15.
+* Observed total: $15 + $2 regulatory fee + $1.12 tax = $18.12.
 
-CREATE EXTENSION IF NOT EXISTS pgcrypto;
+These are observed quotes, not guaranteed prices for every location, plan, or future transaction. Store supplier cost, fees, tax, and NAVA selling price separately. Make prices configurable rather than scattering hard-coded values throughout the application.
 
--- ---------------------------------------------------------------------
--- 1. eSIM Plans Catalogue
--- Configurable pricing in integer cents.
--- supports_zip = true for Nexitel plans allowing state/ZIP selection.
--- is_purchasable = false by default (admin master switch per plan).
--- ---------------------------------------------------------------------
-CREATE TABLE IF NOT EXISTS public.nava_esim_plans (
-  id UUID PRIMARY KEY DEFAULT gen_random_uuid(),
-  supplier TEXT NOT NULL DEFAULT 'nexitel',
-  carrier TEXT NOT NULL,                        -- e.g. 'purple'
-  code TEXT NOT NULL UNIQUE,                    -- e.g. 'purple_text', 'purple_max'
-  name TEXT NOT NULL,
-  description TEXT NOT NULL DEFAULT '',
-  talk_minutes INTEGER,                          -- NULL = unlimited
-  text_allowance TEXT NOT NULL DEFAULT 'unlimited',
-  data_mb INTEGER,                               -- NULL = none / per product rules
-  supports_zip BOOLEAN NOT NULL DEFAULT true,    -- Nexitel Purple supports ZIP selection
-  duration_days INTEGER NOT NULL DEFAULT 30 CHECK (duration_days > 0),
-  
-  -- Baseline Activation Quote (cents)
-  activation_plan_cents INTEGER NOT NULL CHECK (activation_plan_cents >= 0),
-  activation_regulatory_fee_cents INTEGER NOT NULL DEFAULT 0 CHECK (activation_regulatory_fee_cents >= 0),
-  activation_tax_cents INTEGER NOT NULL DEFAULT 0 CHECK (activation_tax_cents >= 0),
-  
-  -- Baseline Renewal Quote (cents)
-  renewal_plan_cents INTEGER NOT NULL CHECK (renewal_plan_cents >= 0),
-  renewal_regulatory_fee_cents INTEGER NOT NULL DEFAULT 0 CHECK (renewal_regulatory_fee_cents >= 0),
-  renewal_tax_cents INTEGER NOT NULL DEFAULT 0 CHECK (renewal_tax_cents >= 0),
-  
-  price_source TEXT NOT NULL,                    -- e.g. 'manual_verified_checkout_2026-01-15'
-  price_verified_at TIMESTAMPTZ,
-  fulfillment_method TEXT NOT NULL DEFAULT 'manual'
-    CHECK (fulfillment_method IN ('manual', 'api')),
-  is_visible BOOLEAN NOT NULL DEFAULT true,
-  is_purchasable BOOLEAN NOT NULL DEFAULT false,  -- Restricted until explicitly enabled
-  created_at TIMESTAMPTZ NOT NULL DEFAULT now(),
-  updated_at TIMESTAMPTZ NOT NULL DEFAULT now()
-);
+Proposed NAVA retail pricing to evaluate:
 
-CREATE INDEX IF NOT EXISTS nava_esim_plans_visible_idx
-  ON public.nava_esim_plans (is_visible, is_purchasable);
+* PurpleText: $13/month.
+* PurpleMax: $40/month.
 
--- ---------------------------------------------------------------------
--- 2. eSIM Orders
--- Handles both Activations and Renewals with frozen price snapshots.
--- Records selected ZIP code for location-based taxation.
--- Status transitions enforce: payment SUCCESS != active line.
--- ---------------------------------------------------------------------
-CREATE TABLE IF NOT EXISTS public.nava_esim_orders (
-  id UUID PRIMARY KEY DEFAULT gen_random_uuid(),
-  user_id UUID NOT NULL REFERENCES auth.users (id) ON DELETE RESTRICT,
-  plan_id UUID NOT NULL REFERENCES public.nava_esim_plans (id) ON DELETE RESTRICT,
-  order_type TEXT NOT NULL CHECK (order_type IN ('activation', 'renewal')),
-  parent_order_id UUID REFERENCES public.nava_esim_orders (id) ON DELETE RESTRICT,
-  zip_code TEXT,                                -- Customer selected ZIP code
+Calculate expected gross margin before payment-processing fees and operating costs. Flag the PurpleText price as effectively break-even when the provider renewal total is $12.96. Do not silently describe this price as profitable or change the proposed price without reporting the issue.
 
-  -- Frozen Price Snapshot at time of order (cents)
-  plan_price_cents INTEGER NOT NULL CHECK (plan_price_cents >= 0),
-  regulatory_fee_cents INTEGER NOT NULL CHECK (regulatory_fee_cents >= 0),
-  tax_cents INTEGER NOT NULL CHECK (tax_cents >= 0),
-  total_cents INTEGER NOT NULL CHECK (total_cents >= 0),
-  currency TEXT NOT NULL DEFAULT 'USD',
+Do not claim the plans are unlimited data; PurpleMax is advertised with 500 MB.
 
-  -- Payment & Idempotency
-  idempotency_key TEXT NOT NULL,
-  wallet_debit_ref TEXT,                         -- Ref returned by otp_balance_adjust_atomic
+## 3. US LOCATION AND CARRIER SELECTION
 
-  -- Order Fulfillment Status State Machine
-  status TEXT NOT NULL DEFAULT 'pending_payment'
-    CHECK (status IN (
-      'pending_payment',
-      'paid_awaiting_fulfillment',
-      'processing',
-      'active',
-      'renewal_pending',
-      'renewal_processing',
-      'renewal_completed',
-      'failed_requires_review',
-      'refunded'
-    )),
+Inspect the current mobile-plan selection interface and build or finish the ZIP-code selection flow if it fits the existing application.
 
-  -- Fulfillment Details (Manual Admin Fulfillment v1)
-  assigned_phone_number TEXT,                    -- Real assigned number (E.164)
-  activation_starts_at TIMESTAMPTZ,
-  activation_expires_at TIMESTAMPTZ,
-  fulfilled_by UUID REFERENCES auth.users (id),
-  fulfilled_at TIMESTAMPTZ,
-  supplier_confirmation TEXT,                    -- Admin confirmation note / order ID
-  failure_reason TEXT,
+The customer should be able to select an available US state/ZIP code, choose an available plan, see the carrier and plan limitations, and review the complete price before payment.
 
-  created_at TIMESTAMPTZ NOT NULL DEFAULT now(),
-  updated_at TIMESTAMPTZ NOT NULL DEFAULT now(),
+Do not assume all ZIP codes have identical pricing or availability. Save the selected ZIP code and the provider-confirmed service details with the order.
 
-  CONSTRAINT nava_esim_orders_idempotency
-    UNIQUE (user_id, idempotency_key),
+### AT&T issue
 
-  CONSTRAINT nava_esim_orders_total_matches
-    CHECK (total_cents = plan_price_cents + regulatory_fee_cents + tax_cents),
+The AT&T section on the supplier's existing public website currently has a greyed-out payment button.
 
-  CONSTRAINT nava_esim_orders_renewal_parent
-    CHECK (
-      (order_type = 'activation' AND parent_order_id IS NULL)
-      OR
-      (order_type = 'renewal' AND parent_order_id IS NOT NULL)
-    )
-);
+Investigate whether this is an issue in NAVA's own code or a disabled checkout on the external supplier website.
 
-CREATE INDEX IF NOT EXISTS nava_esim_orders_user_idx
-  ON public.nava_esim_orders (user_id, created_at DESC);
+* If the problem is in NAVA's code, identify the actual cause and fix it with a focused change.
+* If the external supplier has disabled its payment option, do not pretend our code can fix the supplier's checkout.
+* Do not invent an API, bypass the supplier's payment restrictions, or show an order as available when it cannot be purchased.
+* Keep AT&T unavailable or behind a disabled feature flag until its availability and authorized purchasing process are verified.
+* Report what evidence would be required to enable it properly.
 
-CREATE INDEX IF NOT EXISTS nava_esim_orders_status_idx
-  ON public.nava_esim_orders (status);
+## 4. CUSTOMER PURCHASE FLOW
 
-CREATE INDEX IF NOT EXISTS nava_esim_orders_expiry_active_idx
-  ON public.nava_esim_orders (activation_expires_at)
-  WHERE status = 'active';
+Build on the existing NAVA authentication and payment system.
 
--- ---------------------------------------------------------------------
--- 3. eSIM Order Secrets (QR Code & Provisioning Credentials)
--- Denied to direct client SELECT via RLS.
--- Served exclusively through server routes that verify user ownership
--- and status = 'active', producing short-lived signed URLs for storage.
--- ---------------------------------------------------------------------
-CREATE TABLE IF NOT EXISTS public.nava_esim_order_secrets (
-  order_id UUID PRIMARY KEY
-    REFERENCES public.nava_esim_orders (id) ON DELETE CASCADE,
-  activation_code_encrypted TEXT,                -- App-level encrypted string
-  qr_storage_bucket TEXT NOT NULL DEFAULT 'nava-esim-qr',
-  qr_storage_path TEXT,                          -- Private object path inside bucket
-  customer_instructions TEXT,
-  created_at TIMESTAMPTZ NOT NULL DEFAULT now(),
-  updated_at TIMESTAMPTZ NOT NULL DEFAULT now()
-);
+The intended customer flow is:
 
--- ---------------------------------------------------------------------
--- 4. Renewal Reminders Log (Idempotent Tracking)
--- ---------------------------------------------------------------------
-CREATE TABLE IF NOT EXISTS public.nava_esim_reminders (
-  id UUID PRIMARY KEY DEFAULT gen_random_uuid(),
-  order_id UUID NOT NULL
-    REFERENCES public.nava_esim_orders (id) ON DELETE CASCADE,
-  reminder_type TEXT NOT NULL
-    CHECK (reminder_type IN ('expiry_7d', 'expiry_3d', 'expiry_1d')),
-  channel TEXT NOT NULL CHECK (channel IN ('email', 'inapp')),
-  sent_at TIMESTAMPTZ NOT NULL DEFAULT now(),
-  UNIQUE (order_id, reminder_type, channel)
-);
+1. Customer signs in.
+2. Customer chooses an available mobile plan and ZIP code.
+3. NAVA displays plan features, price, applicable fees, and renewal terms.
+4. Customer pays through the existing verified payment integration.
+5. NAVA creates an order and records the payment result.
+6. The order enters an explicit fulfillment status.
+7. Once the provider confirms successful activation, NAVA records the assigned number, carrier, plan, activation date, expiry date, and renewal price.
+8. The customer sees the line and its status under an appropriate account section, such as My Mobile Lines.
 
--- ---------------------------------------------------------------------
--- 5. Updated At Trigger
--- ---------------------------------------------------------------------
-CREATE OR REPLACE FUNCTION public.nava_esim_set_updated_at()
-RETURNS TRIGGER
-LANGUAGE plpgsql
-AS $$
-BEGIN
-  NEW.updated_at = now();
-  RETURN NEW;
-END;
-$$;
+Use explicit statuses, for example:
 
-DROP TRIGGER IF EXISTS nava_esim_plans_updated_at ON public.nava_esim_plans;
-CREATE TRIGGER nava_esim_plans_updated_at
-  BEFORE UPDATE ON public.nava_esim_plans
-  FOR EACH ROW EXECUTE FUNCTION public.nava_esim_set_updated_at();
+* Pending payment.
+* Payment received.
+* Awaiting fulfillment.
+* Processing.
+* Active.
+* Renewal pending.
+* Renewed.
+* Failed or refund pending.
 
-DROP TRIGGER IF EXISTS nava_esim_orders_updated_at ON public.nava_esim_orders;
-CREATE TRIGGER nava_esim_orders_updated_at
-  BEFORE UPDATE ON public.nava_esim_orders
-  FOR EACH ROW EXECUTE FUNCTION public.nava_esim_set_updated_at();
+A successful payment is NOT proof that the provider has activated a line.
 
-DROP TRIGGER IF EXISTS nava_esim_order_secrets_updated_at ON public.nava_esim_order_secrets;
-CREATE TRIGGER nava_esim_order_secrets_updated_at
-  BEFORE UPDATE ON public.nava_esim_order_secrets
-  FOR EACH ROW EXECUTE FUNCTION public.nava_esim_set_updated_at();
+Do not promise instant activation unless the supplier integration proves it. Do not fabricate phone numbers, activation results, delivery receipts, or provider responses.
 
--- ---------------------------------------------------------------------
--- 6. Row Level Security
--- ---------------------------------------------------------------------
-ALTER TABLE public.nava_esim_plans          ENABLE ROW LEVEL SECURITY;
-ALTER TABLE public.nava_esim_orders         ENABLE ROW LEVEL SECURITY;
-ALTER TABLE public.nava_esim_order_secrets  ENABLE ROW LEVEL SECURITY;
-ALTER TABLE public.nava_esim_reminders      ENABLE ROW LEVEL SECURITY;
+Where no authorized provider API is available, design a controlled manual-fulfillment process with an appropriate admin view. Do not automate or scrape an unauthorized consumer checkout.
 
--- Plans: Authenticated users can view visible plans
-DROP POLICY IF EXISTS nava_esim_plans_select_visible ON public.nava_esim_plans;
-CREATE POLICY nava_esim_plans_select_visible
-  ON public.nava_esim_plans
-  FOR SELECT
-  TO authenticated
-  USING (is_visible = true);
+## 5. CUSTOMER RENEWALS
 
--- Orders: Users can view ONLY their own orders
-DROP POLICY IF EXISTS nava_esim_orders_select_own ON public.nava_esim_orders;
-CREATE POLICY nava_esim_orders_select_own
-  ON public.nava_esim_orders
-  FOR SELECT
-  TO authenticated
-  USING (user_id = auth.uid());
+Every active line must have an expiry date and a renewal price.
 
--- Secrets & Reminders: Deny all direct client access under RLS (Server role only)
+Implement the necessary application and database support for:
 
--- ---------------------------------------------------------------------
--- 7. Verified Seed Data
--- Both plans set supports_zip = true.
--- Both plans set is_purchasable = false until explicitly enabled.
--- PurpleText: Baseline activation $11.88 (900 + 200 + 88), renewal $12.96 (1000 + 200 + 96).
--- PurpleMax: Unverified total -> 0 cents, is_purchasable = false.
--- AT&T/Blue: Omitted until verified.
--- ---------------------------------------------------------------------
-INSERT INTO public.nava_esim_plans (
-  supplier, carrier, code, name, description,
-  talk_minutes, text_allowance, data_mb, supports_zip, duration_days,
-  activation_plan_cents, activation_regulatory_fee_cents, activation_tax_cents,
-  renewal_plan_cents, renewal_regulatory_fee_cents, renewal_tax_cents,
-  price_source, price_verified_at, fulfillment_method,
-  is_visible, is_purchasable
-) VALUES (
-  'nexitel', 'purple', 'purple_text', 'PurpleText',
-  '300 talk minutes and unlimited texts (US mobile eSIM). State/ZIP code supported.',
-  300, 'unlimited', NULL, true, 30,
-  900, 200, 88,
-  1000, 200, 96,
-  'manual_verified_checkout_notes', now(), 'manual',
-  true, false
-)
-ON CONFLICT (code) DO NOTHING;
+* Showing the line's current status, carrier, plan, number, expiry date, and renewal option.
+* Letting the customer request a renewal and pay NAVA.
+* Recording the payment and creating a renewal request.
+* Processing the renewal through an authorized provider integration or a transparent manual admin workflow.
+* Updating the expiry date only after renewal is confirmed successful.
+* Recording renewal history, provider results, payment references, and failures.
+* Preventing duplicate renewal requests and duplicate charges.
+* Providing a clear processing status to the customer.
 
-INSERT INTO public.nava_esim_plans (
-  supplier, carrier, code, name, description,
-  talk_minutes, text_allowance, data_mb, supports_zip, duration_days,
-  activation_plan_cents, activation_regulatory_fee_cents, activation_tax_cents,
-  renewal_plan_cents, renewal_regulatory_fee_cents, renewal_tax_cents,
-  price_source, price_verified_at, fulfillment_method,
-  is_visible, is_purchasable
-) VALUES (
-  'nexitel', 'purple', 'purple_max', 'PurpleMax',
-  'Unlimited talk/text with 500 MB data (advertised). CHECKOUT TOTAL NOT VERIFIED.',
-  NULL, 'unlimited', 500, true, 30,
-  0, 0, 0,
-  0, 0, 0,
-  'advertised_unverified', NULL, 'manual',
-  true, false
-)
-ON CONFLICT (code) DO NOTHING;
-Verification Checklist for Stage A
-Once approved and applied locally:
+Do not assume provider renewal is instant. Do not generate a new eSIM QR code for an ordinary plan renewal unless the provider actually requires one.
 
-Confirm supabase/migrations/20261007000000_nava_esim_init.sql applies cleanly without syntax or ordering errors.
-Verify all 4 tables (nava_esim_plans, nava_esim_orders, nava_esim_order_secrets, nava_esim_reminders) exist with RLS enabled.
-Verify nava_esim_plans contains the 2 seed rows, both with is_purchasable = false and supports_zip = true.
-Verify nava_esim_order_secrets blocks direct client queries via RLS.
-Verify no existing OTP or 5SIM database tables/functions were modified.
-Awaiting Approval
-Please reply with:
+Investigate the fact that the provider's retail website also offers direct renewals. Do not claim NAVA can prevent customers from renewing directly with the carrier or provider. Flag any dependence on dealer-only renewal capabilities that have not been verified.
 
-"Apply Stage A" to proceed with applying this revised migration locally.
-Or specify any additional adjustments to the SQL or schema
+## 6. RENEWAL REMINDERS
+
+Implement the data model and available notification workflow so customers can receive reminders before expiry, preferably seven days, three days, and one day before expiration.
+
+Use existing, properly configured email or in-app notification mechanisms where available. Do not introduce a new notification provider without first examining the existing architecture.
+
+Telnyx outbound SMS previously encountered a 10DLC registration error. Do not assume Telnyx SMS reminders will work. Do not mark an SMS as delivered unless the provider confirms delivery.
+
+If a dependable scheduler or notification configuration is missing, identify the exact missing setup and complete the parts that can safely be implemented. Never claim automated reminders are operational if nothing is scheduled to send them.
+
+## 7. SUPPLIER PERMISSION AND SECURITY
+
+Before enabling live sales of the supplier's retail plans, verify that written permission for the intended commercial resale and renewal model has been obtained.
+
+Until authorized purchasing, resale, and fulfillment are confirmed, keep the new purchasing feature in development or behind an appropriate feature flag.
+
+Protect customer data, payment references, phone numbers, activation credentials, and eSIM provisioning information. Never print secrets or provisioning codes into logs unnecessarily.
+
+Follow the project's existing conventions for authorization, validation, idempotency, database changes, and error handling.
+
+## 8. TESTING AND ACCEPTANCE CRITERIA
+
+Before declaring completion:
+
+* Run the repository's actual type-check command.
+* Run lint on changed files.
+* Run relevant existing tests.
+* Test successful and failed payments using the project's supported test mechanism.
+* Test duplicate checkout and renewal submission handling.
+* Verify that failed provider renewals do not extend the expiration date.
+* Verify that confirmed renewals update the expiry date correctly.
+* Test the admin/manual-fulfillment path if implemented.
+* Verify that existing 5SIM ordering, verification, wallet, and payment flows remain unaffected.
+* Investigate the AT&T blocker and state clearly whether it is inside NAVA or on the external supplier site.
+* Run the production build if the environment permits. If required environment variables or services are missing, identify them explicitly instead of changing unrelated application code to hide the problem.
+* Run `git diff --check` and inspect the complete diff for unintended changes.
+
+Do not report a test as passed unless it actually ran and passed.
+
+## 9. FINAL REPORT — NO PUSH YET
+
+At completion, report:
+
+1. The repository and branch used.
+2. The exact files changed and why.
+3. The database changes and migrations, if any.
+4. The features completed.
+5. The tests executed and their real results.
+6. Any blockers, including supplier API access, AT&T availability, authorization, or missing environment configuration.
+7. Pricing and margin concerns.
+8. The exact remaining steps before a Git commit and push.
+
+Do not commit, push, merge, or deploy until I review the results and explicitly authorize that step.
+
+Start by inspecting the existing project and then proceed with the smallest safe implementation that meets these requirements. Do not ask me to repeat information already provided in this brief. If a supplier capability or credential is unavailable, implement only the safe portion and clearly report the blocker rather than guessing.
