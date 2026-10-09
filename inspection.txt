@@ -1,463 +1,163 @@
-PS C:\Users\Sire-F\OneDrive\Desktop\My Projects\nava-otp> $ErrorActionPreference = "Stop"
-PS C:\Users\Sire-F\OneDrive\Desktop\My Projects\nava-otp> $root = "C:\Users\Sire-F\OneDrive\Desktop\My Projects\nava-otp"
-PS C:\Users\Sire-F\OneDrive\Desktop\My Projects\nava-otp>
-PS C:\Users\Sire-F\OneDrive\Desktop\My Projects\nava-otp> Write-Host "`n--- WEBHOOK: NUMBER NORMALIZATION AND DESTINATION MATCHING ---"
+Thank you for the detailed follow-up on NAVA OTP's 10DLC compliance architecture. I've reviewed the relevant Telnyx documentation and can share what the published guidance says, but because you're asking for formal written confirmation of a specific compliance architecture before incurring registration costs, this requires review by a human compliance specialist who can assess your exact model against carrier requirements.
 
---- WEBHOOK: NUMBER NORMALIZATION AND DESTINATION MATCHING ---
-PS C:\Users\Sire-F\OneDrive\Desktop\My Projects\nava-otp> Get-Content "$root\src\app\api\webhooks\telnyx\route.ts" |
->>     Select-Object -First 145
-import { NextRequest, NextResponse } from "next/server";
-import crypto from "crypto";
-import { createClient } from "@supabase/supabase-js";
+What the documentation clearly states:
 
-export const runtime = "nodejs";
-export const dynamic = "force-dynamic";
+P2P exemption is not available to NAVA OTP. The P2P Definition and Exemption Process explicitly disqualifies Cloud Communication Suites. A platform providing dedicated numbers to consumer accounts fits this definition. Your traffic is classified as A2P and must be registered under 10DLC.
 
-/**
- * Telnyx Messaging webhook
- * - Verifies Ed25519 signature (Telnyx-Signature-Ed25519 + Telnyx-Timestamp)
- * - Handles inbound SMS (message.received)
- * - Maps "to" number â†’ nava_phone_numbers
- * - Inserts into nava_phone_messages
- *
- * Env required:
- *   TELNYX_PUBLIC_KEY          (base64 Ed25519 public key from Telnyx Mission Control)
- *   NEXT_PUBLIC_SUPABASE_URL
- *   SUPABASE_SERVICE_ROLE_KEY  (server-only; bypasses RLS for webhook inserts)
- *
- * Optional:
- *   TELNYX_WEBHOOK_MAX_SKEW_SEC  (default 300)
- */
+One shared brand/campaign across unrelated end-users is not the approved architecture. Per the ISVs & 10DLC guidance:
 
-type TelnyxInboundPayload = {
-  data?: {
-    event_type?: string;
-    id?: string;
-    occurred_at?: string;
-    payload?: {
-      direction?: string;
-      id?: string; // Telnyx message id
-      from?: { phone_number?: string };
-      to?: Array<{ phone_number?: string }> | { phone_number?: string };
-      text?: string;
-      type?: string;
-      received_at?: string;
-      encoding?: string;
-      media?: unknown[];
-    };
-  };
-  meta?: unknown;
-};
+For every end-user you resell to, you need a separate brand.
+Sharing phone numbers across multiple brands violates 10DLC terms and can result in fines and blocked traffic.
+MNOs will not approve ISVs for special consideration to share numbers across brands.
+Using one brand/campaign across end-users without explicit MNO approval "will likely result in your business receiving fines from mobile network operators, and will likely lead to mobile network operators blocking your traffic."
+Number Pooling agreement is only relevant if you want to use one brand/campaign across end-users. Per the documentation, this is unlikely to be approved by T-Mobile unless your business is a franchise.
 
-function getServiceSupabase() {
-  const url = process.env.NEXT_PUBLIC_SUPABASE_URL;
-  const key = process.env.SUPABASE_SECRET_KEY || process.env.SUPABASE_SERVICE_ROLE_KEY;
-  if (!url || !key) {
-    throw new Error("Missing NEXT_PUBLIC_SUPABASE_URL or SUPABASE_SECRET_KEY");
-  }
-  return createClient(url, key, {
-    auth: { persistSession: false, autoRefreshToken: false },
-  });
-}
+Error 40010 is resolved by registering brands/campaigns and assigning numbers to approved campaigns. However, the fix must use the compliant architecture — a single shared campaign without MNO approval risks fines and blocking.
 
-function normalizeE164(raw: string | null | undefined): string | null {
-  if (!raw) return null;
-  const trimmed = String(raw).trim();
-  if (!trimmed) return null;
-  const digits = trimmed.replace(/\D/g, "");
-  if (!digits) return null;
-  if (trimmed.startsWith("+")) return `+${digits}`;
-  // US fallback if 11 digits starting with 1, or 10-digit national
-  if (digits.length === 11 && digits.startsWith("1")) return `+${digits}`;
-  if (digits.length === 10) return `+1${digits}`;
-  return `+${digits}`;
-}
+The specific nuance for NAVA OTP:
 
-function extractToNumbers(toField: TelnyxInboundPayload["data"]): string[] {
-  const payload = toField?.payload;
-  if (!payload?.to) return [];
-  if (Array.isArray(payload.to)) {
-    return payload.to
-      .map((t) => normalizeE164(t?.phone_number))
-      .filter((n): n is string => Boolean(n));
-  }
-  const single = normalizeE164((payload.to as { phone_number?: string })?.phone_number);
-  return single ? [single] : [];
-}
+The ISV documentation defines an ISV as a business selling to "end users who are also businesses." NAVA OTP's end-users are individual consumers, not business entities. This creates a specific classification question that the published documentation does not fully resolve for your exact model — namely, whether the per-end-user brand requirement applies identically when end-users are individual consumers rather than businesses, and what the correct campaign use case registration would be for manually composed, personal, two-way SMS from individual consumers.
 
-/**
- * Verify Telnyx Ed25519 webhook signature.
- * Signed payload = `${timestamp}|${rawBody}`
- * Header: telnyx-signature-ed25519 (base64), telnyx-timestamp (unix sec)
- * @see https://developers.telnyx.com/docs/api/v2/overview#webhook-signing
- */
-function verifyTelnyxSignature(opts: {
-  rawBody: string;
-  signatureB64: string | null;
-  timestamp: string | null;
-  publicKeyB64: string;
-  maxSkewSec: number;
-}): { ok: true } | { ok: false; reason: string } {
-  const { rawBody, signatureB64, timestamp, publicKeyB64, maxSkewSec } = opts;
+This is the kind of compliance determination that requires a human specialist to review your specific architecture, traffic patterns, and carrier relationships before you commit to a registration path.
 
-  if (!signatureB64 || !timestamp) {
-    return { ok: false, reason: "Missing Telnyx-Signature-Ed25519 or Telnyx-Timestamp" };
-  }
+Your case has been added to the support queue.
 
-  const ts = Number(timestamp);
-  if (!Number.isFinite(ts)) {
-    return { ok: false, reason: "Invalid Telnyx-Timestamp" };
-  }
+TAIA
+•
+Oct 9
+Hello Telnyx Support,
 
-  const nowSec = Math.floor(Date.now() / 1000);
-  if (Math.abs(nowSec - ts) > maxSkewSec) {
-    return { ok: false, reason: "Timestamp outside allowed skew" };
-  }
+Thank you for your detailed response.
 
-  try {
-    const keyBytes = Buffer.from(publicKeyB64, "base64");
-    const spkiPrefix = Buffer.from("302a300506032b6570032100", "hex");
-    const publicKey = crypto.createPublicKey({
-      key: keyBytes.length === 32 ? Buffer.concat([spkiPrefix, keyBytes]) : keyBytes,
-      format: "der",
-      type: "spki",
-    });
+Before we begin registration, I need clarification on one important point about NAVA OTP.
 
-    const signedPayload = Buffer.from(`${timestamp}|${rawBody}`, "utf8");
-    const signature = Buffer.from(signatureB64, "base64");
+NAVA OTP provides individual consumers with dedicated US phone numbers through a web-based phone interface. Customers manually compose ordinary one-to-one personal SMS messages and communicate with other individuals. We do not intend to offer bulk marketing or automated promotional messaging.
 
-    const valid = crypto.verify(null, signedPayload, publicKey, signature);
-    if (!valid) return { ok: false, reason: "Invalid signature" };
-    return { ok: true };
-  } catch (err: any) {
-    return { ok: false, reason: `Signature verify error: ${err?.message || "unknown"}` };
-  }
-}
+Your response recommends registering one NAVA OTP brand and campaign and assigning multiple customer numbers to it.
 
-function isInboundSmsEvent(body: TelnyxInboundPayload): boolean {
-  const eventType = String(body?.data?.event_type || "").toLowerCase();
-  const direction = String(body?.data?.payload?.direction || "").toLowerCase();
-  const msgType = String(body?.data?.payload?.type || "").toLowerCase();
+However, your published ISVs & 10DLC guidance states that sharing one brand and campaign across multiple end-users without explicit mobile-carrier approval may result in fines or blocked traffic. It also describes an approved Number Pooling agreement as a possible alternative.
 
-  // Primary: message.received
-  if (eventType === "message.received") return true;
+Before we incur registration costs, could you please confirm in writing:
 
-  // Fallback shapes some accounts emit
-  if (eventType.includes("message") && direction === "inbound") return true;
-  if (direction === "inbound" && (msgType === "sms" || msgType === "mms" || !msgType)) {
-    return Boolean(body?.data?.payload?.text || body?.data?.payload?.from);
-  }
-  return false;
-}
+Can one NAVA OTP brand and campaign legally and technically cover dedicated US local numbers used by many unrelated consumer accounts for manually composed, personal, two-way SMS?
 
-export async function POST(req: NextRequest) {
-PS C:\Users\Sire-F\OneDrive\Desktop\My Projects\nava-otp>
-PS C:\Users\Sire-F\OneDrive\Desktop\My Projects\nava-otp> Write-Host "`n--- WEBHOOK: INBOUND MESSAGE PERSISTENCE ---"
+Does this arrangement require explicit approval from T-Mobile or another mobile network operator, including a Number Pooling agreement?
 
---- WEBHOOK: INBOUND MESSAGE PERSISTENCE ---
-PS C:\Users\Sire-F\OneDrive\Desktop\My Projects\nava-otp> Get-Content "$root\src\app\api\webhooks\telnyx\route.ts" |
->>     Select-Object -Skip 175 -First 155
-  try {
-    body = JSON.parse(rawBody) as TelnyxInboundPayload;
-  } catch {
-    return NextResponse.json({ error: "Invalid JSON" }, { status: 400 });
-  }
+What exact campaign use case should we register for this model, and will it accurately represent the actual traffic?
 
-  // Always ACK non-inbound quickly (delivery updates, etc.)
-  if (!isInboundSmsEvent(body)) {
-    return NextResponse.json({
-      received: true,
-      handled: false,
-      event_type: body?.data?.event_type ?? null,
-    });
-  }
+If a single campaign is not permitted, what compliant Telnyx product or commercial arrangement supports this consumer use case without requiring each individual consumer to register a separate business brand?
 
-  const payload = body.data?.payload;
-  const telnyxMessageId = payload?.id || body.data?.id || null;
-  const fromNumber = normalizeE164(payload?.from?.phone_number);
-  const toCandidates = extractToNumbers(body.data);
-  const text = typeof payload?.text === "string" ? payload.text : "";
-  const occurredAt =
-    payload?.received_at || body.data?.occurred_at || new Date().toISOString();
+Will the proposed configuration resolve error 40010 for outbound SMS to T-Mobile while remaining compliant with the requirements of other US carriers?
 
-  if (!fromNumber || toCandidates.length === 0) {
-    console.warn("[telnyx-webhook] inbound missing from/to", {
-      telnyxMessageId,
-      fromNumber,
-      toCandidates,
-    });
-    // Still 200 so Telnyx does not retry forever on malformed test payloads
-    return NextResponse.json({
-      received: true,
-      handled: false,
-      reason: "missing_from_or_to",
-    });
-  }
+We want to provide customers with a simple experience: rent a dedicated number, send and receive ordinary personal messages, and manage conversations through NAVA OTP.
 
-  try {
-    const supabase = getServiceSupabase();
+Please confirm the permitted architecture before we proceed with registration.
 
-    // Find NAVA number matching any "to" candidate (E.164)
-    const { data: navaNumbers, error: lookupError } = await supabase
-      .from("nava_phone_numbers")
-      .select("id, phone_number, user_id, status")
-      .in("phone_number", toCandidates)
-      .eq("status", "active")
-      .limit(5);
+Thank you.
 
-    if (lookupError) {
-      console.error("[telnyx-webhook] number lookup failed:", lookupError);
-      return NextResponse.json({ error: "Lookup failed" }, { status: 500 });
-    }
+1:27 PM
+TAIA
 
-    const navaNumber = navaNumbers?.[0];
-    if (!navaNumber) {
-      console.warn("[telnyx-webhook] no NAVA number for to=", toCandidates);
-      return NextResponse.json({
-        received: true,
-        handled: false,
-        reason: "unknown_destination",
-        to: toCandidates,
-      });
-    }
+Thank you for the detailed description of NAVA OTP's use case. Here's a breakdown addressing each of your questions:
 
-    const toNumber = normalizeE164(navaNumber.phone_number) || toCandidates[0];
+1. Approved P2P Carrier Messaging Model
+Telnyx offers a P2P exemption from 10DLC requirements, but it has strict criteria. You must satisfy all of the following:
 
-    // Idempotent insert: unique on provider_message_id if you add that column/constraint
-    const row = {
-      phone_number_id: navaNumber.id,
-      user_id: navaNumber.user_id,
-      direction: "inbound" as const,
-      from_number: fromNumber,
-      to_number: toNumber,
-      body: text,
-      status: "received",
-      provider_message_id: telnyxMessageId,
-      created_at: occurredAt,
-    };
+Your messaging excludes business communication of any kind.
+You are not a Cloud Communication Suite.
+Traffic is roughly symmetrical (user-to-user, 1:1 to 1:3).
+There are no automated text messages in your workflow.
+You have a Telnyx contract.
+Key Issue for NAVA OTP: Platforms providing dedicated US phone numbers to individual consumers are likely classified as a Cloud Communication Suite, disqualifying them from the P2P exemption. Messages sent on behalf of any business do not qualify as P2P. NAVA OTP is likely classified as A2P.
 
-    // Prefer upsert when provider_message_id is unique
-    const { data: inserted, error: insertError } = await supabase
-      .from("nava_phone_messages")
-      .upsert(row, {
-        onConflict: "provider_message_id",
-        ignoreDuplicates: true,
-      })
-      .select("id")
-      .maybeSingle();
+If you believe you qualify, contact your Customer Success Manager or sales@telnyx.com to proceed. Approval can take several months due to strict requirements.
 
-    // If upsert fails because column/constraint missing, fall back to plain insert
-    if (insertError) {
-      const msg = String(insertError.message || "");
-      const missingConflict =
-        msg.toLowerCase().includes("on conflict") ||
-        msg.toLowerCase().includes("provider_message_id") ||
-        msg.toLowerCase().includes("raw");
+2. Classification of NAVA OTP
+NAVA OTP is most likely classified as A2P due to:
 
-      if (!missingConflict) {
-        console.error("[telnyx-webhook] insert failed:", insertError);
-        return NextResponse.json({ error: "Persist failed" }, { status: 500 });
-      }
+Being a platform/business providing numbers to end users, fitting the definition of a Cloud Communication Suite or an ISV.
+ISVs are businesses selling products/services to end users, even if they are individuals.
+Most "P2P" use cases are actually A2P and should be registered.
+3. Compliant Architecture Recommendations
+If classified as A2P, consider these options:
 
-      // Fallback insert without optional columns
-      const fallback = {
-        phone_number_id: navaNumber.id,
-        user_id: navaNumber.user_id,
-        provider_message_id: telnyxMessageId,
-        direction: "inbound" as const,
-        from_number: fromNumber,
-        to_number: toNumber,
-        body: text,
-        status: "received",
-        created_at: occurredAt,
-      };
+Option A: Register a Brand and Campaign for NAVA OTP (Recommended)
+Register one Brand for NAVA OTP.
+Register one or more Campaigns describing your use case.
+Assign phone numbers to the Campaign.
+Vet your Brand to improve trust score and throughput.
+Note: A number can belong to only one Campaign; T-Mobile limit is 49 numbers per Campaign.
+Option B: Toll-Free Numbers
+Toll-free numbers can send A2P messages and are not subject to 10DLC requirements.
+Separate approval process for Toll-Free messaging applies.
+Option C: Number Lookup to Exclude T-Mobile
+Use Number Lookup tools to identify and exclude T-Mobile numbers.
+This is a workaround, not a solution.
+Key Point: You do not need to register a separate brand and campaign for each consumer. Register one Brand for NAVA OTP and create campaigns that describe your use case.
 
-      // Dedupe manually if possible
-      if (telnyxMessageId) {
-        const { data: existing } = await supabase
-          .from("nava_phone_messages")
-          .select("id")
-          .eq("from_number", fromNumber)
-          .eq("to_number", toNumber)
-          .eq("body", text)
-          .gte("created_at", new Date(Date.now() - 2 * 60 * 1000).toISOString())
-          .limit(1);
+4. Restrictions on Providing Dedicated US Numbers
+No sharing numbers across brands: Each number must be associated with one campaign and brand.
+T-Mobile number limit: Maximum 49 numbers per Campaign without a special agreement.
+Traffic must match your declared use case: Ensure your campaign description accurately reflects usage.
+From February 3, 2025, unregistered 10DLC traffic is blocked.
+Resolving Error 40010
+The error 40010 - Unregistered 10DLC Message means your sending number is not attached to a 10DLC campaign. To resolve:
 
-        if (existing && existing.length > 0) {
-          return NextResponse.json({
-            received: true,
-            handled: true,
-            duplicate: true,
-            message_id: existing[0].id,
-          });
-        }
-      }
+Register a Brand for NAVA OTP in the Mission Control Portal or via the 10DLC API.
+(Recommended) Vet the Brand to improve trust score.
+Register a Campaign describing your use case.
+Assign your phone numbers to the Campaign.
+For specific 10DLC compliance questions, reach out to 10dlcquestions@telnyx.com.
 
-      const { data: inserted2, error: insertError2 } = await supabase
-        .from("nava_phone_messages")
-        .insert(fallback)
-        .select("id")
-        .maybeSingle();
+Summary & Recommended Next Steps
+Short-term: Register a 10DLC Brand and Campaign for NAVA OTP to resolve the 40010 error.
+Evaluate P2P exemption: If you believe your model qualifies, contact your CSM or sales@telnyx.com.
+Architecture: Use one Brand + Campaign for NAVA OTP, assign numbers to it, and ensure traffic patterns match your declared use case.
+Before expanding: Complete 10DLC registration and vetting to avoid issues.
+Relevant documentation:
 
-      if (insertError2) {
-        console.error("[telnyx-webhook] fallback insert failed:", insertError2);
-        return NextResponse.json({ error: "Persist failed" }, { status: 500 });
-      }
+P2P Definition and Exemption Process
+ISVs & 10DLC
+10DLC FAQ
+10DLC Quickstart (Developer Docs)
+Traffic Type Feature Guide
+Messaging Error Codes
+10DLC Campaign Compliance Requirements
+TAIA
+•
+Oct 9
+Hello Telnyx Support,
 
-      return NextResponse.json({
-        received: true,
-        handled: true,
-        message_id: inserted2?.id ?? null,
-        phone_number_id: navaNumber.id,
-      });
-    }
+We operate NAVA OTP, a platform offering dedicated US phone numbers to individual customers for personal, two-way SMS conversations.
 
-PS C:\Users\Sire-F\OneDrive\Desktop\My Projects\nava-otp>
-PS C:\Users\Sire-F\OneDrive\Desktop\My Projects\nava-otp> Write-Host "`n--- INBOX API: FETCHED MESSAGES ---"
+Our customers manually compose individual messages and communicate with other people. We are not intending to offer bulk SMS marketing or automated promotional messaging.
+
+We recently encountered error 40010, “Not 10DLC registered,” when replying to a T-Mobile US number through our Telnyx API integration.
+
+Requiring every individual consumer to register a separate business brand and campaign would not be practical for our product.
+
+Could you please clarify:
+
+Is there an approved P2P carrier messaging model for a platform like ours, where individual users have dedicated US local numbers and send ordinary personal messages?
+
+Can NAVA Phone qualify for P2P carrier approval, or does Telnyx classify this platform model as A2P regardless of message content and volume?
+
+If P2P approval is unavailable, which Telnyx product or compliant architecture would you recommend for this use case?
+
+Are there specific restrictions on providing dedicated US numbers to multiple consumer accounts through one platform?
+
+We want to resolve this before expanding the service, while complying with carrier requirements and avoiding an onboarding process that requires ordinary consumers to establish business messaging campaigns.
+
+Thank you.
+
+Oct 9
 
 
---- INBOX API: FETCHED MESSAGES ---
-PS C:\Users\Sire-F\OneDrive\Desktop\My Projects\nava-otp> Get-Content "$root\src\app\api\phone\messages\route.ts" |
->>     Select-Object -First 65
-import { NextResponse } from "next/server";
-import { supabaseAdmin } from "@/lib/supabase-admin";
-import { getAuthenticatedSupabaseUser } from "@/lib/supabase-request-auth";
-import { sendTelnyxSms } from "@/lib/telnyx";
 
-function normalizeRecipient(value: unknown) {
-  const raw = String(value || "").trim();
-  const digits = raw.replace(/\D/g, "");
-  if (raw.startsWith("+")) return "+" + digits;
-  return "+" + digits;
-}
 
-export async function GET(req: Request) {
-  try {
-    const user = await getAuthenticatedSupabaseUser(req);
-    if (!user) return NextResponse.json({ error: "Unauthorized. Please log in." }, { status: 401 });
 
-    const { data: numbers, error: numbersError } = await supabaseAdmin
-      .from("nava_phone_numbers")
-      .select("id, phone_number, country_code, status")
-      .eq("user_id", user.id)
-      .neq("status", "released")
-      .order("created_at", { ascending: false });
 
-    if (numbersError) {
-      console.error("NAVA SMS number lookup error:", numbersError);
-      return NextResponse.json({ error: "Unable to load your NAVA Phone numbers." }, { status: 500 });
-    }
 
-    const numberIds = (numbers || []).map((number) => number.id);
-    if (numberIds.length === 0) {
-      return NextResponse.json({ success: true, numbers: [], messages: [] });
-    }
 
-    const { data: messages, error: messagesError } = await supabaseAdmin
-      .from("nava_phone_messages")
-      .select("id, phone_number_id, direction, from_number, to_number, body, status, created_at")
-      .eq("user_id", user.id)
-      .in("phone_number_id", numberIds)
-      .order("created_at", { ascending: true })
-      .limit(500);
 
-    if (messagesError) {
-      console.error("NAVA SMS message lookup error:", messagesError);
-      return NextResponse.json({ error: "Unable to load your NAVA messages." }, { status: 500 });
-    }
 
-    return NextResponse.json({
-      success: true,
-      numbers: numbers || [],
-      messages: messages || [],
-    });
-  } catch (error) {
-    console.error("NAVA SMS inbox error:", error);
-    return NextResponse.json({ error: "Unable to load your NAVA messages." }, { status: 500 });
-  }
-}
-
-export async function POST(req: Request) {
-  try {
-    const user = await getAuthenticatedSupabaseUser(req);
-    if (!user) return NextResponse.json({ error: "Unauthorized. Please log in." }, { status: 401 });
-
-    const body = await req.json();
-    const phoneNumberId = String(body?.phone_number_id || "").trim();
-PS C:\Users\Sire-F\OneDrive\Desktop\My Projects\nava-otp>
-PS C:\Users\Sire-F\OneDrive\Desktop\My Projects\nava-otp> Write-Host "`n--- INBOX: NEW CONVERSATION THREAD DISCOVERY ---"
-
---- INBOX: NEW CONVERSATION THREAD DISCOVERY ---
-PS C:\Users\Sire-F\OneDrive\Desktop\My Projects\nava-otp> Get-Content "$root\src\app\dashboard\sms\inbox\page.tsx" |
->>     Select-Object -Skip 245 -First 70
-
-  const selectedNumber = useMemo(
-    () => numbers.find((n) => n.id === selectedNumberId) || null,
-    [numbers, selectedNumberId],
-  );
-
-  const selectedMessages = useMemo(
-    () => messages.filter((m) => m.phone_number_id === selectedNumberId),
-    [messages, selectedNumberId],
-  );
-
-  const conversationPeer = useMemo(() => {
-    if (recipient) return recipient;
-    const last = selectedMessages[selectedMessages.length - 1];
-    if (!last) return null;
-    return last.direction === "inbound" ? last.from_number : last.to_number;
-  }, [selectedMessages, recipient]);
-
-  const getContact = (phone: string | null | undefined): SavedContact | null => {
-    if (!phone) return null;
-    return contacts[normalizePhoneKey(phone)] || null;
-  };
-
-  const peerDisplayName = (phone: string) => getContact(phone)?.name?.trim() || null;
-
-  const allThreads = useMemo(() => {
-    const peers = Array.from(
-      new Set(messages.map((m) => (m.direction === "inbound" ? m.from_number : m.to_number))),
-    );
-    return peers
-      .map((peer) => {
-        const threadMsgs = messages.filter(
-          (m) => (m.direction === "inbound" ? m.from_number : m.to_number) === peer,
-        );
-        const lastMsg = threadMsgs[threadMsgs.length - 1];
-        return { peer, lastMsg, lineId: lastMsg?.phone_number_id || selectedNumberId };
-      })
-      .sort((a, b) => {
-        const ta = a.lastMsg ? new Date(a.lastMsg.created_at).getTime() : 0;
-        const tb = b.lastMsg ? new Date(b.lastMsg.created_at).getTime() : 0;
-        return tb - ta;
-      });
-  }, [messages, selectedNumberId]);
-
-  const desktopThreads = useMemo(() => {
-    const numberMessages = selectedNumberId
-      ? messages.filter((m) => m.phone_number_id === selectedNumberId)
-      : messages;
-    const peers = Array.from(
-      new Set(numberMessages.map((m) => (m.direction === "inbound" ? m.from_number : m.to_number))),
-    );
-    return peers
-      .map((peer) => {
-        const threadMsgs = numberMessages.filter(
-          (m) => (m.direction === "inbound" ? m.from_number : m.to_number) === peer,
-        );
-        return { peer, lastMsg: threadMsgs[threadMsgs.length - 1] };
-      })
-      .sort((a, b) => {
-        const ta = a.lastMsg ? new Date(a.lastMsg.created_at).getTime() : 0;
-        const tb = b.lastMsg ? new Date(b.lastMsg.created_at).getTime() : 0;
-        return tb - ta;
-      });
-  }, [messages, selectedNumberId]);
-
-  const activePeerMessages = useMemo(() => {
-    const activePeer = recipient || conversationPeer;
-    if (!activePeer) return [];
-    return selectedMessages.filter((m) => {
-      const peer = m.direction === "inbound" ? m.from_number : m.to_number;
-PS C:\Users\Sire-F\OneDrive\Desktop\My Projects\nava-otp>
