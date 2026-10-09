@@ -1,289 +1,612 @@
-PS C:\Users\Sire-F\OneDrive\Desktop\My Projects\nava-otp> $root = "C:\Users\Sire-F\OneDrive\Desktop\My Projects\nava-otp"
-PS C:\Users\Sire-F\OneDrive\Desktop\My Projects\nava-otp> $file = "$root\src\app\dashboard\sms\inbox\page.tsx"
+
+--- RELEVANT API ROUTES ---
+PS C:\Users\Sire-F\OneDrive\Desktop\My Projects\nava-otp> $routes = Get-ChildItem $apiRoot -Recurse -File -Filter "route.ts" |
+>>     Where-Object {
+>>         $_.FullName -match "phone|sms|telnyx|webhook"
+>>     }
 PS C:\Users\Sire-F\OneDrive\Desktop\My Projects\nava-otp>
-PS C:\Users\Sire-F\OneDrive\Desktop\My Projects\nava-otp> Write-Host "`n--- PAGE ROOT ---"
+PS C:\Users\Sire-F\OneDrive\Desktop\My Projects\nava-otp> $routes | Select-Object FullName, Length
 
---- PAGE ROOT ---
-PS C:\Users\Sire-F\OneDrive\Desktop\My Projects\nava-otp> Get-Content $file | Select-Object -Skip 600 -First 45
+FullName
+--------
+C:\Users\Sire-F\OneDrive\Desktop\My Projects\nava-...
+C:\Users\Sire-F\OneDrive\Desktop\My Projects\nava-...
+C:\Users\Sire-F\OneDrive\Desktop\My Projects\nava-...
+C:\Users\Sire-F\OneDrive\Desktop\My Projects\nava-...
+C:\Users\Sire-F\OneDrive\Desktop\My Projects\nava-...
+C:\Users\Sire-F\OneDrive\Desktop\My Projects\nava-...
+C:\Users\Sire-F\OneDrive\Desktop\My Projects\nava-...
 
-      <Link
-        href="/dashboard/sms?shop=1"
-        className="mt-6 inline-flex rounded-full bg-emerald-500 px-8 py-3 text-sm font-bold text-slate-950"
-      >
-        Get a number
-      </Link>
-    </div>
-  );
 
-  const PeerTitle = ({ peer, size = "md" }: { peer: string; size?: "sm" | "md" | "lg" }) => {
-    const name = peerDisplayName(peer);
-    const flag = flagForCountry(peer);
-    if (name) {
-      return (
-        <div className="min-w-0">
-          <div
-            className={`flex items-center gap-1.5 truncate font-black ${
-              size === "lg" ? "text-[20px]" : size === "sm" ? "text-[13px]" : "text-[15px]"
-            }`}
-          >
-            <span className="leading-none">{flag}</span>
-            <span className="truncate">{name}</span>
-          </div>
-          <div className={`truncate text-[11px] font-semibold ${theme.faint}`}>
-            {formatPhoneNumber(peer)}
-          </div>
-        </div>
-      );
-    }
-    return (
-      <div
-        className={`flex min-w-0 items-center gap-1.5 truncate font-black ${
-          size === "lg" ? "text-[20px]" : size === "sm" ? "text-[13px]" : "text-[15px]"
-        }`}
-      >
-        <span className="leading-none">{flag}</span>
-        <span className="truncate">{formatPhoneNumber(peer)}</span>
-      </div>
-    );
-  };
-
-  const MobileTabBar = ({
-    active,
-  }: {
-    active: "messages" | "contacts" | "calls" | "numbers";
 PS C:\Users\Sire-F\OneDrive\Desktop\My Projects\nava-otp>
-PS C:\Users\Sire-F\OneDrive\Desktop\My Projects\nava-otp> Write-Host "`n--- DESKTOP CONVERSATION CALL ---"
+PS C:\Users\Sire-F\OneDrive\Desktop\My Projects\nava-otp> Write-Host "`n--- INBOX MESSAGE LOADING AND STORAGE REFERENCES ---"
 
---- DESKTOP CONVERSATION CALL ---
-PS C:\Users\Sire-F\OneDrive\Desktop\My Projects\nava-otp> Get-Content $file | Select-Object -Skip 1055 -First 45
+--- INBOX MESSAGE LOADING AND STORAGE REFERENCES ---
+PS C:\Users\Sire-F\OneDrive\Desktop\My Projects\nava-otp> Select-String -Path "$root\src\app\dashboard\sms\inbox\page.tsx" `
+>>     -Pattern '/api/phone/messages|setMessages|setNumbers|loadInbox|refresh|poll' `
+>>     -Context 2,4
 
-            <main className="flex min-h-0 min-w-0 flex-1 flex-col">
-              <header className={`flex h-16 items-center justify-between border-b px-6 ${theme.divider}`}>
-                <div className="min-w-0 flex-1">
-                  {conversationPeer ? (
-                    <>
-                      <PeerTitle peer={conversationPeer} size="lg" />
-                      {selectedNumber && (
-                        <p className={`text-[11px] font-semibold ${theme.faint}`}>
-                          via {formatPhoneNumber(selectedNumber.phone_number)}
-                        </p>
-                      )}
-                    </>
-                  ) : (
-                    <h2 className={`font-bold ${theme.muted}`}>Select a conversation</h2>
-                  )}
-                </div>
-                <div className="flex items-center gap-2">
-                  {conversationPeer && (
-                    <button
-                      type="button"
-                      onClick={() => startInPlaceCall(conversationPeer)}
-                      className={`flex h-10 w-10 items-center justify-center rounded-full border text-lg transition hover:border-emerald-400 hover:text-emerald-500 ${theme.input}`}
-                      title="Call (stays on this page)"
-                    >
-                      ðŸ“ž
-                    </button>
-                  )}
-                  {conversationPeer && (
-                    <div className="relative" ref={headerMenuRef}>
-                      <button
-                        type="button"
-                        onClick={() => setHeaderMenuOpen((v) => !v)}
-                        className={`flex h-10 w-10 items-center justify-center rounded-full border text-lg font-black ${theme.input}`}
-                      >
-                        â‹®
-                      </button>
-                      {headerMenuOpen && (
-                        <div
-                          className={`absolute right-0 top-12 z-40 w-52 rounded-xl border shadow-2xl ${theme.panel}`}
-                        >
-                          <button
-                            type="button"
-                            onClick={() => openPeopleForPeer(conversationPeer)}
-                            className={`flex w-full gap-3 px-4 py-3 text-left text-sm font-semibold ${theme.threadHover}`}
+  src\app\dashboard\sms\inbox\page.tsx:139:export
+default function Page() {
+  src\app\dashboard\sms\inbox\page.tsx:140:  const
+[darkMode, setDarkMode] = useState(true);
+> src\app\dashboard\sms\inbox\page.tsx:141:  const
+[numbers, setNumbers] = useState<PhoneNumber[]>([]);
+> src\app\dashboard\sms\inbox\page.tsx:142:  const
+[messages, setMessages] = useState<Message[]>([]);
+  src\app\dashboard\sms\inbox\page.tsx:143:  const
+[selectedNumberId, setSelectedNumberId] =
+useState("");
+  src\app\dashboard\sms\inbox\page.tsx:144:  const
+[recipient, setRecipient] = useState("");
+  src\app\dashboard\sms\inbox\page.tsx:145:  const
+[text, setText] = useState("");
+  src\app\dashboard\sms\inbox\page.tsx:146:  const
+[loading, setLoading] = useState(true);
+  src\app\dashboard\sms\inbox\page.tsx:347:  };
+  src\app\dashboard\sms\inbox\page.tsx:348:
+> src\app\dashboard\sms\inbox\page.tsx:349:  const
+loadInbox = async (showLoading = true) => {
+  src\app\dashboard\sms\inbox\page.tsx:350:    try {
+  src\app\dashboard\sms\inbox\page.tsx:351:      if
+(showLoading) setLoading(true);
+  src\app\dashboard\sms\inbox\page.tsx:352:
+setError("");
+  src\app\dashboard\sms\inbox\page.tsx:353:
+const { supabase } = await import("@/lib/supabase");
+  src\app\dashboard\sms\inbox\page.tsx:357:      if
+(!session?.access_token) throw new Error("Your
+session has expired. Please sign in again.");
+  src\app\dashboard\sms\inbox\page.tsx:358:
+> src\app\dashboard\sms\inbox\page.tsx:359:
+const response = await fetch("/api/phone/messages", {
+  src\app\dashboard\sms\inbox\page.tsx:360:
+headers: { Authorization: `Bearer
+${session.access_token}` },
+  src\app\dashboard\sms\inbox\page.tsx:361:
+cache: "no-store",
+  src\app\dashboard\sms\inbox\page.tsx:362:      });
+  src\app\dashboard\sms\inbox\page.tsx:363:
+const data = await response.json();
+  src\app\dashboard\sms\inbox\page.tsx:365:
+  src\app\dashboard\sms\inbox\page.tsx:366:
+const loadedNumbers = Array.isArray(data?.numbers) ?
+data.numbers : [];
+> src\app\dashboard\sms\inbox\page.tsx:367:
+setNumbers(loadedNumbers);
+> src\app\dashboard\sms\inbox\page.tsx:368:
+setMessages(Array.isArray(data?.messages) ?
+data.messages : []);
+  src\app\dashboard\sms\inbox\page.tsx:369:      if
+(!selectedNumberId && loadedNumbers.length > 0)
+setSelectedNumberId(loadedNumbers[0].id);
+  src\app\dashboard\sms\inbox\page.tsx:370:    }
+catch (err: any) {
+  src\app\dashboard\sms\inbox\page.tsx:371:
+setError(err?.message || "Unable to load your
+messages.");
+  src\app\dashboard\sms\inbox\page.tsx:372:    }
+finally {
+  src\app\dashboard\sms\inbox\page.tsx:376:
+  src\app\dashboard\sms\inbox\page.tsx:377:
+useEffect(() => {
+> src\app\dashboard\sms\inbox\page.tsx:378:
+loadInbox();
+  src\app\dashboard\sms\inbox\page.tsx:379:    //
+eslint-disable-next-line react-hooks/exhaustive-deps
+  src\app\dashboard\sms\inbox\page.tsx:380:  }, []);
+  src\app\dashboard\sms\inbox\page.tsx:381:
+  src\app\dashboard\sms\inbox\page.tsx:382:
+useEffect(() => {
+> src\app\dashboard\sms\inbox\page.tsx:383:    const
+id = window.setInterval(() => void loadInbox(false),
+5000);
+  src\app\dashboard\sms\inbox\page.tsx:384:
+return () => window.clearInterval(id);
+  src\app\dashboard\sms\inbox\page.tsx:385:    //
+eslint-disable-next-line react-hooks/exhaustive-deps
+  src\app\dashboard\sms\inbox\page.tsx:386:  }, []);
+  src\app\dashboard\sms\inbox\page.tsx:387:
+  src\app\dashboard\sms\inbox\page.tsx:415:      if
+(!session?.access_token) throw new Error("Your
+session has expired. Please sign in again.");
+  src\app\dashboard\sms\inbox\page.tsx:416:
+> src\app\dashboard\sms\inbox\page.tsx:417:
+const response = await fetch("/api/phone/messages", {
+  src\app\dashboard\sms\inbox\page.tsx:418:
+method: "POST",
+  src\app\dashboard\sms\inbox\page.tsx:419:
+headers: {
+  src\app\dashboard\sms\inbox\page.tsx:420:
+Authorization: `Bearer ${session.access_token}`,
+  src\app\dashboard\sms\inbox\page.tsx:421:
+"Content-Type": "application/json",
+  src\app\dashboard\sms\inbox\page.tsx:429:
+const data = await response.json();
+  src\app\dashboard\sms\inbox\page.tsx:430:      if
+(!response.ok) throw new Error(data?.error ||
+"Unable to send your message.");
+> src\app\dashboard\sms\inbox\page.tsx:431:      if
+(data?.message) setMessages((c) => [...c,
+data.message]);
+  src\app\dashboard\sms\inbox\page.tsx:432:
+setText("");
+  src\app\dashboard\sms\inbox\page.tsx:433:
+setMobilePeer(String(targetRecipient).trim());
+  src\app\dashboard\sms\inbox\page.tsx:434:
+setRecipient(String(targetRecipient).trim());
+  src\app\dashboard\sms\inbox\page.tsx:435:
+setMobileView("conversation");
+
+
 PS C:\Users\Sire-F\OneDrive\Desktop\My Projects\nava-otp>
-PS C:\Users\Sire-F\OneDrive\Desktop\My Projects\nava-otp> Write-Host "`n--- INLINE CALL PANEL AND CONTROLS ---"
+PS C:\Users\Sire-F\OneDrive\Desktop\My Projects\nava-otp> Write-Host "`n--- INBOUND MESSAGE HANDLING AND DATABASE WRITES ---"
 
+--- INBOUND MESSAGE HANDLING AND DATABASE WRITES ---
+PS C:\Users\Sire-F\OneDrive\Desktop\My Projects\nava-otp> if ($routes) {
+>>     Select-String -Path $routes.FullName `
+>>         -Pattern 'message\.received|messaging\.inbound|from_number|to_number|smsMessages|phone_messages|insert\(|upsert\(|\.insert\(|\.upsert\(|webhook|direction|inbound' `
+>>         -Context 2,4
+>> }
 
---- INLINE CALL PANEL AND CONTROLS ---
-PS C:\Users\Sire-F\OneDrive\Desktop\My Projects\nava-otp> Get-Content $file | Select-Object -Skip 1205 -First 85
-              </div>
-            </main>
-
-            {/* RIGHT: dialer OR in-place call (NO redirect) */}
-            <aside
-              className={`flex h-full w-[300px] shrink-0 flex-col border-l ${theme.divider} ${
-                darkMode ? "bg-[#080d18]" : "bg-slate-50"
-              }`}
-            >
-              {inPlaceCall ? (
-                <>
-                  <div className={`flex h-16 items-center justify-between border-b px-4 ${theme.divider}`}>
-                    <p className="text-sm font-black">Call</p>
-                    <span className="text-[11px] font-bold text-emerald-400">In progress</span>
-                  </div>
-                  <div className="flex flex-1 flex-col items-center px-5 pb-6 pt-8">
-                    <div
-                      className={`flex h-20 w-20 items-center justify-center rounded-full text-2xl font-black text-white ${avatarColor(
-                        inPlaceCall.to,
-                      )}`}
-                    >
-                      ðŸ‘¤
-                    </div>
-                    <p className="mt-5 text-center text-lg font-black tracking-tight">
-                      {flagForCountry(inPlaceCall.to)}{" "}
-                      {peerDisplayName(inPlaceCall.to) || formatPhoneNumber(inPlaceCall.to)}
-                    </p>
-                    {peerDisplayName(inPlaceCall.to) && (
-                      <p className={`mt-1 text-xs ${theme.faint}`}>
-                        {formatPhoneNumber(inPlaceCall.to)}
-                      </p>
-                    )}
-                    <p className="mt-3 font-mono text-sm font-bold text-emerald-400">
-                      {liveCallDuration}
-                    </p>
-                    <p className={`mt-1 text-[10px] ${theme.faint}`}>
-                      From{" "}
-                      {selectedNumber
-                        ? formatPhoneNumber(selectedNumber.phone_number)
-                        : "NAVA line"}
-                    </p>
-
-                    <div className="mt-10 flex items-center justify-center gap-6">
-                      <button
-                        type="button"
-                        onClick={toggleInPlaceMute}
-                        className={`flex h-14 w-14 flex-col items-center justify-center rounded-full border text-xs font-bold ${
-                          inPlaceCall.muted
-                            ? "border-amber-400 bg-amber-400/20 text-amber-300"
-                            : theme.input
-                        }`}
-                      >
-                        <span className="text-lg">{inPlaceCall.muted ? "ðŸ”‡" : "ðŸŽ¤"}</span>
-                        Mute
-                      </button>
-                      <button
-                        type="button"
-                        onClick={endInPlaceCall}
-                        className="flex h-16 w-16 items-center justify-center rounded-full bg-red-500 text-2xl text-white shadow-lg shadow-red-500/30 transition hover:bg-red-400"
-                        title="End call"
-                      >
-                        ðŸ“ž
-                      </button>
-                      <button
-                        type="button"
-                        onClick={() => setDialerMode("keypad")}
-                        className={`flex h-14 w-14 flex-col items-center justify-center rounded-full border text-xs font-bold ${theme.input}`}
-                      >
-                        <span className="text-lg">ðŸ”¢</span>
-                        Keypad
-                      </button>
-                    </div>
-
-                    <p className={`mt-auto pt-8 text-center text-[10px] leading-relaxed ${theme.faint}`}>
-                      Call stays on this workspace (no page redirect).
-                      <br />
-                      Live Telnyx audio uses your existing calling stack when
-                      connected via shared provider â€” handlers were not modified.
-                    </p>
-                  </div>
-                </>
-              ) : peopleOpen && conversationPeer ? (
-                <>
-                  <div className={`flex h-16 items-center justify-between border-b px-4 ${theme.divider}`}>
-                    <p className="text-sm font-black">People</p>
-PS C:\Users\Sire-F\OneDrive\Desktop\My Projects\nava-otp>
-PS C:\Users\Sire-F\OneDrive\Desktop\My Projects\nava-otp> Write-Host "`n--- DIALER INPUT AND CALL BUTTONS ---"
-
---- DIALER INPUT AND CALL BUTTONS ---
-PS C:\Users\Sire-F\OneDrive\Desktop\My Projects\nava-otp> Get-Content $file | Select-Object -Skip 1330 -First 90
-                    <div>
-                      <p className={`text-[10px] font-black uppercase ${theme.faint}`}>Call as</p>
-                      <p className="text-sm font-black text-emerald-400">
-                        {selectedNumber
-                          ? `${flagForCountry(selectedNumber.country_code)} ${formatPhoneNumber(selectedNumber.phone_number)}`
-                          : "No line"}
-                      </p>
-                    </div>
-                  </div>
-                  <div className="flex flex-1 flex-col px-4 pt-5">
-                    <div className="mb-4 flex gap-2">
-                      <div className="relative min-w-0 flex-1">
-                        <span className="absolute left-3 top-1/2 -translate-y-1/2 text-sm">
-                          {flagForCountry(dialerInput)}
-                        </span>
-                        <input
-                          value={dialerInput}
-                          onChange={(e) =>
-                            setDialerInput(e.target.value.replace(/[^\d+*#]/g, "").slice(0, 16))
-                          }
-                          onKeyDown={(e) => {
-                            if (e.key === "Enter") startInPlaceCall();
-                          }}
-                          placeholder="Enter name or number"
-                          className={`w-full rounded-full border py-2.5 pl-9 pr-3 text-xs font-bold outline-none focus:border-emerald-400 ${theme.input}`}
-                        />
-                      </div>
-                      {/* IN-PLACE CALL â€” no Link / no redirect */}
-                      <button
-                        type="button"
-                        onClick={() => startInPlaceCall()}
-                        disabled={!dialerInput.trim() && !conversationPeer}
-                        className="flex h-9 w-9 shrink-0 items-center justify-center rounded-full bg-emerald-500 text-slate-950 shadow-md transition hover:bg-emerald-400 disabled:opacity-40"
-                        title="Call without leaving this page"
-                      >
-                        ðŸ“ž
-                      </button>
-                    </div>
-
-                    {dialerMode === "keypad" ? (
-                      <div className="mx-auto grid grid-cols-3 gap-2">
-                        {["1", "2", "3", "4", "5", "6", "7", "8", "9", "*", "0", "#"].map((k) => (
-                          <button
-                            key={k}
-                            type="button"
-                            onClick={() => handleDialerPress(k)}
-                            className={`flex h-14 w-14 items-center justify-center rounded-full text-lg font-black ${theme.keypadBtn}`}
-                          >
-                            {k}
-                          </button>
-                        ))}
-                      </div>
-                    ) : (
-                      <div className="space-y-1 overflow-y-auto">
-                        {desktopThreads.map(({ peer }) => (
-                          <button
-                            key={peer}
-                            type="button"
-                            onClick={() => openThreadOnDesktop(peer)}
-                            className={`flex w-full rounded-xl px-2 py-2 text-left ${theme.threadHover}`}
-                          >
-                            <PeerTitle peer={peer} size="sm" />
-                          </button>
-                        ))}
-                      </div>
-                    )}
-
-                    <div className={`mt-auto space-y-2 border-t pt-3 ${theme.divider}`}>
-                      <button
-                        type="button"
-                        onClick={() => startInPlaceCall()}
-                        disabled={!dialerInput.trim() && !conversationPeer}
-                        className="w-full rounded-full bg-emerald-500 py-2.5 text-xs font-black text-slate-950 disabled:opacity-40"
-                      >
-                        Call
-                      </button>
-                      <button
-                        type="button"
-                        onClick={() =>
-                          setDialerMode((m) => (m === "keypad" ? "suggestions" : "keypad"))
-                        }
-                        className="w-full text-xs font-bold text-emerald-500"
-                      >
-                        {dialerMode === "keypad" ? "Hide keypad" : "Show keypad"}
-                      </button>
-                    </div>
-                  </div>
-                </>
-              )}
-            </aside>
+  src\app\api\phone\messages\route.ts:34:
+  src\app\api\phone\messages\route.ts:35:    const {
+data: messages, error: messagesError } = await
+supabaseAdmin
+> src\app\api\phone\messages\route.ts:36:
+.from("nava_phone_messages")
+> src\app\api\phone\messages\route.ts:37:
+.select("id, phone_number_id, direction,
+from_number, to_number, body, status, created_at")
+  src\app\api\phone\messages\route.ts:38:
+.eq("user_id", user.id)
+  src\app\api\phone\messages\route.ts:39:
+.in("phone_number_id", numberIds)
+  src\app\api\phone\messages\route.ts:40:
+.order("created_at", { ascending: true })
+  src\app\api\phone\messages\route.ts:41:
+.limit(500);
+  src\app\api\phone\messages\route.ts:119:
+  src\app\api\phone\messages\route.ts:120:    const
+{ data: savedMessage, error: insertError } = await
+supabaseAdmin
+> src\app\api\phone\messages\route.ts:121:
+.from("nava_phone_messages")
+> src\app\api\phone\messages\route.ts:122:
+.insert({
+  src\app\api\phone\messages\route.ts:123:
+phone_number_id: number.id,
+  src\app\api\phone\messages\route.ts:124:
+user_id: user.id,
+> src\app\api\phone\messages\route.ts:125:
+direction: "outbound",
+> src\app\api\phone\messages\route.ts:126:
+from_number: number.phone_number,
+> src\app\api\phone\messages\route.ts:127:
+to_number: recipient,
+  src\app\api\phone\messages\route.ts:128:
+body: messageText,
+  src\app\api\phone\messages\route.ts:129:
+status,
+  src\app\api\phone\messages\route.ts:130:
+provider_message_id: providerMessageId,
+  src\app\api\phone\messages\route.ts:131:      })
+> src\app\api\phone\messages\route.ts:132:
+.select("id, phone_number_id, direction,
+from_number, to_number, body, status, created_at")
+  src\app\api\phone\messages\route.ts:133:
+.single();
+  src\app\api\phone\messages\route.ts:134:
+  src\app\api\phone\messages\route.ts:135:    if
+(insertError || !savedMessage) {
+  src\app\api\phone\messages\route.ts:136:
+console.error("NAVA SMS message save failed:",
+insertError);
+  src\app\api\phone\purchase\route.ts:75:      const
+{ data: phoneRow, error: phoneInsertError } = await
+supabaseAdmin
+  src\app\api\phone\purchase\route.ts:76:
+.from("nava_phone_numbers")
+> src\app\api\phone\purchase\route.ts:77:
+.insert({
+  src\app\api\phone\purchase\route.ts:78:
+user_id: authUser.id,
+  src\app\api\phone\purchase\route.ts:79:
+phone_number: phoneNumber,
+  src\app\api\phone\purchase\route.ts:80:
+status: "active",
+  src\app\api\phone\purchase\route.ts:81:
+country_code: countryCode,
+  src\app\api\phone\purchase\route.ts:194:      if
+(updated.length === 0) return false;
+  src\app\api\phone\purchase\route.ts:195:
+> src\app\api\phone\purchase\route.ts:196:
+await tx.insert(transactions).values({
+  src\app\api\phone\purchase\route.ts:197:
+userId: dbUser[0].id,
+  src\app\api\phone\purchase\route.ts:198:
+walletId: wallet[0].id,
+  src\app\api\phone\purchase\route.ts:199:
+type: "rental_payment",
+  src\app\api\phone\purchase\route.ts:200:
+amount: monthlyPrice.toFixed(2),
+  src\app\api\phone\purchase\route.ts:218:    const
+{ data: phoneRow, error: phoneInsertError } = await
+supabaseAdmin
+  src\app\api\phone\purchase\route.ts:219:
+.from("nava_phone_numbers")
+> src\app\api\phone\purchase\route.ts:220:
+.insert({
+  src\app\api\phone\purchase\route.ts:221:
+user_id: authUser.id,
+  src\app\api\phone\purchase\route.ts:222:
+phone_number: phoneNumber,
+  src\app\api\phone\purchase\route.ts:223:
+telnyx_phone_number_id: purchasedProviderNumberId,
+  src\app\api\phone\purchase\route.ts:224:
+status: "active",
+  src\app\api\phone\purchase\route.ts:249:
+.where(eq(wallets.id, wallet[0].id));
+  src\app\api\phone\purchase\route.ts:250:
+> src\app\api\phone\purchase\route.ts:251:
+await tx.insert(transactions).values({
+  src\app\api\phone\purchase\route.ts:252:
+userId: dbUser[0].id,
+  src\app\api\phone\purchase\route.ts:253:
+walletId: wallet[0].id,
+  src\app\api\phone\purchase\route.ts:254:
+type: "refund",
+  src\app\api\phone\purchase\route.ts:255:
+amount: monthlyPrice.toFixed(2),
+  src\app\api\webhooks\telnyx\route.ts:7:
+  src\app\api\webhooks\telnyx\route.ts:8:/**
+> src\app\api\webhooks\telnyx\route.ts:9: * Telnyx
+Messaging webhook
+  src\app\api\webhooks\telnyx\route.ts:10: * -
+Verifies Ed25519 signature (Telnyx-Signature-Ed25519
++ Telnyx-Timestamp)
+> src\app\api\webhooks\telnyx\route.ts:11: * -
+Handles inbound SMS (message.received)
+  src\app\api\webhooks\telnyx\route.ts:12: * - Maps
+"to" number â†’ nava_phone_numbers
+> src\app\api\webhooks\telnyx\route.ts:13: * -
+Inserts into nava_phone_messages
+  src\app\api\webhooks\telnyx\route.ts:14: *
+  src\app\api\webhooks\telnyx\route.ts:15: * Env
+required:
+  src\app\api\webhooks\telnyx\route.ts:16: *
+TELNYX_PUBLIC_KEY          (base64 Ed25519 public
+key from Telnyx Mission Control)
+  src\app\api\webhooks\telnyx\route.ts:17: *
+NEXT_PUBLIC_SUPABASE_URL
+> src\app\api\webhooks\telnyx\route.ts:18: *
+SUPABASE_SERVICE_ROLE_KEY  (server-only; bypasses
+RLS for webhook inserts)
+  src\app\api\webhooks\telnyx\route.ts:19: *
+  src\app\api\webhooks\telnyx\route.ts:20: *
+Optional:
+> src\app\api\webhooks\telnyx\route.ts:21: *
+TELNYX_WEBHOOK_MAX_SKEW_SEC  (default 300)
+  src\app\api\webhooks\telnyx\route.ts:22: */
+  src\app\api\webhooks\telnyx\route.ts:23:
+> src\app\api\webhooks\telnyx\route.ts:24:type
+TelnyxInboundPayload = {
+  src\app\api\webhooks\telnyx\route.ts:25:  data?: {
+  src\app\api\webhooks\telnyx\route.ts:26:
+event_type?: string;
+  src\app\api\webhooks\telnyx\route.ts:27:    id?:
+string;
+  src\app\api\webhooks\telnyx\route.ts:28:
+occurred_at?: string;
+  src\app\api\webhooks\telnyx\route.ts:29:
+payload?: {
+> src\app\api\webhooks\telnyx\route.ts:30:
+direction?: string;
+  src\app\api\webhooks\telnyx\route.ts:31:      id?:
+string; // Telnyx message id
+  src\app\api\webhooks\telnyx\route.ts:32:
+from?: { phone_number?: string };
+  src\app\api\webhooks\telnyx\route.ts:33:      to?:
+Array<{ phone_number?: string }> | { phone_number?:
+string };
+  src\app\api\webhooks\telnyx\route.ts:34:
+text?: string;
+  src\app\api\webhooks\telnyx\route.ts:66:}
+  src\app\api\webhooks\telnyx\route.ts:67:
+> src\app\api\webhooks\telnyx\route.ts:68:function
+extractToNumbers(toField:
+TelnyxInboundPayload["data"]): string[] {
+  src\app\api\webhooks\telnyx\route.ts:69:  const
+payload = toField?.payload;
+  src\app\api\webhooks\telnyx\route.ts:70:  if
+(!payload?.to) return [];
+  src\app\api\webhooks\telnyx\route.ts:71:  if
+(Array.isArray(payload.to)) {
+  src\app\api\webhooks\telnyx\route.ts:72:    return
+payload.to
+  src\app\api\webhooks\telnyx\route.ts:79:
+  src\app\api\webhooks\telnyx\route.ts:80:/**
+> src\app\api\webhooks\telnyx\route.ts:81: * Verify
+Telnyx Ed25519 webhook signature.
+  src\app\api\webhooks\telnyx\route.ts:82: * Signed
+payload = `${timestamp}|${rawBody}`
+  src\app\api\webhooks\telnyx\route.ts:83: * Header:
+telnyx-signature-ed25519 (base64), telnyx-timestamp
+(unix sec)
+> src\app\api\webhooks\telnyx\route.ts:84: * @see htt
+ps://developers.telnyx.com/docs/api/v2/overview#webho
+ok-signing
+  src\app\api\webhooks\telnyx\route.ts:85: */
+  src\app\api\webhooks\telnyx\route.ts:86:function
+verifyTelnyxSignature(opts: {
+  src\app\api\webhooks\telnyx\route.ts:87:  rawBody:
+string;
+  src\app\api\webhooks\telnyx\route.ts:88:
+signatureB64: string | null;
+  src\app\api\webhooks\telnyx\route.ts:127:}
+  src\app\api\webhooks\telnyx\route.ts:128:
+> src\app\api\webhooks\telnyx\route.ts:129:function
+isInboundSmsEvent(body: TelnyxInboundPayload):
+boolean {
+  src\app\api\webhooks\telnyx\route.ts:130:  const
+eventType = String(body?.data?.event_type ||
+"").toLowerCase();
+> src\app\api\webhooks\telnyx\route.ts:131:  const
+direction = String(body?.data?.payload?.direction ||
+"").toLowerCase();
+  src\app\api\webhooks\telnyx\route.ts:132:  const
+msgType = String(body?.data?.payload?.type ||
+"").toLowerCase();
+  src\app\api\webhooks\telnyx\route.ts:133:
+> src\app\api\webhooks\telnyx\route.ts:134:  //
+Primary: message.received
+> src\app\api\webhooks\telnyx\route.ts:135:  if
+(eventType === "message.received") return true;
+  src\app\api\webhooks\telnyx\route.ts:136:
+  src\app\api\webhooks\telnyx\route.ts:137:  //
+Fallback shapes some accounts emit
+> src\app\api\webhooks\telnyx\route.ts:138:  if
+(eventType.includes("message") && direction ===
+"inbound") return true;
+> src\app\api\webhooks\telnyx\route.ts:139:  if
+(direction === "inbound" && (msgType === "sms" ||
+msgType === "mms" || !msgType)) {
+  src\app\api\webhooks\telnyx\route.ts:140:
+return Boolean(body?.data?.payload?.text ||
+body?.data?.payload?.from);
+  src\app\api\webhooks\telnyx\route.ts:141:  }
+  src\app\api\webhooks\telnyx\route.ts:142:  return
+false;
+  src\app\api\webhooks\telnyx\route.ts:143:}
+  src\app\api\webhooks\telnyx\route.ts:146:  const
+publicKey = process.env.TELNYX_PUBLIC_KEY;
+  src\app\api\webhooks\telnyx\route.ts:147:  if
+(!publicKey) {
+> src\app\api\webhooks\telnyx\route.ts:148:
+console.error("[telnyx-webhook] TELNYX_PUBLIC_KEY is
+not set");
+  src\app\api\webhooks\telnyx\route.ts:149:
+return NextResponse.json({ error: "Server
+misconfigured" }, { status: 500 });
+  src\app\api\webhooks\telnyx\route.ts:150:  }
+  src\app\api\webhooks\telnyx\route.ts:151:
+> src\app\api\webhooks\telnyx\route.ts:152:  const
+maxSkewSec =
+Number(process.env.TELNYX_WEBHOOK_MAX_SKEW_SEC ||
+300);
+  src\app\api\webhooks\telnyx\route.ts:153:  const
+rawBody = await req.text();
+  src\app\api\webhooks\telnyx\route.ts:154:
+  src\app\api\webhooks\telnyx\route.ts:155:  const
+signature =
+  src\app\api\webhooks\telnyx\route.ts:156:
+req.headers.get("telnyx-signature-ed25519") ||
+  src\app\api\webhooks\telnyx\route.ts:169:
+  src\app\api\webhooks\telnyx\route.ts:170:  if
+(!verified.ok) {
+> src\app\api\webhooks\telnyx\route.ts:171:
+console.warn("[telnyx-webhook] auth failed:",
+verified.reason);
+  src\app\api\webhooks\telnyx\route.ts:172:
+return NextResponse.json({ error: "Unauthorized" },
+{ status: 401 });
+  src\app\api\webhooks\telnyx\route.ts:173:  }
+  src\app\api\webhooks\telnyx\route.ts:174:
+> src\app\api\webhooks\telnyx\route.ts:175:  let
+body: TelnyxInboundPayload;
+  src\app\api\webhooks\telnyx\route.ts:176:  try {
+> src\app\api\webhooks\telnyx\route.ts:177:    body
+= JSON.parse(rawBody) as TelnyxInboundPayload;
+  src\app\api\webhooks\telnyx\route.ts:178:  } catch
+{
+  src\app\api\webhooks\telnyx\route.ts:179:
+return NextResponse.json({ error: "Invalid JSON" },
+{ status: 400 });
+  src\app\api\webhooks\telnyx\route.ts:180:  }
+  src\app\api\webhooks\telnyx\route.ts:181:
+> src\app\api\webhooks\telnyx\route.ts:182:  //
+Always ACK non-inbound quickly (delivery updates,
+etc.)
+> src\app\api\webhooks\telnyx\route.ts:183:  if
+(!isInboundSmsEvent(body)) {
+  src\app\api\webhooks\telnyx\route.ts:184:
+return NextResponse.json({
+  src\app\api\webhooks\telnyx\route.ts:185:
+received: true,
+  src\app\api\webhooks\telnyx\route.ts:186:
+handled: false,
+  src\app\api\webhooks\telnyx\route.ts:187:
+event_type: body?.data?.event_type ?? null,
+  src\app\api\webhooks\telnyx\route.ts:198:
+  src\app\api\webhooks\telnyx\route.ts:199:  if
+(!fromNumber || toCandidates.length === 0) {
+> src\app\api\webhooks\telnyx\route.ts:200:
+console.warn("[telnyx-webhook] inbound missing
+from/to", {
+  src\app\api\webhooks\telnyx\route.ts:201:
+telnyxMessageId,
+  src\app\api\webhooks\telnyx\route.ts:202:
+fromNumber,
+  src\app\api\webhooks\telnyx\route.ts:203:
+toCandidates,
+  src\app\api\webhooks\telnyx\route.ts:204:    });
+  src\app\api\webhooks\telnyx\route.ts:223:
+  src\app\api\webhooks\telnyx\route.ts:224:    if
+(lookupError) {
+> src\app\api\webhooks\telnyx\route.ts:225:
+console.error("[telnyx-webhook] number lookup
+failed:", lookupError);
+  src\app\api\webhooks\telnyx\route.ts:226:
+return NextResponse.json({ error: "Lookup failed" },
+{ status: 500 });
+  src\app\api\webhooks\telnyx\route.ts:227:    }
+  src\app\api\webhooks\telnyx\route.ts:228:
+  src\app\api\webhooks\telnyx\route.ts:229:    const
+navaNumber = navaNumbers?.[0];
+  src\app\api\webhooks\telnyx\route.ts:230:    if
+(!navaNumber) {
+> src\app\api\webhooks\telnyx\route.ts:231:
+console.warn("[telnyx-webhook] no NAVA number for
+to=", toCandidates);
+  src\app\api\webhooks\telnyx\route.ts:232:
+return NextResponse.json({
+  src\app\api\webhooks\telnyx\route.ts:233:
+received: true,
+  src\app\api\webhooks\telnyx\route.ts:234:
+handled: false,
+  src\app\api\webhooks\telnyx\route.ts:235:
+reason: "unknown_destination",
+  src\app\api\webhooks\telnyx\route.ts:244:
+phone_number_id: navaNumber.id,
+  src\app\api\webhooks\telnyx\route.ts:245:
+user_id: navaNumber.user_id,
+> src\app\api\webhooks\telnyx\route.ts:246:
+direction: "inbound" as const,
+> src\app\api\webhooks\telnyx\route.ts:247:
+from_number: fromNumber,
+> src\app\api\webhooks\telnyx\route.ts:248:
+to_number: toNumber,
+  src\app\api\webhooks\telnyx\route.ts:249:
+body: text,
+  src\app\api\webhooks\telnyx\route.ts:250:
+status: "received",
+  src\app\api\webhooks\telnyx\route.ts:251:
+provider_message_id: telnyxMessageId,
+  src\app\api\webhooks\telnyx\route.ts:252:
+created_at: occurredAt,
+  src\app\api\webhooks\telnyx\route.ts:255:    //
+Prefer upsert when provider_message_id is unique
+  src\app\api\webhooks\telnyx\route.ts:256:    const
+{ data: inserted, error: insertError } = await
+supabase
+> src\app\api\webhooks\telnyx\route.ts:257:
+.from("nava_phone_messages")
+> src\app\api\webhooks\telnyx\route.ts:258:
+.upsert(row, {
+  src\app\api\webhooks\telnyx\route.ts:259:
+onConflict: "provider_message_id",
+  src\app\api\webhooks\telnyx\route.ts:260:
+ignoreDuplicates: true,
+  src\app\api\webhooks\telnyx\route.ts:261:      })
+  src\app\api\webhooks\telnyx\route.ts:262:
+.select("id")
+  src\app\api\webhooks\telnyx\route.ts:272:
+  src\app\api\webhooks\telnyx\route.ts:273:      if
+(!missingConflict) {
+> src\app\api\webhooks\telnyx\route.ts:274:
+console.error("[telnyx-webhook] insert failed:",
+insertError);
+  src\app\api\webhooks\telnyx\route.ts:275:
+return NextResponse.json({ error: "Persist failed"
+}, { status: 500 });
+  src\app\api\webhooks\telnyx\route.ts:276:      }
+  src\app\api\webhooks\telnyx\route.ts:277:
+  src\app\api\webhooks\telnyx\route.ts:278:      //
+Fallback insert without optional columns
+  src\app\api\webhooks\telnyx\route.ts:281:
+user_id: navaNumber.user_id,
+  src\app\api\webhooks\telnyx\route.ts:282:
+provider_message_id: telnyxMessageId,
+> src\app\api\webhooks\telnyx\route.ts:283:
+direction: "inbound" as const,
+> src\app\api\webhooks\telnyx\route.ts:284:
+from_number: fromNumber,
+> src\app\api\webhooks\telnyx\route.ts:285:
+to_number: toNumber,
+  src\app\api\webhooks\telnyx\route.ts:286:
+body: text,
+  src\app\api\webhooks\telnyx\route.ts:287:
+status: "received",
+  src\app\api\webhooks\telnyx\route.ts:288:
+created_at: occurredAt,
+  src\app\api\webhooks\telnyx\route.ts:289:      };
+  src\app\api\webhooks\telnyx\route.ts:292:      if
+(telnyxMessageId) {
+  src\app\api\webhooks\telnyx\route.ts:293:
+const { data: existing } = await supabase
+> src\app\api\webhooks\telnyx\route.ts:294:
+.from("nava_phone_messages")
+  src\app\api\webhooks\telnyx\route.ts:295:
+.select("id")
+> src\app\api\webhooks\telnyx\route.ts:296:
+.eq("from_number", fromNumber)
+> src\app\api\webhooks\telnyx\route.ts:297:
+.eq("to_number", toNumber)
+  src\app\api\webhooks\telnyx\route.ts:298:
+.eq("body", text)
+  src\app\api\webhooks\telnyx\route.ts:299:
+.gte("created_at", new Date(Date.now() - 2 * 60 *
+1000).toISOString())
+  src\app\api\webhooks\telnyx\route.ts:300:
+.limit(1);
+  src\app\api\webhooks\telnyx\route.ts:301:
+  src\app\api\webhooks\telnyx\route.ts:311:
+  src\app\api\webhooks\telnyx\route.ts:312:
+const { data: inserted2, error: insertError2 } =
+await supabase
+> src\app\api\webhooks\telnyx\route.ts:313:
+.from("nava_phone_messages")
+> src\app\api\webhooks\telnyx\route.ts:314:
+.insert(fallback)
+  src\app\api\webhooks\telnyx\route.ts:315:
+.select("id")
+  src\app\api\webhooks\telnyx\route.ts:316:
+.maybeSingle();
+  src\app\api\webhooks\telnyx\route.ts:317:
+  src\app\api\webhooks\telnyx\route.ts:318:      if
+(insertError2) {
+> src\app\api\webhooks\telnyx\route.ts:319:
+console.error("[telnyx-webhook] fallback insert
+failed:", insertError2);
+  src\app\api\webhooks\telnyx\route.ts:320:
+return NextResponse.json({ error: "Persist failed"
+}, { status: 500 });
+  src\app\api\webhooks\telnyx\route.ts:321:      }
+  src\app\api\webhooks\telnyx\route.ts:322:
+  src\app\api\webhooks\telnyx\route.ts:323:
+return NextResponse.json({
+  src\app\api\webhooks\telnyx\route.ts:336:    });
+  src\app\api\webhooks\telnyx\route.ts:337:  } catch
+(err: any) {
+> src\app\api\webhooks\telnyx\route.ts:338:
+console.error("[telnyx-webhook] unhandled:", err);
+  src\app\api\webhooks\telnyx\route.ts:339:
+return NextResponse.json(
+> src\app\api\webhooks\telnyx\route.ts:340:      {
+error: err?.message || "Webhook handler error" },
+  src\app\api\webhooks\telnyx\route.ts:341:      {
+status: 500 },
+  src\app\api\webhooks\telnyx\route.ts:342:    );
+  src\app\api\webhooks\telnyx\route.ts:343:  }
+  src\app\api\webhooks\telnyx\route.ts:344:}
+  src\app\api\webhooks\telnyx\route.ts:348:  return
+NextResponse.json({
+  src\app\api\webhooks\telnyx\route.ts:349:    ok:
+true,
+> src\app\api\webhooks\telnyx\route.ts:350:
+service: "nava-telnyx-webhook",
+  src\app\api\webhooks\telnyx\route.ts:351:    ts:
+new Date().toISOString(),
+  src\app\api\webhooks\telnyx\route.ts:352:  });
+  src\app\api\webhooks\telnyx\route.ts:353:}
+  src\app\api\webhooks\telnyx\route.ts:354:
