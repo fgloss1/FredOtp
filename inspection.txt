@@ -1,144 +1,318 @@
-PS C:\Users\Sire-F\OneDrive\Desktop\My Projects\nava-otp>
-PS C:\Users\Sire-F\OneDrive\Desktop\My Projects\nava-otp> $Root = "C:\Users\Sire-F\OneDrive\Desktop\My Projects\nava-otp"
-PS C:\Users\Sire-F\OneDrive\Desktop\My Projects\nava-otp> Set-Location $Root
-PS C:\Users\Sire-F\OneDrive\Desktop\My Projects\nava-otp> $ErrorActionPreference = "Stop"
-PS C:\Users\Sire-F\OneDrive\Desktop\My Projects\nava-otp>
-PS C:\Users\Sire-F\OneDrive\Desktop\My Projects\nava-otp> Write-Host "`n=== REPOSITORY ===" -ForegroundColor Cyan
+Stage A — Migration ready for review (no files written)
+Approvals locked in from your reply:
 
-=== REPOSITORY ===
-PS C:\Users\Sire-F\OneDrive\Desktop\My Projects\nava-otp> git rev-parse --show-toplevel
-C:/Users/Sire-F/OneDrive/Desktop/My Projects/nava-otp
-PS C:\Users\Sire-F\OneDrive\Desktop\My Projects\nava-otp>
-PS C:\Users\Sire-F\OneDrive\Desktop\My Projects\nava-otp> Write-Host "`n=== CURRENT BRANCH ===" -ForegroundColor Cyan
+Wallet: existing OTP Supabase balance (same as otp_balance_adjust_atomic).
+Admin: public.is_admin_user() only if verified in migrations. I will read it in Stage D before writing any admin route. If missing/unsuitable → stop and report.
+QR / activation: private Supabase Storage bucket + short-lived signed URLs. Nothing public, nothing in logs.
+Nav: additive “US eSIM” link on /dashboard/rentals is in scope this pass.
+No push, no merge, no deploy. Current branch only.
+Below is exactly what Stage A will add. Nothing else is touched.
 
-=== CURRENT BRANCH ===
-PS C:\Users\Sire-F\OneDrive\Desktop\My Projects\nava-otp> git branch --show-current
-NAVA-TELNYX-PHONE-WORK
-PS C:\Users\Sire-F\OneDrive\Desktop\My Projects\nava-otp>
-PS C:\Users\Sire-F\OneDrive\Desktop\My Projects\nava-otp> Write-Host "`n=== REMOTES ===" -ForegroundColor Cyan
+Files Stage A will create
+text
 
-=== REMOTES ===
-PS C:\Users\Sire-F\OneDrive\Desktop\My Projects\nava-otp> git remote -v
-origin  https://github.com/fgloss1/FredOtp.git (fetch)
-origin  https://github.com/fgloss1/FredOtp.git (push)
-PS C:\Users\Sire-F\OneDrive\Desktop\My Projects\nava-otp>
-PS C:\Users\Sire-F\OneDrive\Desktop\My Projects\nava-otp> Write-Host "`n=== WORKING TREE STATUS ===" -ForegroundColor Cyan
+supabase/migrations/20260115_nava_esim_init.sql
+supabase/storage/README-nava-esim-qr.md         # docs only, no code
+Everything else (lib, API routes, UI, admin, cron, nav link) is Stages B–F and will be requested for approval separately.
 
-=== WORKING TREE STATUS ===
-PS C:\Users\Sire-F\OneDrive\Desktop\My Projects\nava-otp> git status --short
- M package-lock.json
- M package.json
- M src/app/api/phone/messages/route.ts
- M src/app/api/webhooks/telnyx/route.ts
- M src/app/dashboard/layout.tsx
- M src/app/dashboard/sms/calling/page.tsx
-MM src/app/dashboard/sms/inbox/page.tsx
- M src/app/dashboard/sms/page.tsx
- M src/components/IdleTimer.tsx
-?? _SAFE_BACKUPS/
-?? nava-otp-SAFE-BACKUP-20261007/
-?? nava-otp/
-?? src/app/api/phone/voice/
-?? src/app/dashboard/sms/calling/page.tsx.AI-BACKUP-20261008
-?? src/app/dashboard/sms/calling/page.tsx.OUTBOUND-CALL-WORKING-20261009
-?? src/app/dashboard/sms/calling/page.tsx.PRE-DIALER-LINK-FIX
-?? src/app/dashboard/sms/calling/page.tsx.PRE-READY-FIX-20261009
-?? src/app/dashboard/sms/inbox/page.tsx.PRE-DIALER-LINK-FIX
-?? src/app/dashboard/sms/inbox/page.tsx.PRE-IN-CALL-DTMF-20261009
-?? src/app/dashboard/sms/inbox/page.tsx.PRE-INLINE-TELNYX-20261009
-?? src/app/dashboard/sms/inbox/page.tsx.PRE-REMOTE-HANGUP-DIAGNOSTIC-20261009
-?? src/app/dashboard/sms/inbox/page.tsx.PRE-REMOTE-HANGUP-FIX-20261009
-?? src/app/dashboard/sms/inbox/page.tsx.backup
-?? tsconfig.tsbuildinfo
-PS C:\Users\Sire-F\OneDrive\Desktop\My Projects\nava-otp>
-PS C:\Users\Sire-F\OneDrive\Desktop\My Projects\nava-otp> Write-Host "`n=== TRACKED FILE CHANGES ===" -ForegroundColor Cyan
+Files Stage A will NOT touch:
 
-=== TRACKED FILE CHANGES ===
-PS C:\Users\Sire-F\OneDrive\Desktop\My Projects\nava-otp> git diff --name-status
-warning: in the working copy of 'package-lock.json', LF will be replaced by CRLF the next time Git touches it
-warning: in the working copy of 'package.json', LF will be replaced by CRLF the next time Git touches it
-warning: in the working copy of 'src/app/dashboard/sms/calling/page.tsx', LF will be replaced by CRLF the next time Git touches it
-M       package-lock.json
-M       package.json
-M       src/app/api/phone/messages/route.ts
-M       src/app/api/webhooks/telnyx/route.ts
-M       src/app/dashboard/layout.tsx
-M       src/app/dashboard/sms/calling/page.tsx
-M       src/app/dashboard/sms/inbox/page.tsx
-M       src/app/dashboard/sms/page.tsx
-M       src/components/IdleTimer.tsx
-PS C:\Users\Sire-F\OneDrive\Desktop\My Projects\nava-otp>
-PS C:\Users\Sire-F\OneDrive\Desktop\My Projects\nava-otp> Write-Host "`n=== ALREADY STAGED CHANGES ===" -ForegroundColor Cyan
+text
 
-=== ALREADY STAGED CHANGES ===
-PS C:\Users\Sire-F\OneDrive\Desktop\My Projects\nava-otp> git diff --cached --name-status
-M       src/app/dashboard/sms/inbox/page.tsx
-PS C:\Users\Sire-F\OneDrive\Desktop\My Projects\nava-otp>
-PS C:\Users\Sire-F\OneDrive\Desktop\My Projects\nava-otp> Write-Host "`n=== UNTRACKED FILES ===" -ForegroundColor Cyan
+src/app/api/otp/**
+src/app/api/5sim/**
+src/app/api/rentals/**
+src/app/api/wallet/**
+src/app/dashboard/rentals/page.tsx
+src/lib/wallet.ts
+src/db/schema.ts
+supabase/migrations/20261006_otp_wallet_security.sql
+any .env file
+Private storage bucket (manual, not in SQL)
+The migration cannot reliably create a Storage bucket on all Supabase projects, so Stage A documents it instead. After migration is approved, you (or I via Supabase CLI if you want) create:
 
-=== UNTRACKED FILES ===
-PS C:\Users\Sire-F\OneDrive\Desktop\My Projects\nava-otp> git ls-files --others --exclude-standard
-_SAFE_BACKUPS/OTP_API_TYPEFIX_20261007_182725/route.ts
-_SAFE_BACKUPS/OTP_RESTORE_FINAL_20261007_170641/OtpCatalog.tsx
-_SAFE_BACKUPS/OTP_RESTORE_FINAL_20261007_170641/otp-route.ts
-_SAFE_BACKUPS/OTP_SMS_NOTICE_20261007_185955/OtpCatalog.tsx
-_SAFE_BACKUPS/OTP_SMS_NOTICE_20261007_190126/OtpCatalog.tsx
-_SAFE_BACKUPS/OTP_UI_RESTORE_20261007_165734/OtpCatalog.tsx
-_SAFE_BACKUPS/OTP_UI_RESTORE_20261007_165734/dashboard-page.tsx
-_SAFE_BACKUPS/OTP_WHITESPACE_FIX_20261007_191520/OtpCatalog.tsx
-_SAFE_BACKUPS/TSCONFIG_FIX_20261007_184044/tsconfig.json
-_SAFE_BACKUPS/TYPECHECK_FIX_20261007_183030/OtpCatalog.tsx
-_SAFE_BACKUPS/TYPECHECK_FIX_20261007_183030/tsconfig.json
-_SAFE_BACKUPS/telnyx-route-before-crypto-fix-20261009_092224.ts
-_SAFE_BACKUPS/telnyx-route-before-schema-fix-20261009_031833.ts
-_SAFE_BACKUPS/telnyx-route-before-schema-fix-20261009_032008.ts
-nava-otp-SAFE-BACKUP-20261007/
-nava-otp/
-src/app/api/phone/voice/token/route.ts
-src/app/dashboard/sms/calling/page.tsx.AI-BACKUP-20261008
-src/app/dashboard/sms/calling/page.tsx.OUTBOUND-CALL-WORKING-20261009
-src/app/dashboard/sms/calling/page.tsx.PRE-DIALER-LINK-FIX
-src/app/dashboard/sms/calling/page.tsx.PRE-READY-FIX-20261009
-src/app/dashboard/sms/inbox/page.tsx.PRE-DIALER-LINK-FIX
-src/app/dashboard/sms/inbox/page.tsx.PRE-IN-CALL-DTMF-20261009
-src/app/dashboard/sms/inbox/page.tsx.PRE-INLINE-TELNYX-20261009
-src/app/dashboard/sms/inbox/page.tsx.PRE-REMOTE-HANGUP-DIAGNOSTIC-20261009
-src/app/dashboard/sms/inbox/page.tsx.PRE-REMOTE-HANGUP-FIX-20261009
-src/app/dashboard/sms/inbox/page.tsx.backup
-tsconfig.tsbuildinfo
-PS C:\Users\Sire-F\OneDrive\Desktop\My Projects\nava-otp>
-PS C:\Users\Sire-F\OneDrive\Desktop\My Projects\nava-otp> Write-Host "`n=== CHANGE SUMMARY ===" -ForegroundColor Cyan
+Bucket name: nava-esim-qr
+Public: false
+RLS: default deny; server routes use service role to upload; customer/admin reads via short-lived signed URL only.
+supabase/storage/README-nava-esim-qr.md will contain only those instructions. No executable code.
 
-=== CHANGE SUMMARY ===
-PS C:\Users\Sire-F\OneDrive\Desktop\My Projects\nava-otp> git diff --stat
-warning: in the working copy of 'package-lock.json', LF will be replaced by CRLF the next time Git touches it
-warning: in the working copy of 'package.json', LF will be replaced by CRLF the next time Git touches it
-warning: in the working copy of 'src/app/dashboard/sms/calling/page.tsx', LF will be replaced by CRLF the next time Git touches it
- package-lock.json                      |   70 +
- package.json                           |    1 +
- src/app/api/phone/messages/route.ts    |   46 +
- src/app/api/webhooks/telnyx/route.ts   |    4 +-
- src/app/dashboard/layout.tsx           |  159 +-
- src/app/dashboard/sms/calling/page.tsx |  781 +++++++-
- src/app/dashboard/sms/inbox/page.tsx   | 3109 ++++++++++++++++++++++++--------
- src/app/dashboard/sms/page.tsx         |  527 +++++-
- src/components/IdleTimer.tsx           |    4 +-
- 9 files changed, 3748 insertions(+), 953 deletions(-)
-PS C:\Users\Sire-F\OneDrive\Desktop\My Projects\nava-otp> git diff --cached --stat
- src/app/dashboard/sms/inbox/page.tsx | 653 +++++++++++++++++++++--------------
- 1 file changed, 389 insertions(+), 264 deletions(-)
-PS C:\Users\Sire-F\OneDrive\Desktop\My Projects\nava-otp>
-PS C:\Users\Sire-F\OneDrive\Desktop\My Projects\nava-otp> Write-Host "`n=== WHITESPACE CHECK ===" -ForegroundColor Cyan
+Exact migration SQL
+File: supabase/migrations/20260115_nava_esim_init.sql
 
-=== WHITESPACE CHECK ===
-PS C:\Users\Sire-F\OneDrive\Desktop\My Projects\nava-otp> git diff --check
-warning: in the working copy of 'package-lock.json', LF will be replaced by CRLF the next time Git touches it
-warning: in the working copy of 'package.json', LF will be replaced by CRLF the next time Git touches it
-warning: in the working copy of 'src/app/dashboard/sms/calling/page.tsx', LF will be replaced by CRLF the next time Git touches it
-src/app/dashboard/layout.tsx:142: trailing whitespace.
-+
-src/app/dashboard/layout.tsx:160: trailing whitespace.
-+
-src/app/dashboard/layout.tsx:506: trailing whitespace.
-+
-PS C:\Users\Sire-F\OneDrive\Desktop\My Projects\nava-otp>
+SQL
+
+-- =====================================================================
+-- NAVA eSIM — Stage A: additive schema only
+-- Does NOT modify existing OTP, 5SIM, rentals, wallet, or auth logic.
+-- Wallet debits for eSIM will be performed in app code using the
+-- EXISTING OTP balance RPC (otp_balance_adjust_atomic). This migration
+-- only creates eSIM-side tables, constraints, indexes, RLS, and seed.
+-- =====================================================================
+
+create extension if not exists pgcrypto;
+
+-- ---------------------------------------------------------------------
+-- Plans catalogue
+-- Prices are integer cents. Browser must never submit totals.
+-- is_purchasable is the per-plan kill switch; a global env flag
+-- (ESIM_PUBLIC_SALES_ENABLED) is also enforced in app code.
+-- ---------------------------------------------------------------------
+create table if not exists public.nava_esim_plans (
+  id uuid primary key default gen_random_uuid(),
+  supplier text not null default 'nexitel',
+  carrier text not null,
+  code text not null unique,
+  name text not null,
+  description text not null default '',
+  talk_minutes integer,                       -- null = unlimited
+  text_allowance text not null default 'unlimited',
+  data_mb integer,                            -- null = none/unlimited (per product)
+  supports_zip boolean not null default false,
+  duration_days integer not null default 30 check (duration_days > 0),
+  activation_plan_cents integer not null check (activation_plan_cents >= 0),
+  activation_regulatory_fee_cents integer not null default 0 check (activation_regulatory_fee_cents >= 0),
+  activation_tax_cents integer not null default 0 check (activation_tax_cents >= 0),
+  renewal_plan_cents integer not null check (renewal_plan_cents >= 0),
+  renewal_regulatory_fee_cents integer not null default 0 check (renewal_regulatory_fee_cents >= 0),
+  renewal_tax_cents integer not null default 0 check (renewal_tax_cents >= 0),
+  price_source text not null,                 -- e.g. 'manual_verified_checkout_2026-01-xx'
+  price_verified_at timestamptz,
+  fulfillment_method text not null default 'manual'
+    check (fulfillment_method in ('manual','api')),
+  is_visible boolean not null default true,
+  is_purchasable boolean not null default false,
+  created_at timestamptz not null default now(),
+  updated_at timestamptz not null default now()
+);
+
+create index if not exists nava_esim_plans_visible_idx
+  on public.nava_esim_plans (is_visible, is_purchasable);
+
+-- ---------------------------------------------------------------------
+-- Orders (activation + renewal share this table; snapshot pricing)
+-- ---------------------------------------------------------------------
+create table if not exists public.nava_esim_orders (
+  id uuid primary key default gen_random_uuid(),
+  user_id uuid not null references auth.users (id) on delete restrict,
+  plan_id uuid not null references public.nava_esim_plans (id) on delete restrict,
+  order_type text not null check (order_type in ('activation','renewal')),
+  parent_order_id uuid references public.nava_esim_orders (id) on delete restrict,
+  zip_code text,
+
+  -- Frozen quote snapshot (cents)
+  plan_price_cents integer not null check (plan_price_cents >= 0),
+  regulatory_fee_cents integer not null check (regulatory_fee_cents >= 0),
+  tax_cents integer not null check (tax_cents >= 0),
+  total_cents integer not null check (total_cents >= 0),
+  currency text not null default 'USD',
+
+  -- Payment / idempotency
+  idempotency_key text not null,
+  wallet_debit_ref text,                      -- opaque ref written by app after RPC debit
+
+  -- Status machine (enforced in app + CHECK)
+  status text not null default 'pending_payment'
+    check (status in (
+      'pending_payment',
+      'paid_awaiting_fulfillment',
+      'processing',
+      'active',
+      'renewal_pending',
+      'renewal_processing',
+      'renewal_completed',
+      'failed_requires_review',
+      'refunded'
+    )),
+
+  -- Fulfillment (manual v1)
+  assigned_phone_number text,                 -- E.164 when fulfilled
+  activation_starts_at timestamptz,
+  activation_expires_at timestamptz,
+  fulfilled_by uuid references auth.users (id),
+  fulfilled_at timestamptz,
+  supplier_confirmation text,                 -- admin note / ticket id, NOT a fake API payload
+  failure_reason text,
+
+  created_at timestamptz not null default now(),
+  updated_at timestamptz not null default now(),
+
+  constraint nava_esim_orders_idempotency
+    unique (user_id, idempotency_key),
+
+  constraint nava_esim_orders_total_matches
+    check (total_cents = plan_price_cents + regulatory_fee_cents + tax_cents),
+
+  constraint nava_esim_orders_renewal_parent
+    check (
+      (order_type = 'activation' and parent_order_id is null)
+      or
+      (order_type = 'renewal' and parent_order_id is not null)
+    )
+);
+
+create index if not exists nava_esim_orders_user_idx
+  on public.nava_esim_orders (user_id, created_at desc);
+
+create index if not exists nava_esim_orders_status_idx
+  on public.nava_esim_orders (status);
+
+create index if not exists nava_esim_orders_expiry_active_idx
+  on public.nava_esim_orders (activation_expires_at)
+  where status = 'active';
+
+-- ---------------------------------------------------------------------
+-- Secrets table (QR + activation code).
+-- NOT selectable by clients. Served only through server routes that
+-- re-verify ownership and current status, with short-lived signed URLs.
+-- ---------------------------------------------------------------------
+create table if not exists public.nava_esim_order_secrets (
+  order_id uuid primary key
+    references public.nava_esim_orders (id) on delete cascade,
+  activation_code_encrypted text,             -- app-level encryption, not plaintext
+  qr_storage_bucket text not null default 'nava-esim-qr',
+  qr_storage_path text,                       -- object path inside private bucket
+  customer_instructions text,
+  created_at timestamptz not null default now(),
+  updated_at timestamptz not null default now()
+);
+
+-- ---------------------------------------------------------------------
+-- Reminders (idempotent per order + reminder_type + channel)
+-- ---------------------------------------------------------------------
+create table if not exists public.nava_esim_reminders (
+  id uuid primary key default gen_random_uuid(),
+  order_id uuid not null
+    references public.nava_esim_orders (id) on delete cascade,
+  reminder_type text not null
+    check (reminder_type in ('expiry_7d','expiry_3d','expiry_1d')),
+  channel text not null check (channel in ('email','inapp')),
+  sent_at timestamptz not null default now(),
+  unique (order_id, reminder_type, channel)
+);
+
+-- ---------------------------------------------------------------------
+-- updated_at trigger (local to eSIM tables; no global side effects)
+-- ---------------------------------------------------------------------
+create or replace function public.nava_esim_set_updated_at()
+returns trigger
+language plpgsql
+as $$
+begin
+  new.updated_at = now();
+  return new;
+end;
+$$;
+
+drop trigger if exists nava_esim_plans_updated_at on public.nava_esim_plans;
+create trigger nava_esim_plans_updated_at
+  before update on public.nava_esim_plans
+  for each row execute function public.nava_esim_set_updated_at();
+
+drop trigger if exists nava_esim_orders_updated_at on public.nava_esim_orders;
+create trigger nava_esim_orders_updated_at
+  before update on public.nava_esim_orders
+  for each row execute function public.nava_esim_set_updated_at();
+
+drop trigger if exists nava_esim_order_secrets_updated_at on public.nava_esim_order_secrets;
+create trigger nava_esim_order_secrets_updated_at
+  before update on public.nava_esim_order_secrets
+  for each row execute function public.nava_esim_set_updated_at();
+
+-- ---------------------------------------------------------------------
+-- Row Level Security
+-- Writes only via server (service role). Reads scoped to owner.
+-- Secrets table has NO select policy for authenticated → denied.
+-- ---------------------------------------------------------------------
+alter table public.nava_esim_plans          enable row level security;
+alter table public.nava_esim_orders         enable row level security;
+alter table public.nava_esim_order_secrets  enable row level security;
+alter table public.nava_esim_reminders      enable row level security;
+
+drop policy if exists nava_esim_plans_select_visible on public.nava_esim_plans;
+create policy nava_esim_plans_select_visible
+  on public.nava_esim_plans
+  for select
+  to authenticated
+  using (is_visible = true);
+
+drop policy if exists nava_esim_orders_select_own on public.nava_esim_orders;
+create policy nava_esim_orders_select_own
+  on public.nava_esim_orders
+  for select
+  to authenticated
+  using (user_id = auth.uid());
+
+-- Intentionally no policies on:
+--   nava_esim_order_secrets  (deny-by-default under RLS)
+--   nava_esim_reminders      (server-only)
+-- Service role bypasses RLS and is used only in server routes.
+
+-- ---------------------------------------------------------------------
+-- Seed (safe defaults; both NOT purchasable; global env flag still
+-- required before any customer can buy)
+-- PurpleText totals from verified checkout notes:
+--   activation: 900 + 200 + 88  = 1188  cents  ($11.88)
+--   renewal:   1000 + 200 + 96  = 1296  cents  ($12.96)
+-- PurpleMax: advertised; checkout NOT verified → zero prices + not purchasable.
+-- Blue/AT&T: intentionally omitted until verified.
+-- ---------------------------------------------------------------------
+insert into public.nava_esim_plans (
+  supplier, carrier, code, name, description,
+  talk_minutes, text_allowance, data_mb, supports_zip, duration_days,
+  activation_plan_cents, activation_regulatory_fee_cents, activation_tax_cents,
+  renewal_plan_cents, renewal_regulatory_fee_cents, renewal_tax_cents,
+  price_source, price_verified_at, fulfillment_method,
+  is_visible, is_purchasable
+) values (
+  'nexitel','purple','purple_text','PurpleText',
+  '300 talk minutes and unlimited texts (US mobile eSIM). Manual fulfillment until supplier API is authorized.',
+  300,'unlimited',null,false,30,
+  900,200,88,
+  1000,200,96,
+  'manual_verified_checkout_customer_notes', now(), 'manual',
+  true, false
+)
+on conflict (code) do nothing;
+
+insert into public.nava_esim_plans (
+  supplier, carrier, code, name, description,
+  talk_minutes, text_allowance, data_mb, supports_zip, duration_days,
+  activation_plan_cents, activation_regulatory_fee_cents, activation_tax_cents,
+  renewal_plan_cents, renewal_regulatory_fee_cents, renewal_tax_cents,
+  price_source, price_verified_at, fulfillment_method,
+  is_visible, is_purchasable
+) values (
+  'nexitel','purple','purple_max','PurpleMax',
+  'Unlimited talk/text with 500 MB data (advertised). CHECKOUT TOTAL NOT VERIFIED — not purchasable.',
+  null,'unlimited',500,false,30,
+  0,0,0,
+  0,0,0,
+  'advertised_unverified', null, 'manual',
+  true, false
+)
+on conflict (code) do nothing;
+
+-- End of Stage A.
+What this migration explicitly does not do
+Does not create a Storage bucket (manual step, documented).
+Does not create any admin role or auth function.
+Does not reference is_admin_user() yet — Stage D only, after verification.
+Does not debit any wallet — Stage C only, via existing OTP RPC in app code.
+Does not insert PurpleMax or Blue/AT&T as purchasable.
+Does not grant any public read on secrets or reminders.
+Does not change existing tables, policies, functions, or triggers.
+Verification I will run after you approve apply (local only)
+supabase db diff / supabase migration up on local Supabase.
+Confirm the four new tables exist and RLS is enabled on all four.
+Confirm select * from nava_esim_plans as an anon user returns zero rows; as an authenticated user returns the two visible rows.
+Confirm select * from nava_esim_order_secrets as authenticated user returns permission denied (deny-by-default under RLS).
+Confirm no existing OTP / wallet / rentals test (if present) regressed. If none exists, I will only report that no regression tests were run and will not claim success.
+Confirm no changes outside supabase/migrations/20260115_nava_esim_init.sql and the storage README.
+I will report pass/fail honestly per section 11.
+
+Awaiting your explicit go
+Please reply with one of:
+
+“Apply Stage A” — I run the migration locally only, then report.
+Edits requested — list changes to SQL/paths before apply.
+No files are written yet. No push, no merge, no deploy.
