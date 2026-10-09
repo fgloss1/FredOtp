@@ -1,443 +1,489 @@
 PS C:\Users\Sire-F\OneDrive\Desktop\My Projects\nava-otp> $root = "C:\Users\Sire-F\OneDrive\Desktop\My Projects\nava-otp"
 PS C:\Users\Sire-F\OneDrive\Desktop\My Projects\nava-otp>
-PS C:\Users\Sire-F\OneDrive\Desktop\My Projects\nava-otp> Write-Host "`n--- MESSAGES WORKSPACE CALL UI ---"
+PS C:\Users\Sire-F\OneDrive\Desktop\My Projects\nava-otp> Write-Host "`n--- MESSAGES WORKSPACE: IMPORTS, STATE AND INITIAL EFFECTS ---"
 
---- MESSAGES WORKSPACE CALL UI ---
+--- MESSAGES WORKSPACE: IMPORTS, STATE AND INITIAL EFFECTS ---
+PS C:\Users\Sire-F\OneDrive\Desktop\My Projects\nava-otp> Get-Content "$root\src\app\dashboard\sms\inbox\page.tsx" |
+>>     Select-Object -Skip 0 -First 220
+"use client";
+
+import Link from "next/link";
+import { useEffect, useMemo, useRef, useState } from "react";
+
+type PhoneNumber = {
+  id: string;
+  phone_number: string;
+  country_code: string | null;
+  status: "active" | "suspended" | "released";
+};
+
+type Message = {
+  id: string;
+  phone_number_id: string;
+  direction: "inbound" | "outbound";
+  from_number: string;
+  to_number: string;
+  body: string;
+  status: string;
+  created_at: string;
+};
+
+type SavedContact = {
+  name: string;
+  label?: string;
+};
+
+type InPlaceCall = {
+  to: string;
+  startedAt: number;
+  muted: boolean;
+};
+
+const CONTACTS_STORAGE_KEY = "nava-phone-contacts-v1";
+
+function formatPhoneNumber(value: string) {
+  const digits = value.replace(/\D/g, "");
+  if (digits.length === 11 && digits.startsWith("1")) {
+    return `+1 (${digits.slice(1, 4)}) ${digits.slice(4, 7)}-${digits.slice(7)}`;
+  }
+  if (digits.length === 10) {
+    return `(${digits.slice(0, 3)}) ${digits.slice(3, 6)}-${digits.slice(6)}`;
+  }
+  if (digits.length > 10 && digits.startsWith("1")) {
+    return `+1 ${digits.slice(1)}`;
+  }
+  return value.startsWith("+") ? value : value;
+}
+
+function normalizePhoneKey(value: string) {
+  const digits = value.replace(/\D/g, "");
+  if (digits.length === 10) return `+1${digits}`;
+  if (digits.length === 11 && digits.startsWith("1")) return `+${digits}`;
+  if (value.trim().startsWith("+")) return `+${digits}`;
+  return digits ? `+${digits}` : value.trim();
+}
+
+function flagForCountry(input: string | null) {
+  if (!input) return "ðŸŒ";
+  const cleaned = input.trim();
+  if (cleaned.length === 2 && /^[a-zA-Z]+$/.test(cleaned)) {
+    return cleaned
+      .toUpperCase()
+      .split("")
+      .map((letter) => String.fromCodePoint(127397 + letter.charCodeAt(0)))
+      .join("");
+  }
+  const digits = cleaned.replace(/[^+\d]/g, "");
+  if (digits.startsWith("+1")) return "ðŸ‡ºðŸ‡¸";
+  if (digits.startsWith("+44")) return "ðŸ‡¬ðŸ‡§";
+  if (digits.startsWith("+234")) return "ðŸ‡³ðŸ‡¬";
+  if (digits.startsWith("+61")) return "ðŸ‡¦ðŸ‡º";
+  if (digits.startsWith("+49")) return "ðŸ‡©ðŸ‡ª";
+  if (digits.startsWith("+33")) return "ðŸ‡«ðŸ‡·";
+  if (digits.startsWith("+31")) return "ðŸ‡³ðŸ‡±";
+  return "ðŸŒ";
+}
+
+function formatMessageTime(value: string) {
+  return new Date(value).toLocaleTimeString([], { hour: "numeric", minute: "2-digit" });
+}
+
+function formatThreadDay(value: string) {
+  const d = new Date(value);
+  const now = new Date();
+  const startToday = new Date(now.getFullYear(), now.getMonth(), now.getDate());
+  const startMsg = new Date(d.getFullYear(), d.getMonth(), d.getDate());
+  const diffDays = Math.round((startToday.getTime() - startMsg.getTime()) / 86400000);
+  if (diffDays === 0) return formatMessageTime(value);
+  if (diffDays === 1) return "Yesterday";
+  if (diffDays < 7) return d.toLocaleDateString([], { weekday: "short" });
+  return d.toLocaleDateString([], { day: "numeric", month: "short" });
+}
+
+function formatCallDuration(ms: number) {
+  const s = Math.max(0, Math.floor(ms / 1000));
+  const m = Math.floor(s / 60);
+  const r = s % 60;
+  return `${m}:${r.toString().padStart(2, "0")}`;
+}
+
+function avatarColor(seed: string) {
+  const colors = [
+    "bg-violet-500",
+    "bg-orange-500",
+    "bg-blue-500",
+    "bg-emerald-500",
+    "bg-rose-500",
+    "bg-cyan-500",
+    "bg-indigo-500",
+    "bg-fuchsia-500",
+    "bg-amber-500",
+    "bg-teal-500",
+  ];
+  let hash = 0;
+  for (let i = 0; i < seed.length; i++) hash = seed.charCodeAt(i) + ((hash << 5) - hash);
+  return colors[Math.abs(hash) % colors.length];
+}
+
+function loadContactsMap(): Record<string, SavedContact> {
+  if (typeof window === "undefined") return {};
+  try {
+    const raw = localStorage.getItem(CONTACTS_STORAGE_KEY);
+    if (!raw) return {};
+    const parsed = JSON.parse(raw);
+    return parsed && typeof parsed === "object" ? parsed : {};
+  } catch {
+    return {};
+  }
+}
+
+function saveContactsMap(map: Record<string, SavedContact>) {
+  if (typeof window === "undefined") return;
+  localStorage.setItem(CONTACTS_STORAGE_KEY, JSON.stringify(map));
+}
+
+export default function Page() {
+  const [darkMode, setDarkMode] = useState(true);
+  const [numbers, setNumbers] = useState<PhoneNumber[]>([]);
+  const [messages, setMessages] = useState<Message[]>([]);
+  const [selectedNumberId, setSelectedNumberId] = useState("");
+  const [recipient, setRecipient] = useState("");
+  const [text, setText] = useState("");
+  const [loading, setLoading] = useState(true);
+  const [sending, setSending] = useState(false);
+  const [error, setError] = useState("");
+  const [notice, setNotice] = useState("");
+  const [composeOpen, setComposeOpen] = useState(false);
+  const [addNumberOpen, setAddNumberOpen] = useState(false);
+
+  const [mobileView, setMobileView] = useState<"list" | "conversation" | "compose" | "contacts">("list");
+  const [mobilePeer, setMobilePeer] = useState("");
+  const [mobileSearch, setMobileSearch] = useState("");
+  const [mobileFromPickerOpen, setMobileFromPickerOpen] = useState(false);
+
+  const [dialerMode, setDialerMode] = useState<"keypad" | "suggestions">("keypad");
+  const [dialerInput, setDialerInput] = useState("");
+
+  /** In-place call on dialer (no redirect) â€” UI shell only; does not rewrite WebRTC handlers */
+  const [inPlaceCall, setInPlaceCall] = useState<InPlaceCall | null>(null);
+  const [callTick, setCallTick] = useState(0);
+
+  const [contacts, setContacts] = useState<Record<string, SavedContact>>({});
+  const [headerMenuOpen, setHeaderMenuOpen] = useState(false);
+  const [peopleOpen, setPeopleOpen] = useState(false);
+  const [contactModalOpen, setContactModalOpen] = useState(false);
+  const [contactNameInput, setContactNameInput] = useState("");
+  const [contactLabelInput, setContactLabelInput] = useState("");
+  const [editingContactKey, setEditingContactKey] = useState("");
+
+  const mobileRecipientRef = useRef<HTMLInputElement | null>(null);
+  const messagesEndRef = useRef<HTMLDivElement | null>(null);
+  const composerRef = useRef<HTMLTextAreaElement | null>(null);
+  const headerMenuRef = useRef<HTMLDivElement | null>(null);
+
+  useEffect(() => {
+    const checkTheme = () => setDarkMode(localStorage.getItem("nava-theme") !== "light");
+    checkTheme();
+    window.addEventListener("nava-theme-change", checkTheme);
+    return () => window.removeEventListener("nava-theme-change", checkTheme);
+  }, []);
+
+  useEffect(() => {
+    setContacts(loadContactsMap());
+    const onStorage = (e: StorageEvent) => {
+      if (e.key === CONTACTS_STORAGE_KEY) setContacts(loadContactsMap());
+    };
+    window.addEventListener("storage", onStorage);
+    return () => window.removeEventListener("storage", onStorage);
+  }, []);
+
+  useEffect(() => {
+    const onDocClick = (e: MouseEvent) => {
+      if (!headerMenuRef.current?.contains(e.target as Node)) setHeaderMenuOpen(false);
+    };
+    document.addEventListener("mousedown", onDocClick);
+    return () => document.removeEventListener("mousedown", onDocClick);
+  }, []);
+
+  useEffect(() => {
+    if (!inPlaceCall) return;
+    const id = window.setInterval(() => setCallTick((t) => t + 1), 1000);
+    return () => window.clearInterval(id);
+  }, [inPlaceCall]);
+
+  const theme = darkMode
+    ? {
+        page: "bg-[#050914]",
+        panel: "bg-[#0a1020] border-slate-800",
+        soft: "bg-[#0d1527] border-slate-800",
+        input: "bg-[#111827] text-white border-slate-700 placeholder:text-slate-500",
+        text: "text-white",
+        muted: "text-slate-400",
+        faint: "text-slate-500",
+        divider: "border-slate-800",
+        surface: "bg-[#070c17]",
+        threadHover: "hover:bg-white/[0.04]",
+        threadActive: "bg-emerald-500/10",
+        keypadBtn: "bg-[#151b2b] hover:bg-[#1c2438] text-white",
+PS C:\Users\Sire-F\OneDrive\Desktop\My Projects\nava-otp>
+PS C:\Users\Sire-F\OneDrive\Desktop\My Projects\nava-otp> Write-Host "`n--- MESSAGES WORKSPACE: PHONE AND AUDIO REFERENCES ---"
+
+--- MESSAGES WORKSPACE: PHONE AND AUDIO REFERENCES ---
 PS C:\Users\Sire-F\OneDrive\Desktop\My Projects\nava-otp> Select-String -Path "$root\src\app\dashboard\sms\inbox\page.tsx" `
->>   -Pattern "startInPlaceCall|inPlaceCall|endInPlaceCall|toggleInPlaceMute" `
->>   -Context 3,6
+>>     -Pattern "setNumbers|/api/phone|audioRef|<audio|TelnyxRTC|voice/token|supabase.auth.getSession" `
+>>     -Context 1,3
 
-  src\app\dashboard\sms\inbox\page.tsx:26:  label?: string;
-  src\app\dashboard\sms\inbox\page.tsx:27:};
-  src\app\dashboard\sms\inbox\page.tsx:28:
-> src\app\dashboard\sms\inbox\page.tsx:29:type InPlaceCall = {
-  src\app\dashboard\sms\inbox\page.tsx:30:  to: string;
-  src\app\dashboard\sms\inbox\page.tsx:31:  startedAt: number;
-  src\app\dashboard\sms\inbox\page.tsx:32:  muted: boolean;
-  src\app\dashboard\sms\inbox\page.tsx:33:};
-  src\app\dashboard\sms\inbox\page.tsx:34:
-  src\app\dashboard\sms\inbox\page.tsx:35:const CONTACTS_STORAGE_KEY = "nava-phone-contacts-v1";
-  src\app\dashboard\sms\inbox\page.tsx:158:  const [dialerInput, setDialerInput] = useState("");
-  src\app\dashboard\sms\inbox\page.tsx:159:
-  src\app\dashboard\sms\inbox\page.tsx:160:  /** In-place call on dialer (no redirect) — UI shell only; does
-not rewrite WebRTC handlers */
-> src\app\dashboard\sms\inbox\page.tsx:161:  const [inPlaceCall, setInPlaceCall] = useState<InPlaceCall |
-null>(null);
-  src\app\dashboard\sms\inbox\page.tsx:162:  const [callTick, setCallTick] = useState(0);
-  src\app\dashboard\sms\inbox\page.tsx:163:
-  src\app\dashboard\sms\inbox\page.tsx:164:  const [contacts, setContacts] = useState<Record<string,
-SavedContact>>({});
-  src\app\dashboard\sms\inbox\page.tsx:165:  const [headerMenuOpen, setHeaderMenuOpen] = useState(false);
-  src\app\dashboard\sms\inbox\page.tsx:166:  const [peopleOpen, setPeopleOpen] = useState(false);
-  src\app\dashboard\sms\inbox\page.tsx:167:  const [contactModalOpen, setContactModalOpen] = useState(false);
-  src\app\dashboard\sms\inbox\page.tsx:199:  }, []);
-  src\app\dashboard\sms\inbox\page.tsx:200:
-  src\app\dashboard\sms\inbox\page.tsx:201:  useEffect(() => {
-> src\app\dashboard\sms\inbox\page.tsx:202:    if (!inPlaceCall) return;
-  src\app\dashboard\sms\inbox\page.tsx:203:    const id = window.setInterval(() => setCallTick((t) => t + 1),
-1000);
-  src\app\dashboard\sms\inbox\page.tsx:204:    return () => window.clearInterval(id);
-> src\app\dashboard\sms\inbox\page.tsx:205:  }, [inPlaceCall]);
-  src\app\dashboard\sms\inbox\page.tsx:206:
-  src\app\dashboard\sms\inbox\page.tsx:207:  const theme = darkMode
-  src\app\dashboard\sms\inbox\page.tsx:208:    ? {
-  src\app\dashboard\sms\inbox\page.tsx:209:        page: "bg-[#050914]",
-  src\app\dashboard\sms\inbox\page.tsx:210:        panel: "bg-[#0a1020] border-slate-800",
-  src\app\dashboard\sms\inbox\page.tsx:211:        soft: "bg-[#0d1527] border-slate-800",
-  src\app\dashboard\sms\inbox\page.tsx:489:  };
-  src\app\dashboard\sms\inbox\page.tsx:490:
-  src\app\dashboard\sms\inbox\page.tsx:491:  const handleDialerPress = (key: string) => {
-> src\app\dashboard\sms\inbox\page.tsx:492:    if (inPlaceCall) return;
-  src\app\dashboard\sms\inbox\page.tsx:493:    setDialerInput((p) => `${p}${key}`.slice(0, 16));
-  src\app\dashboard\sms\inbox\page.tsx:494:  };
-  src\app\dashboard\sms\inbox\page.tsx:495:
-  src\app\dashboard\sms\inbox\page.tsx:496:  /** Start call in the right panel — stays on inbox (no route
-change). Does not rewrite WebRTC modules. */
-> src\app\dashboard\sms\inbox\page.tsx:497:  const startInPlaceCall = (raw?: string) => {
-  src\app\dashboard\sms\inbox\page.tsx:498:    const to = (raw || dialerInput || conversationPeer ||
-"").trim();
-  src\app\dashboard\sms\inbox\page.tsx:499:    if (!to) {
-  src\app\dashboard\sms\inbox\page.tsx:500:      setNotice("Enter a number to call.");
-  src\app\dashboard\sms\inbox\page.tsx:501:      window.setTimeout(() => setNotice(""), 2000);
-  src\app\dashboard\sms\inbox\page.tsx:502:      return;
-  src\app\dashboard\sms\inbox\page.tsx:503:    }
-  src\app\dashboard\sms\inbox\page.tsx:506:    setNotice("");
-  src\app\dashboard\sms\inbox\page.tsx:507:    window.location.href =
-`/dashboard/sms/calling?to=${encodeURIComponent(to)}`;
-  src\app\dashboard\sms\inbox\page.tsx:508:  };
-> src\app\dashboard\sms\inbox\page.tsx:509:  const endInPlaceCall = () => {
-> src\app\dashboard\sms\inbox\page.tsx:510:    setInPlaceCall(null);
-  src\app\dashboard\sms\inbox\page.tsx:511:    setCallTick(0);
-  src\app\dashboard\sms\inbox\page.tsx:512:  };
-  src\app\dashboard\sms\inbox\page.tsx:513:
-> src\app\dashboard\sms\inbox\page.tsx:514:  const toggleInPlaceMute = () => {
-> src\app\dashboard\sms\inbox\page.tsx:515:    setInPlaceCall((c) => (c ? { ...c, muted: !c.muted } : null));
-  src\app\dashboard\sms\inbox\page.tsx:516:  };
-  src\app\dashboard\sms\inbox\page.tsx:517:
-  src\app\dashboard\sms\inbox\page.tsx:518:  const openThreadOnDesktop = (peer: string) => {
-  src\app\dashboard\sms\inbox\page.tsx:519:    setRecipient(peer);
-> src\app\dashboard\sms\inbox\page.tsx:520:    if (!inPlaceCall) setDialerInput(peer.replace(/\D/g,
-"").length ? peer : dialerInput);
-  src\app\dashboard\sms\inbox\page.tsx:521:    setHeaderMenuOpen(false);
-  src\app\dashboard\sms\inbox\page.tsx:522:    setPeopleOpen(false);
-  src\app\dashboard\sms\inbox\page.tsx:523:  };
-  src\app\dashboard\sms\inbox\page.tsx:524:
-  src\app\dashboard\sms\inbox\page.tsx:525:  const openPeopleForPeer = (peer: string) => {
-  src\app\dashboard\sms\inbox\page.tsx:526:    setHeaderMenuOpen(false);
-  src\app\dashboard\sms\inbox\page.tsx:571:      (localStorage.getItem("nava-user-initial") ||
-"N").charAt(0).toUpperCase()) ||
-  src\app\dashboard\sms\inbox\page.tsx:572:    "N";
-  src\app\dashboard\sms\inbox\page.tsx:573:
-> src\app\dashboard\sms\inbox\page.tsx:574:  const callDurationLabel = inPlaceCall
-> src\app\dashboard\sms\inbox\page.tsx:575:    ? formatCallDuration(Date.now() - inPlaceCall.startedAt +
-callTick * 0)
-  src\app\dashboard\sms\inbox\page.tsx:576:    : "0:00";
-  src\app\dashboard\sms\inbox\page.tsx:577:  // re-read duration each tick
-> src\app\dashboard\sms\inbox\page.tsx:578:  const liveCallDuration = inPlaceCall
-> src\app\dashboard\sms\inbox\page.tsx:579:    ? formatCallDuration(Date.now() - inPlaceCall.startedAt)
-  src\app\dashboard\sms\inbox\page.tsx:580:    : "0:00";
-  src\app\dashboard\sms\inbox\page.tsx:581:
-  src\app\dashboard\sms\inbox\page.tsx:582:  const GetNumberEmpty = ({ mobile = false }: { mobile?: boolean
-}) => (
-  src\app\dashboard\sms\inbox\page.tsx:583:    <div
-  src\app\dashboard\sms\inbox\page.tsx:584:      className={`flex flex-col items-center justify-center
-text-center ${
-  src\app\dashboard\sms\inbox\page.tsx:585:        mobile ? "min-h-[50vh] px-8" : "h-full w-full px-6"
-  src\app\dashboard\sms\inbox\page.tsx:1074:                  {conversationPeer && (
-  src\app\dashboard\sms\inbox\page.tsx:1075:                    <button
-  src\app\dashboard\sms\inbox\page.tsx:1076:                      type="button"
-> src\app\dashboard\sms\inbox\page.tsx:1077:                      onClick={() =>
-startInPlaceCall(conversationPeer)}
-  src\app\dashboard\sms\inbox\page.tsx:1078:                      className={`flex h-10 w-10 items-center
-justify-center rounded-full border text-lg transition hover:border-emerald-400 hover:text-emerald-500
-${theme.input}`}
-  src\app\dashboard\sms\inbox\page.tsx:1079:                      title="Call (stays on this page)"
-  src\app\dashboard\sms\inbox\page.tsx:1080:                    >
-  src\app\dashboard\sms\inbox\page.tsx:1081:                      📞
-  src\app\dashboard\sms\inbox\page.tsx:1082:                    </button>
-  src\app\dashboard\sms\inbox\page.tsx:1083:                  )}
-  src\app\dashboard\sms\inbox\page.tsx:1118:                  <button
-  src\app\dashboard\sms\inbox\page.tsx:1119:                    type="button"
-  src\app\dashboard\sms\inbox\page.tsx:1120:                    onClick={() => {
-> src\app\dashboard\sms\inbox\page.tsx:1121:                      if (inPlaceCall) return;
-  src\app\dashboard\sms\inbox\page.tsx:1122:                      setDialerMode((m) => (m === "keypad" ?
-"suggestions" : "keypad"));
-  src\app\dashboard\sms\inbox\page.tsx:1123:                    }}
-  src\app\dashboard\sms\inbox\page.tsx:1124:                    className={`flex h-10 w-10 items-center
-justify-center rounded-full border ${
-> src\app\dashboard\sms\inbox\page.tsx:1125:                      dialerMode === "keypad" && !inPlaceCall
-  src\app\dashboard\sms\inbox\page.tsx:1126:                        ? "border-emerald-500 text-emerald-500"
-  src\app\dashboard\sms\inbox\page.tsx:1127:                        : theme.input
-  src\app\dashboard\sms\inbox\page.tsx:1128:                    }`}
-  src\app\dashboard\sms\inbox\page.tsx:1129:                  >
-  src\app\dashboard\sms\inbox\page.tsx:1130:                    🔢
-  src\app\dashboard\sms\inbox\page.tsx:1131:                  </button>
-  src\app\dashboard\sms\inbox\page.tsx:1212:                darkMode ? "bg-[#080d18]" : "bg-slate-50"
-  src\app\dashboard\sms\inbox\page.tsx:1213:              }`}
-  src\app\dashboard\sms\inbox\page.tsx:1214:            >
-> src\app\dashboard\sms\inbox\page.tsx:1215:              {inPlaceCall ? (
-  src\app\dashboard\sms\inbox\page.tsx:1216:                <>
-  src\app\dashboard\sms\inbox\page.tsx:1217:                  <div className={`flex h-16 items-center
-justify-between border-b px-4 ${theme.divider}`}>
-  src\app\dashboard\sms\inbox\page.tsx:1218:                    <p className="text-sm font-black">Call</p>
-  src\app\dashboard\sms\inbox\page.tsx:1219:                    <span className="text-[11px] font-bold
-text-emerald-400">In progress</span>
-  src\app\dashboard\sms\inbox\page.tsx:1220:                  </div>
-  src\app\dashboard\sms\inbox\page.tsx:1221:                  <div className="flex flex-1 flex-col
-items-center px-5 pb-6 pt-8">
-  src\app\dashboard\sms\inbox\page.tsx:1222:                    <div
-  src\app\dashboard\sms\inbox\page.tsx:1223:                      className={`flex h-20 w-20 items-center
-justify-center rounded-full text-2xl font-black text-white ${avatarColor(
-> src\app\dashboard\sms\inbox\page.tsx:1224:                        inPlaceCall.to,
-  src\app\dashboard\sms\inbox\page.tsx:1225:                      )}`}
-  src\app\dashboard\sms\inbox\page.tsx:1226:                    >
-  src\app\dashboard\sms\inbox\page.tsx:1227:                      👤
-  src\app\dashboard\sms\inbox\page.tsx:1228:                    </div>
-  src\app\dashboard\sms\inbox\page.tsx:1229:                    <p className="mt-5 text-center text-lg
-font-black tracking-tight">
-> src\app\dashboard\sms\inbox\page.tsx:1230:                      {flagForCountry(inPlaceCall.to)}{" "}
-> src\app\dashboard\sms\inbox\page.tsx:1231:                      {peerDisplayName(inPlaceCall.to) ||
-formatPhoneNumber(inPlaceCall.to)}
-  src\app\dashboard\sms\inbox\page.tsx:1232:                    </p>
-> src\app\dashboard\sms\inbox\page.tsx:1233:                    {peerDisplayName(inPlaceCall.to) && (
-  src\app\dashboard\sms\inbox\page.tsx:1234:                      <p className={`mt-1 text-xs
-${theme.faint}`}>
-> src\app\dashboard\sms\inbox\page.tsx:1235:                        {formatPhoneNumber(inPlaceCall.to)}
-  src\app\dashboard\sms\inbox\page.tsx:1236:                      </p>
-  src\app\dashboard\sms\inbox\page.tsx:1237:                    )}
-  src\app\dashboard\sms\inbox\page.tsx:1238:                    <p className="mt-3 font-mono text-sm
-font-bold text-emerald-400">
-  src\app\dashboard\sms\inbox\page.tsx:1239:                      {liveCallDuration}
-  src\app\dashboard\sms\inbox\page.tsx:1240:                    </p>
-  src\app\dashboard\sms\inbox\page.tsx:1241:                    <p className={`mt-1 text-[10px]
-${theme.faint}`}>
-  src\app\dashboard\sms\inbox\page.tsx:1248:                    <div className="mt-10 flex items-center
-justify-center gap-6">
-  src\app\dashboard\sms\inbox\page.tsx:1249:                      <button
-  src\app\dashboard\sms\inbox\page.tsx:1250:                        type="button"
-> src\app\dashboard\sms\inbox\page.tsx:1251:                        onClick={toggleInPlaceMute}
-  src\app\dashboard\sms\inbox\page.tsx:1252:                        className={`flex h-14 w-14 flex-col
-items-center justify-center rounded-full border text-xs font-bold ${
-> src\app\dashboard\sms\inbox\page.tsx:1253:                          inPlaceCall.muted
-  src\app\dashboard\sms\inbox\page.tsx:1254:                            ? "border-amber-400 bg-amber-400/20
-text-amber-300"
-  src\app\dashboard\sms\inbox\page.tsx:1255:                            : theme.input
-  src\app\dashboard\sms\inbox\page.tsx:1256:                        }`}
-  src\app\dashboard\sms\inbox\page.tsx:1257:                      >
-> src\app\dashboard\sms\inbox\page.tsx:1258:                        <span
-className="text-lg">{inPlaceCall.muted ? "🔇" : "🎤"}</span>
-  src\app\dashboard\sms\inbox\page.tsx:1259:                        Mute
-  src\app\dashboard\sms\inbox\page.tsx:1260:                      </button>
-  src\app\dashboard\sms\inbox\page.tsx:1261:                      <button
-  src\app\dashboard\sms\inbox\page.tsx:1262:                        type="button"
-> src\app\dashboard\sms\inbox\page.tsx:1263:                        onClick={endInPlaceCall}
-  src\app\dashboard\sms\inbox\page.tsx:1264:                        className="flex h-16 w-16 items-center
-justify-center rounded-full bg-red-500 text-2xl text-white shadow-lg shadow-red-500/30 transition
-hover:bg-red-400"
-  src\app\dashboard\sms\inbox\page.tsx:1265:                        title="End call"
-  src\app\dashboard\sms\inbox\page.tsx:1266:                      >
-  src\app\dashboard\sms\inbox\page.tsx:1267:                        📞
-  src\app\dashboard\sms\inbox\page.tsx:1268:                      </button>
-  src\app\dashboard\sms\inbox\page.tsx:1269:                      <button
-  src\app\dashboard\sms\inbox\page.tsx:1309:                    </button>
-  src\app\dashboard\sms\inbox\page.tsx:1310:                    <button
-  src\app\dashboard\sms\inbox\page.tsx:1311:                      type="button"
-> src\app\dashboard\sms\inbox\page.tsx:1312:                      onClick={() =>
-startInPlaceCall(conversationPeer)}
-  src\app\dashboard\sms\inbox\page.tsx:1313:                      className={`mt-2 w-full rounded-xl border
-py-3 text-xs font-bold ${theme.input}`}
-  src\app\dashboard\sms\inbox\page.tsx:1314:                    >
-  src\app\dashboard\sms\inbox\page.tsx:1315:                      📞 Call (this page)
-  src\app\dashboard\sms\inbox\page.tsx:1316:                    </button>
-  src\app\dashboard\sms\inbox\page.tsx:1317:                    {peerDisplayName(conversationPeer) && (
-  src\app\dashboard\sms\inbox\page.tsx:1318:                      <button
-  src\app\dashboard\sms\inbox\page.tsx:1349:
-setDialerInput(e.target.value.replace(/[^\d+*#]/g, "").slice(0, 16))
-  src\app\dashboard\sms\inbox\page.tsx:1350:                          }
-  src\app\dashboard\sms\inbox\page.tsx:1351:                          onKeyDown={(e) => {
-> src\app\dashboard\sms\inbox\page.tsx:1352:                            if (e.key === "Enter")
-startInPlaceCall();
-  src\app\dashboard\sms\inbox\page.tsx:1353:                          }}
-  src\app\dashboard\sms\inbox\page.tsx:1354:                          placeholder="Enter name or number"
-  src\app\dashboard\sms\inbox\page.tsx:1355:                          className={`w-full rounded-full border
-py-2.5 pl-9 pr-3 text-xs font-bold outline-none focus:border-emerald-400 ${theme.input}`}
-  src\app\dashboard\sms\inbox\page.tsx:1356:                        />
-  src\app\dashboard\sms\inbox\page.tsx:1357:                      </div>
-  src\app\dashboard\sms\inbox\page.tsx:1358:                      {/* IN-PLACE CALL — no Link / no redirect
-*/}
-  src\app\dashboard\sms\inbox\page.tsx:1359:                      <button
-  src\app\dashboard\sms\inbox\page.tsx:1360:                        type="button"
-> src\app\dashboard\sms\inbox\page.tsx:1361:                        onClick={() => startInPlaceCall()}
-  src\app\dashboard\sms\inbox\page.tsx:1362:                        disabled={!dialerInput.trim() &&
-!conversationPeer}
-  src\app\dashboard\sms\inbox\page.tsx:1363:                        className="flex h-9 w-9 shrink-0
-items-center justify-center rounded-full bg-emerald-500 text-slate-950 shadow-md transition
-hover:bg-emerald-400 disabled:opacity-40"
-  src\app\dashboard\sms\inbox\page.tsx:1364:                        title="Call without leaving this page"
-  src\app\dashboard\sms\inbox\page.tsx:1365:                      >
-  src\app\dashboard\sms\inbox\page.tsx:1366:                        📞
-  src\app\dashboard\sms\inbox\page.tsx:1367:                      </button>
-  src\app\dashboard\sms\inbox\page.tsx:1398:                    <div className={`mt-auto space-y-2 border-t
-pt-3 ${theme.divider}`}>
-  src\app\dashboard\sms\inbox\page.tsx:1399:                      <button
-  src\app\dashboard\sms\inbox\page.tsx:1400:                        type="button"
-> src\app\dashboard\sms\inbox\page.tsx:1401:                        onClick={() => startInPlaceCall()}
-  src\app\dashboard\sms\inbox\page.tsx:1402:                        disabled={!dialerInput.trim() &&
-!conversationPeer}
-  src\app\dashboard\sms\inbox\page.tsx:1403:                        className="w-full rounded-full
-bg-emerald-500 py-2.5 text-xs font-black text-slate-950 disabled:opacity-40"
-  src\app\dashboard\sms\inbox\page.tsx:1404:                      >
-  src\app\dashboard\sms\inbox\page.tsx:1405:                        Call
-  src\app\dashboard\sms\inbox\page.tsx:1406:                      </button>
-  src\app\dashboard\sms\inbox\page.tsx:1407:                      <button
+  src\app\dashboard\sms\inbox\page.tsx:139:  const [darkMode, setDarkMode] = useState(true);
+> src\app\dashboard\sms\inbox\page.tsx:140:  const [numbers, setNumbers] = useState<PhoneNumber[]>([]);
+  src\app\dashboard\sms\inbox\page.tsx:141:  const [messages, setMessages] = useState<Message[]>([]);
+  src\app\dashboard\sms\inbox\page.tsx:142:  const [selectedNumberId, setSelectedNumberId] = useState("");
+  src\app\dashboard\sms\inbox\page.tsx:143:  const [recipient, setRecipient] = useState("");
+  src\app\dashboard\sms\inbox\page.tsx:347:        data: { session },
+> src\app\dashboard\sms\inbox\page.tsx:348:      } = await supabase.auth.getSession();
+  src\app\dashboard\sms\inbox\page.tsx:349:      if (!session?.access_token) throw new Error("Your session
+has expired. Please sign in again.");
+  src\app\dashboard\sms\inbox\page.tsx:350:
+> src\app\dashboard\sms\inbox\page.tsx:351:      const response = await fetch("/api/phone/messages", {
+  src\app\dashboard\sms\inbox\page.tsx:352:        headers: { Authorization: `Bearer ${session.access_token}`
+},
+  src\app\dashboard\sms\inbox\page.tsx:353:        cache: "no-store",
+  src\app\dashboard\sms\inbox\page.tsx:354:      });
+  src\app\dashboard\sms\inbox\page.tsx:358:      const loadedNumbers = Array.isArray(data?.numbers) ?
+data.numbers : [];
+> src\app\dashboard\sms\inbox\page.tsx:359:      setNumbers(loadedNumbers);
+  src\app\dashboard\sms\inbox\page.tsx:360:      setMessages(Array.isArray(data?.messages) ? data.messages :
+[]);
+  src\app\dashboard\sms\inbox\page.tsx:361:      if (!selectedNumberId && loadedNumbers.length > 0)
+setSelectedNumberId(loadedNumbers[0].id);
+  src\app\dashboard\sms\inbox\page.tsx:362:    } catch (err: any) {
+  src\app\dashboard\sms\inbox\page.tsx:405:        data: { session },
+> src\app\dashboard\sms\inbox\page.tsx:406:      } = await supabase.auth.getSession();
+  src\app\dashboard\sms\inbox\page.tsx:407:      if (!session?.access_token) throw new Error("Your session
+has expired. Please sign in again.");
+  src\app\dashboard\sms\inbox\page.tsx:408:
+> src\app\dashboard\sms\inbox\page.tsx:409:      const response = await fetch("/api/phone/messages", {
+  src\app\dashboard\sms\inbox\page.tsx:410:        method: "POST",
+  src\app\dashboard\sms\inbox\page.tsx:411:        headers: {
+  src\app\dashboard\sms\inbox\page.tsx:412:          Authorization: `Bearer ${session.access_token}`,
 
 
 PS C:\Users\Sire-F\OneDrive\Desktop\My Projects\nava-otp>
-PS C:\Users\Sire-F\OneDrive\Desktop\My Projects\nava-otp> Write-Host "`n--- WORKING TELNYX CALL IMPLEMENTATION ---"
+PS C:\Users\Sire-F\OneDrive\Desktop\My Projects\nava-otp> Write-Host "`n--- PHONE DIALER: REAL TELNYX CALLING IMPLEMENTATION ---"
 
---- WORKING TELNYX CALL IMPLEMENTATION ---
-PS C:\Users\Sire-F\OneDrive\Desktop\My Projects\nava-otp> Select-String -Path "$root\src\app\dashboard\sms\calling\page.tsx" `
->>   -Pattern "ensureClient|placeCall|newCall\(|hangup|toggleMute|toggleHold" `
->>   -Context 3,8
+--- PHONE DIALER: REAL TELNYX CALLING IMPLEMENTATION ---
+PS C:\Users\Sire-F\OneDrive\Desktop\My Projects\nava-otp> Get-Content "$root\src\app\dashboard\sms\calling\page.tsx" |
+>>     Select-Object -Skip 155 -First 215
 
-  src\app\dashboard\sms\calling\page.tsx:127:    return () => {
-  src\app\dashboard\sms\calling\page.tsx:128:      mounted = false;
-  src\app\dashboard\sms\calling\page.tsx:129:      try {
-> src\app\dashboard\sms\calling\page.tsx:130:        callRef.current?.hangup?.();
-  src\app\dashboard\sms\calling\page.tsx:131:      } catch {}
-  src\app\dashboard\sms\calling\page.tsx:132:      try {
-  src\app\dashboard\sms\calling\page.tsx:133:        clientRef.current?.disconnect?.();
-  src\app\dashboard\sms\calling\page.tsx:134:      } catch {}
-  src\app\dashboard\sms\calling\page.tsx:135:      clientRef.current = null;
-  src\app\dashboard\sms\calling\page.tsx:136:      callRef.current = null;
-  src\app\dashboard\sms\calling\page.tsx:137:    };
-  src\app\dashboard\sms\calling\page.tsx:138:  }, []);
-  src\app\dashboard\sms\calling\page.tsx:176:    return data as { token: string; credentialCreated?: boolean
-};
-  src\app\dashboard\sms\calling\page.tsx:177:  };
-  src\app\dashboard\sms\calling\page.tsx:178:
-> src\app\dashboard\sms\calling\page.tsx:179:  const ensureClient = async () => {
-  src\app\dashboard\sms\calling\page.tsx:180:    if (clientRef.current && connected) {
-  src\app\dashboard\sms\calling\page.tsx:181:      return clientRef.current;
-  src\app\dashboard\sms\calling\page.tsx:182:    }
-  src\app\dashboard\sms\calling\page.tsx:183:
-  src\app\dashboard\sms\calling\page.tsx:184:    setConnecting(true);
-  src\app\dashboard\sms\calling\page.tsx:185:    setError("");
-  src\app\dashboard\sms\calling\page.tsx:186:
-  src\app\dashboard\sms\calling\page.tsx:187:    const sessionData = await getSessionToken();
-  src\app\dashboard\sms\calling\page.tsx:193:    const { TelnyxRTC } = await import("@telnyx/webrtc");
-  src\app\dashboard\sms\calling\page.tsx:194:    const client: any = new TelnyxRTC({
-  src\app\dashboard\sms\calling\page.tsx:195:      login_token: sessionData.token,
-> src\app\dashboard\sms\calling\page.tsx:196:      hangupOnBeforeUnload: true,
-  src\app\dashboard\sms\calling\page.tsx:197:    });
-  src\app\dashboard\sms\calling\page.tsx:198:
-  src\app\dashboard\sms\calling\page.tsx:199:    if (audioRef.current) {
-  src\app\dashboard\sms\calling\page.tsx:200:      client.remoteElement = audioRef.current;
-  src\app\dashboard\sms\calling\page.tsx:201:    }
-  src\app\dashboard\sms\calling\page.tsx:202:
-  src\app\dashboard\sms\calling\page.tsx:203:    clientRef.current = client;
-  src\app\dashboard\sms\calling\page.tsx:204:
-  src\app\dashboard\sms\calling\page.tsx:229:        return;
-  src\app\dashboard\sms\calling\page.tsx:230:      }
-  src\app\dashboard\sms\calling\page.tsx:231:
-> src\app\dashboard\sms\calling\page.tsx:232:      if (["hangup", "destroy", "purge"].includes(state)) {
-  src\app\dashboard\sms\calling\page.tsx:233:        callRef.current = null;
-  src\app\dashboard\sms\calling\page.tsx:234:        setIncoming(false);
-  src\app\dashboard\sms\calling\page.tsx:235:        setMuted(false);
-  src\app\dashboard\sms\calling\page.tsx:236:        setHeld(false);
-  src\app\dashboard\sms\calling\page.tsx:237:        setCallState("idle");
-  src\app\dashboard\sms\calling\page.tsx:238:      }
-  src\app\dashboard\sms\calling\page.tsx:239:    });
-  src\app\dashboard\sms\calling\page.tsx:240:
-  src\app\dashboard\sms\calling\page.tsx:310:
-  src\app\dashboard\sms\calling\page.tsx:311:    return client;
-  src\app\dashboard\sms\calling\page.tsx:312:  };
-> src\app\dashboard\sms\calling\page.tsx:313:  const placeCall = async () => {
-  src\app\dashboard\sms\calling\page.tsx:314:    if (!selectedNumber || !destination.trim() || callState !==
-"idle") return;
-  src\app\dashboard\sms\calling\page.tsx:315:    const normalized = normalizeNumber(destination);
-  src\app\dashboard\sms\calling\page.tsx:316:    if (!/^\+[1-9]\d{7,14}$/.test(normalized)) {
-  src\app\dashboard\sms\calling\page.tsx:317:      setError("Enter a valid destination number.");
-  src\app\dashboard\sms\calling\page.tsx:318:      return;
-  src\app\dashboard\sms\calling\page.tsx:319:    }
-  src\app\dashboard\sms\calling\page.tsx:320:    try {
-  src\app\dashboard\sms\calling\page.tsx:321:      setError("");
-  src\app\dashboard\sms\calling\page.tsx:322:      setNotice("");
-  src\app\dashboard\sms\calling\page.tsx:323:      setConnecting(true);
-> src\app\dashboard\sms\calling\page.tsx:324:      const client = await ensureClient();
-> src\app\dashboard\sms\calling\page.tsx:325:      const call = client.newCall({
-  src\app\dashboard\sms\calling\page.tsx:326:        destinationNumber: normalized,
-  src\app\dashboard\sms\calling\page.tsx:327:        callerNumber: selectedNumber.phone_number,
-  src\app\dashboard\sms\calling\page.tsx:328:        remoteElement: audioRef.current || undefined,
-  src\app\dashboard\sms\calling\page.tsx:329:        audio: {
-  src\app\dashboard\sms\calling\page.tsx:330:          echoCancellation: true,
-  src\app\dashboard\sms\calling\page.tsx:331:          noiseSuppression: true,
-  src\app\dashboard\sms\calling\page.tsx:332:          autoGainControl: true,
-  src\app\dashboard\sms\calling\page.tsx:333:        },
-  src\app\dashboard\sms\calling\page.tsx:361:
-  src\app\dashboard\sms\calling\page.tsx:362:  const rejectCall = () => {
-  src\app\dashboard\sms\calling\page.tsx:363:    try {
-> src\app\dashboard\sms\calling\page.tsx:364:      callRef.current?.hangup?.();
-  src\app\dashboard\sms\calling\page.tsx:365:    } catch {}
-  src\app\dashboard\sms\calling\page.tsx:366:    callRef.current = null;
-  src\app\dashboard\sms\calling\page.tsx:367:    setIncoming(false);
-  src\app\dashboard\sms\calling\page.tsx:368:    setCallState("idle");
-  src\app\dashboard\sms\calling\page.tsx:369:  };
-  src\app\dashboard\sms\calling\page.tsx:370:
-  src\app\dashboard\sms\calling\page.tsx:371:  const endCall = () => {
-  src\app\dashboard\sms\calling\page.tsx:372:    try {
-> src\app\dashboard\sms\calling\page.tsx:373:      callRef.current?.hangup?.();
-  src\app\dashboard\sms\calling\page.tsx:374:    } catch {}
-  src\app\dashboard\sms\calling\page.tsx:375:    callRef.current = null;
-  src\app\dashboard\sms\calling\page.tsx:376:    setIncoming(false);
-  src\app\dashboard\sms\calling\page.tsx:377:    setMuted(false);
-  src\app\dashboard\sms\calling\page.tsx:378:    setHeld(false);
-  src\app\dashboard\sms\calling\page.tsx:379:    setCallState("idle");
-  src\app\dashboard\sms\calling\page.tsx:380:    setCallPeer("");
-  src\app\dashboard\sms\calling\page.tsx:381:    setNotice("Call ended.");
-  src\app\dashboard\sms\calling\page.tsx:382:  };
-  src\app\dashboard\sms\calling\page.tsx:383:
-> src\app\dashboard\sms\calling\page.tsx:384:  const toggleMute = () => {
-  src\app\dashboard\sms\calling\page.tsx:385:    const call = callRef.current;
-  src\app\dashboard\sms\calling\page.tsx:386:    if (!call) return;
-  src\app\dashboard\sms\calling\page.tsx:387:    try {
-  src\app\dashboard\sms\calling\page.tsx:388:      if (muted) {
-  src\app\dashboard\sms\calling\page.tsx:389:        call.unmuteAudio?.();
-  src\app\dashboard\sms\calling\page.tsx:390:      } else {
-  src\app\dashboard\sms\calling\page.tsx:391:        call.muteAudio?.();
-  src\app\dashboard\sms\calling\page.tsx:392:      }
-  src\app\dashboard\sms\calling\page.tsx:396:    }
-  src\app\dashboard\sms\calling\page.tsx:397:  };
-  src\app\dashboard\sms\calling\page.tsx:398:
-> src\app\dashboard\sms\calling\page.tsx:399:  const toggleHold = async () => {
-  src\app\dashboard\sms\calling\page.tsx:400:    const call = callRef.current;
-  src\app\dashboard\sms\calling\page.tsx:401:    if (!call) return;
-  src\app\dashboard\sms\calling\page.tsx:402:    try {
-> src\app\dashboard\sms\calling\page.tsx:403:      await call.toggleHold?.();
-  src\app\dashboard\sms\calling\page.tsx:404:      setHeld((value) => !value);
-  src\app\dashboard\sms\calling\page.tsx:405:    } catch {
-  src\app\dashboard\sms\calling\page.tsx:406:      setError("Unable to change call hold state.");
-  src\app\dashboard\sms\calling\page.tsx:407:    }
-  src\app\dashboard\sms\calling\page.tsx:408:  };
-  src\app\dashboard\sms\calling\page.tsx:409:
-  src\app\dashboard\sms\calling\page.tsx:410:  const pressKey = (key: string) => {
-  src\app\dashboard\sms\calling\page.tsx:411:    if (callRef.current && callState === "active") {
-  src\app\dashboard\sms\calling\page.tsx:481:        faint: "text-slate-500",
-  src\app\dashboard\sms\calling\page.tsx:482:      };
-  src\app\dashboard\sms\calling\page.tsx:483:
-> src\app\dashboard\sms\calling\page.tsx:484:  const activeCall = !["idle", "new", "hangup", "destroy",
-"purge"].includes(
-  src\app\dashboard\sms\calling\page.tsx:485:    callState,
-  src\app\dashboard\sms\calling\page.tsx:486:  );
-  src\app\dashboard\sms\calling\page.tsx:487:
-  src\app\dashboard\sms\calling\page.tsx:488:  return (
-  src\app\dashboard\sms\calling\page.tsx:489:    <div
-  src\app\dashboard\sms\calling\page.tsx:490:      className={`flex flex-col h-[calc(100dvh-5rem)] w-full
-overflow-hidden ${theme.page} p-3 sm:p-4 pb-16 md:pb-0 transition-colors duration-200`}
-  src\app\dashboard\sms\calling\page.tsx:491:    >
-  src\app\dashboard\sms\calling\page.tsx:492:      <audio ref={audioRef} autoPlay playsInline
-className="hidden" />
-  src\app\dashboard\sms\calling\page.tsx:582:              <div className="mt-auto pt-4 grid grid-cols-3
-gap-2 sm:gap-3 w-full">
-  src\app\dashboard\sms\calling\page.tsx:583:                <button
-  src\app\dashboard\sms\calling\page.tsx:584:                  type="button"
-> src\app\dashboard\sms\calling\page.tsx:585:                  onClick={toggleMute}
-  src\app\dashboard\sms\calling\page.tsx:586:                  className={`flex flex-col items-center
-justify-center py-3 rounded-xl border text-xs font-semibold transition ${
-  src\app\dashboard\sms\calling\page.tsx:587:                    muted
-  src\app\dashboard\sms\calling\page.tsx:588:                      ? "border-emerald-400 bg-emerald-500/10
-text-emerald-400"
-  src\app\dashboard\sms\calling\page.tsx:589:                      : `${theme.soft} ${theme.muted}`
-  src\app\dashboard\sms\calling\page.tsx:590:                  }`}
-  src\app\dashboard\sms\calling\page.tsx:591:                >
-  src\app\dashboard\sms\calling\page.tsx:592:                  <span className="text-lg mb-0.5">🎤</span>
-  src\app\dashboard\sms\calling\page.tsx:593:                  {muted ? "Unmute" : "Mute"}
-  src\app\dashboard\sms\calling\page.tsx:602:                </button>
-  src\app\dashboard\sms\calling\page.tsx:603:                <button
-  src\app\dashboard\sms\calling\page.tsx:604:                  type="button"
-> src\app\dashboard\sms\calling\page.tsx:605:                  onClick={() => void toggleHold()}
-  src\app\dashboard\sms\calling\page.tsx:606:                  className={`flex flex-col items-center
-justify-center py-3 rounded-xl border text-xs font-semibold transition ${
-  src\app\dashboard\sms\calling\page.tsx:607:                    held
-  src\app\dashboard\sms\calling\page.tsx:608:                      ? "border-amber-400 bg-amber-500/10
-text-amber-400"
-  src\app\dashboard\sms\calling\page.tsx:609:                      : `${theme.soft} ${theme.muted}`
-  src\app\dashboard\sms\calling\page.tsx:610:                  }`}
-  src\app\dashboard\sms\calling\page.tsx:611:                >
-  src\app\dashboard\sms\calling\page.tsx:612:                  <span className="text-lg mb-0.5">⏸</span>
-  src\app\dashboard\sms\calling\page.tsx:613:                  {held ? "Resume" : "Hold"}
-  src\app\dashboard\sms\calling\page.tsx:710:                </button>
-  src\app\dashboard\sms\calling\page.tsx:711:                <button
-  src\app\dashboard\sms\calling\page.tsx:712:                  type="button"
-> src\app\dashboard\sms\calling\page.tsx:713:                  onClick={placeCall}
-  src\app\dashboard\sms\calling\page.tsx:714:                  disabled={
-  src\app\dashboard\sms\calling\page.tsx:715:                    loading ||
-  src\app\dashboard\sms\calling\page.tsx:716:                    connecting ||
-  src\app\dashboard\sms\calling\page.tsx:717:                    !selectedNumber ||
-  src\app\dashboard\sms\calling\page.tsx:718:                    !destination.trim()
-  src\app\dashboard\sms\calling\page.tsx:719:                  }
-  src\app\dashboard\sms\calling\page.tsx:720:                  className="flex-1 h-11 sm:h-12 rounded-xl
-bg-emerald-500 hover:bg-emerald-400 text-base font-bold text-slate-950 disabled:cursor-not-allowed
-disabled:opacity-40 cursor-pointer shadow-lg shadow-emerald-500/20 transition flex items-center
-justify-center"
-  src\app\dashboard\sms\calling\page.tsx:721:
+  const getSessionToken = async () => {
+    const { supabase } = await import("@/lib/supabase");
+    const {
+      data: { session },
+    } = await supabase.auth.getSession();
+    if (!session?.access_token) {
+      throw new Error("Your session has expired. Please sign in again.");
+    }
+    const response = await fetch("/api/phone/voice/token", {
+      method: "POST",
+      headers: { Authorization: `Bearer ${session.access_token}` },
+      cache: "no-store",
+    });
+    const data = await response.json();
+    if (!response.ok || !data?.token) {
+      throw new Error(
+        data?.error || "NAVA Phone calling is temporarily unavailable.",
+      );
+    }
+    return data as { token: string; credentialCreated?: boolean };
+  };
+
+  const ensureClient = async () => {
+    if (clientRef.current && connected) {
+      return clientRef.current;
+    }
+
+    setConnecting(true);
+    setError("");
+
+    const sessionData = await getSessionToken();
+
+    if (sessionData.credentialCreated) {
+      await new Promise((resolve) => window.setTimeout(resolve, 5000));
+    }
+
+    const { TelnyxRTC } = await import("@telnyx/webrtc");
+    const client: any = new TelnyxRTC({
+      login_token: sessionData.token,
+      hangupOnBeforeUnload: true,
+    });
+
+    if (audioRef.current) {
+      client.remoteElement = audioRef.current;
+    }
+
+    clientRef.current = client;
+
+    client.on("telnyx.notification", (notification: any) => {
+      if (clientRef.current !== client) return;
+      if (notification?.type !== "callUpdate") return;
+
+      const call = notification.call;
+      if (!call) return;
+
+      const state = String(call.state || "idle").toLowerCase();
+      setCallState(state);
+
+      if (state === "ringing" && call.direction === "inbound") {
+        const peer = String(
+          call?.remoteCallerNumber ||
+            call?.callerNumber ||
+            call?.peerNumber ||
+            "",
+        ).trim();
+
+        callRef.current = call;
+        setIncoming(true);
+        setIncomingPeer(peer);
+        setCallPeer(peer);
+        setMuted(false);
+        setHeld(false);
+        return;
+      }
+
+      if (["hangup", "destroy", "purge"].includes(state)) {
+        callRef.current = null;
+        setIncoming(false);
+        setMuted(false);
+        setHeld(false);
+        setCallState("idle");
+      }
+    });
+
+    await new Promise<void>((resolve, reject) => {
+      let settled = false;
+      let timeoutId: number | undefined;
+
+      const onReady = () => {
+        if (clientRef.current !== client) return;
+
+        setConnected(true);
+        setConnecting(false);
+        setNotice("NAVA Phone is ready.");
+
+        if (!settled) {
+          settled = true;
+          if (timeoutId !== undefined) {
+            window.clearTimeout(timeoutId);
+          }
+          resolve();
+        }
+      };
+
+      const onError = (sdkError: any) => {
+        if (clientRef.current !== client) return;
+
+        console.error("NAVA Phone voice error:", sdkError);
+        setConnecting(false);
+        setConnected(false);
+
+        if (!settled) {
+          settled = true;
+          if (timeoutId !== undefined) {
+            window.clearTimeout(timeoutId);
+          }
+
+          clientRef.current = null;
+          try {
+            client.disconnect?.();
+          } catch {}
+
+          reject(new Error("NAVA Phone could not connect. Please try again."));
+        } else {
+          setError("NAVA Phone could not connect. Please try again.");
+        }
+      };
+
+      client.on("telnyx.ready", onReady);
+      client.on("telnyx.error", onError);
+
+      timeoutId = window.setTimeout(() => {
+        if (settled || clientRef.current !== client) return;
+
+        settled = true;
+        setConnecting(false);
+        setConnected(false);
+        setError("Timed out waiting for Telnyx to become ready.");
+
+        clientRef.current = null;
+        try {
+          client.disconnect?.();
+        } catch {}
+
+        reject(new Error("Timed out waiting for Telnyx to become ready."));
+      }, 20000);
+
+      try {
+        Promise.resolve(client.connect()).catch(onError);
+      } catch (connectError) {
+        onError(connectError);
+      }
+    });
+
+    return client;
+  };
+  const placeCall = async () => {
+    if (!selectedNumber || !destination.trim() || callState !== "idle") return;
+    const normalized = normalizeNumber(destination);
+    if (!/^\+[1-9]\d{7,14}$/.test(normalized)) {
+      setError("Enter a valid destination number.");
+      return;
+    }
+    try {
+      setError("");
+      setNotice("");
+      setConnecting(true);
+      const client = await ensureClient();
+      const call = client.newCall({
+        destinationNumber: normalized,
+        callerNumber: selectedNumber.phone_number,
+        remoteElement: audioRef.current || undefined,
+        audio: {
+          echoCancellation: true,
+          noiseSuppression: true,
+          autoGainControl: true,
+        },
+      });
+      callRef.current = call;
+      setCallPeer(normalized);
+      setCallState(String(call?.state || "trying").toLowerCase());
+      setIncoming(false);
+      setMuted(false);
+      setHeld(false);
+      setConnecting(false);
+    } catch (err: any) {
+      console.error("NAVA Phone call start error:", err);
+      setConnecting(false);
+      setError(err?.message || "Unable to start the call.");
+    }
+  };
+
+  const answerCall = async () => {
+    const call = callRef.current;
+    if (!call) return;
+    try {
+      setError("");
+      await call.answer({ remoteElement: audioRef.current || undefined });
+      setIncoming(false);
+      setCallState("answering");
+    } catch (err: any) {
+      setError(err?.message || "Unable to answer the call.");
+    }
+  };
+
+  const rejectCall = () => {
+    try {
+      callRef.current?.hangup?.();
+    } catch {}
+    callRef.current = null;
+    setIncoming(false);
+    setCallState("idle");
+  };
