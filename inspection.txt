@@ -1,1 +1,463 @@
-                                                      --- MESSAGE API: HOW INBOX ROWS ARE FETCHED ---       PS C:\Users\Sire-F\OneDrive\Desktop\My Projects\nava-otp> Get-Content "$root\src\app\api\phone\messages\route.ts" |                                               >>     Select-Object -First 75                        import { NextResponse } from "next/server";           import { supabaseAdmin } from "@/lib/supabase-admin"; import { getAuthenticatedSupabaseUser } from "@/lib/supabase-request-auth";                                 import { sendTelnyxSms } from "@/lib/telnyx";                                                               function normalizeRecipient(value: unknown) {           const raw = String(value || "").trim();               const digits = raw.replace(/\D/g, "");                if (raw.startsWith("+")) return "+" + digits;         return "+" + digits;                                }                                                                                                           export async function GET(req: Request) {               try {                                                   const user = await getAuthenticatedSupabaseUser(req);                                                       if (!user) return NextResponse.json({ error: "Unauthorized. Please log in." }, { status: 401 });                                                                  const { data: numbers, error: numbersError } = await supabaseAdmin                                            .from("nava_phone_numbers")                           .select("id, phone_number, country_code, status")                                                           .eq("user_id", user.id)                               .neq("status", "released")                            .order("created_at", { ascending: false });                                                               if (numbersError) {                                     console.error("NAVA SMS number lookup error:", numbersError);                                               return NextResponse.json({ error: "Unable to load your NAVA Phone numbers." }, { status: 500 });          }                                                                                                           const numberIds = (numbers || []).map((number) => number.id);                                               if (numberIds.length === 0) {                           return NextResponse.json({ success: true, numbers: [], messages: [] });                                   }                                                                                                           const { data: messages, error: messagesError } = await supabaseAdmin                                          .from("nava_phone_messages")                          .select("id, phone_number_id, direction, from_number, to_number, body, status, created_at")                 .eq("user_id", user.id)                               .in("phone_number_id", numberIds)                     .order("created_at", { ascending: true })             .limit(500);                                                                                              if (messagesError) {                                    console.error("NAVA SMS message lookup error:", messagesError);                                             return NextResponse.json({ error: "Unable to load your NAVA messages." }, { status: 500 });               }                                                                                                           return NextResponse.json({                              success: true,                                        numbers: numbers || [],                               messages: messages || [],                           });                                                 } catch (error) {                                       console.error("NAVA SMS inbox error:", error);        return NextResponse.json({ error: "Unable to load your NAVA messages." }, { status: 500 });               }                                                   }                                                                                                           export async function POST(req: Request) {              try {                                                   const user = await getAuthenticatedSupabaseUser(req);                                                       if (!user) return NextResponse.json({ error: "Unauthorized. Please log in." }, { status: 401 });                                                                  const body = await req.json();                        const phoneNumberId = String(body?.phone_number_id || "").trim();                                           const recipient = normalizeRecipient(body?.to);       const messageText = String(body?.text || "").trim();                                                                                                              if (!phoneNumberId) {                                   return NextResponse.json({ error: "Please select a NAVA Phone number." }, { status: 400 });               }                                                                                                           if (!/^\+[1-9]\d{7,14}$/.test(recipient)) {             return NextResponse.json({ error: "Please enter a valid recipient number." }, { status: 400 });           }                                                 PS C:\Users\Sire-F\OneDrive\Desktop\My Projects\nava-otp>                                                   PS C:\Users\Sire-F\OneDrive\Desktop\My Projects\nava-otp> Write-Host "`n--- TELNYX WEBHOOK: HOW INBOUND SMS IS SAVED ---"                                                                                               --- TELNYX WEBHOOK: HOW INBOUND SMS IS SAVED ---      PS C:\Users\Sire-F\OneDrive\Desktop\My Projects\nava-otp> Get-Content "$root\src\app\api\webhooks\telnyx\route.ts" |                                              >>     Select-Object -Skip 185 -First 145                   handled: false,                                       event_type: body?.data?.event_type ?? null,         });                                                 }                                                                                                           const payload = body.data?.payload;                   const telnyxMessageId = payload?.id || body.data?.id || null;                                               const fromNumber = normalizeE164(payload?.from?.phone_number);                                              const toCandidates = extractToNumbers(body.data);     const text = typeof payload?.text === "string" ? payload.text : "";                                         const occurredAt =                                      payload?.received_at || body.data?.occurred_at || new Date().toISOString();                                                                                     if (!fromNumber || toCandidates.length === 0) {         console.warn("[telnyx-webhook] inbound missing from/to", {                                                    telnyxMessageId,                                      fromNumber,                                           toCandidates,                                       });                                                   // Still 200 so Telnyx does not retry forever on malformed test payloads                                    return NextResponse.json({                              received: true,                                       handled: false,                                       reason: "missing_from_or_to",                       });                                                 }                                                                                                           try {                                                   const supabase = getServiceSupabase();                                                                      // Find NAVA number matching any "to" candidate (E.164)                                                     const { data: navaNumbers, error: lookupError } = await supabase                                              .from("nava_phone_numbers")                           .select("id, phone_number, user_id, status")          .in("phone_number", toCandidates)                     .eq("status", "active")                               .limit(5);                                                                                                if (lookupError) {                                      console.error("[telnyx-webhook] number lookup failed:", lookupError);                                       return NextResponse.json({ error: "Lookup failed" }, { status: 500 });                                    }                                                                                                           const navaNumber = navaNumbers?.[0];                  if (!navaNumber) {                                      console.warn("[telnyx-webhook] no NAVA number for to=", toCandidates);                                      return NextResponse.json({                              received: true,                                       handled: false,                                       reason: "unknown_destination",                        to: toCandidates,                                   });                                                 }                                                                                                           const toNumber = normalizeE164(navaNumber.phone_number) || toCandidates[0];                                                                                       // Idempotent insert: unique on provider_message_id if you add that column/constraint                       const row = {                                           phone_number_id: navaNumber.id,                       user_id: navaNumber.user_id,                          direction: "inbound" as const,                        from_number: fromNumber,                              to_number: toNumber,                                  body: text,                                           status: "received",                                   provider_message_id: telnyxMessageId,                 created_at: occurredAt,                             };                                                                                                          // Prefer upsert when provider_message_id is unique                                                         const { data: inserted, error: insertError } = await supabase                                                 .from("nava_phone_messages")                          .upsert(row, {                                          onConflict: "provider_message_id",                    ignoreDuplicates: true,                             })                                                    .select("id")                                         .maybeSingle();                                                                                           // If upsert fails because column/constraint missing, fall back to plain insert                             if (insertError) {                                      const msg = String(insertError.message || "");        const missingConflict =                                 msg.toLowerCase().includes("on conflict") ||          msg.toLowerCase().includes("provider_message_id") ||                                                        msg.toLowerCase().includes("raw");                                                                        if (!missingConflict) {                                 console.error("[telnyx-webhook] insert failed:", insertError);                                              return NextResponse.json({ error: "Persist failed" }, { status: 500 });                                   }                                                                                                           // Fallback insert without optional columns           const fallback = {                                      phone_number_id: navaNumber.id,                       user_id: navaNumber.user_id,                          provider_message_id: telnyxMessageId,                 direction: "inbound" as const,                        from_number: fromNumber,                              to_number: toNumber,                                  body: text,                                           status: "received",                                   created_at: occurredAt,                             };                                                                                                          // Dedupe manually if possible                        if (telnyxMessageId) {                                  const { data: existing } = await supabase               .from("nava_phone_messages")                          .select("id")                                         .eq("from_number", fromNumber)                        .eq("to_number", toNumber)                            .eq("body", text)                                     .gte("created_at", new Date(Date.now() - 2 * 60 * 1000).toISOString())                                      .limit(1);                                                                                                if (existing && existing.length > 0) {                  return NextResponse.json({                              received: true,                                       handled: true,                                        duplicate: true,                                      message_id: existing[0].id,                         });                                                 }                                                   }                                                                                                           const { data: inserted2, error: insertError2 } = await supabase                                               .from("nava_phone_messages")                          .insert(fallback)                                     .select("id")                                         .maybeSingle();                                                                                           if (insertError2) {                                     console.error("[telnyx-webhook] fallback insert failed:", insertError2);                                    return NextResponse.json({ error: "Persist failed" }, { status: 500 });                                   }                                                                                                           return NextResponse.json({                              received: true,                                       handled: true,                                        message_id: inserted2?.id ?? null,                    phone_number_id: navaNumber.id,                     });                                                 }                                                                                                       PS C:\Users\Sire-F\OneDrive\Desktop\My Projects\nava-otp>                                                   PS C:\Users\Sire-F\OneDrive\Desktop\My Projects\nava-otp> Write-Host "`n--- INBOX: HOW CONVERSATIONS ARE BUILT ---"                                                                                                     --- INBOX: HOW CONVERSATIONS ARE BUILT ---            PS C:\Users\Sire-F\OneDrive\Desktop\My Projects\nava-otp> Select-String -Path "$root\src\app\dashboard\sms\inbox\page.tsx" `                                      >>     -Pattern "desktopThreads|conversationPeer|messages.filter|groupBy|phone_number_id" `                 >>     -Context 3,7                                                                                           src\app\dashboard\sms\inbox\page.tsx:12:              src\app\dashboard\sms\inbox\page.tsx:13:type        Message = {                                             src\app\dashboard\sms\inbox\page.tsx:14:  id:       string;                                               > src\app\dashboard\sms\inbox\page.tsx:15:            phone_number_id: string;                                src\app\dashboard\sms\inbox\page.tsx:16:            direction: "inbound" | "outbound";                      src\app\dashboard\sms\inbox\page.tsx:17:            from_number: string;                                    src\app\dashboard\sms\inbox\page.tsx:18:            to_number: string;                                      src\app\dashboard\sms\inbox\page.tsx:19:  body:     string;                                                 src\app\dashboard\sms\inbox\page.tsx:20:  status:   string;                                                 src\app\dashboard\sms\inbox\page.tsx:21:            created_at: string;                                     src\app\dashboard\sms\inbox\page.tsx:22:};            src\app\dashboard\sms\inbox\page.tsx:250:  );         src\app\dashboard\sms\inbox\page.tsx:251:             src\app\dashboard\sms\inbox\page.tsx:252:  const    selectedMessages = useMemo(                           > src\app\dashboard\sms\inbox\page.tsx:253:    () =>  messages.filter((m) => m.phone_number_id ===          selectedNumberId),                                      src\app\dashboard\sms\inbox\page.tsx:254:           [messages, selectedNumberId],                           src\app\dashboard\sms\inbox\page.tsx:255:  );         src\app\dashboard\sms\inbox\page.tsx:256:           > src\app\dashboard\sms\inbox\page.tsx:257:  const    conversationPeer = useMemo(() => {                      src\app\dashboard\sms\inbox\page.tsx:258:    if     (recipient) return recipient;                           src\app\dashboard\sms\inbox\page.tsx:259:    const  last = selectedMessages[selectedMessages.length - 1];   src\app\dashboard\sms\inbox\page.tsx:260:    if     (!last) return null;                                    src\app\dashboard\sms\inbox\page.tsx:261:           return last.direction === "inbound" ?                 last.from_number : last.to_number;                      src\app\dashboard\sms\inbox\page.tsx:262:  },       [selectedMessages, recipient]);                         src\app\dashboard\sms\inbox\page.tsx:263:             src\app\dashboard\sms\inbox\page.tsx:264:  const    getContact = (phone: string | null | undefined):      SavedContact | null => {                                src\app\dashboard\sms\inbox\page.tsx:274:    );       src\app\dashboard\sms\inbox\page.tsx:275:           return peers                                            src\app\dashboard\sms\inbox\page.tsx:276:           .map((peer) => {                                      > src\app\dashboard\sms\inbox\page.tsx:277:           const threadMsgs = messages.filter(                     src\app\dashboard\sms\inbox\page.tsx:278:           (m) => (m.direction === "inbound" ? m.from_number :   m.to_number) === peer,                                  src\app\dashboard\sms\inbox\page.tsx:279:        );   src\app\dashboard\sms\inbox\page.tsx:280:           const lastMsg = threadMsgs[threadMsgs.length - 1];    > src\app\dashboard\sms\inbox\page.tsx:281:           return { peer, lastMsg, lineId:                       lastMsg?.phone_number_id || selectedNumberId };         src\app\dashboard\sms\inbox\page.tsx:282:      })     src\app\dashboard\sms\inbox\page.tsx:283:           .sort((a, b) => {                                       src\app\dashboard\sms\inbox\page.tsx:284:           const ta = a.lastMsg ? new                            Date(a.lastMsg.created_at).getTime() : 0;               src\app\dashboard\sms\inbox\page.tsx:285:           const tb = b.lastMsg ? new                            Date(b.lastMsg.created_at).getTime() : 0;               src\app\dashboard\sms\inbox\page.tsx:286:           return tb - ta;                                         src\app\dashboard\sms\inbox\page.tsx:287:      });    src\app\dashboard\sms\inbox\page.tsx:288:  },       [messages, selectedNumberId]);                          src\app\dashboard\sms\inbox\page.tsx:289:           > src\app\dashboard\sms\inbox\page.tsx:290:  const    desktopThreads = useMemo(() => {                        src\app\dashboard\sms\inbox\page.tsx:291:    const  numberMessages = selectedNumberId                     > src\app\dashboard\sms\inbox\page.tsx:292:      ?    messages.filter((m) => m.phone_number_id ===          selectedNumberId)                                       src\app\dashboard\sms\inbox\page.tsx:293:      :    messages;                                               src\app\dashboard\sms\inbox\page.tsx:294:    const  peers = Array.from(                                     src\app\dashboard\sms\inbox\page.tsx:295:      new  Set(numberMessages.map((m) => (m.direction ===        "inbound" ? m.from_number : m.to_number))),             src\app\dashboard\sms\inbox\page.tsx:296:    );       src\app\dashboard\sms\inbox\page.tsx:297:           return peers                                            src\app\dashboard\sms\inbox\page.tsx:298:           .map((peer) => {                                      > src\app\dashboard\sms\inbox\page.tsx:299:           const threadMsgs = numberMessages.filter(               src\app\dashboard\sms\inbox\page.tsx:300:           (m) => (m.direction === "inbound" ? m.from_number :   m.to_number) === peer,                                  src\app\dashboard\sms\inbox\page.tsx:301:        );   src\app\dashboard\sms\inbox\page.tsx:302:           return { peer, lastMsg: threadMsgs[threadMsgs.length  - 1] };                                                 src\app\dashboard\sms\inbox\page.tsx:303:      })     src\app\dashboard\sms\inbox\page.tsx:304:           .sort((a, b) => {                                       src\app\dashboard\sms\inbox\page.tsx:305:           const ta = a.lastMsg ? new                            Date(a.lastMsg.created_at).getTime() : 0;               src\app\dashboard\sms\inbox\page.tsx:306:           const tb = b.lastMsg ? new                            Date(b.lastMsg.created_at).getTime() : 0;               src\app\dashboard\sms\inbox\page.tsx:309:  },       [messages, selectedNumberId]);                          src\app\dashboard\sms\inbox\page.tsx:310:             src\app\dashboard\sms\inbox\page.tsx:311:  const    activePeerMessages = useMemo(() => {                  > src\app\dashboard\sms\inbox\page.tsx:312:    const  activePeer = recipient || conversationPeer;             src\app\dashboard\sms\inbox\page.tsx:313:    if     (!activePeer) return [];                              > src\app\dashboard\sms\inbox\page.tsx:314:           return selectedMessages.filter((m) => {                 src\app\dashboard\sms\inbox\page.tsx:315:           const peer = m.direction === "inbound" ?              m.from_number : m.to_number;                            src\app\dashboard\sms\inbox\page.tsx:316:           return peer === activePeer;                             src\app\dashboard\sms\inbox\page.tsx:317:    });    > src\app\dashboard\sms\inbox\page.tsx:318:  },       [selectedMessages, recipient, conversationPeer]);       src\app\dashboard\sms\inbox\page.tsx:319:             src\app\dashboard\sms\inbox\page.tsx:320:  const    savedContactsList = useMemo(() => {                     src\app\dashboard\sms\inbox\page.tsx:321:           return Object.entries(contacts)                         src\app\dashboard\sms\inbox\page.tsx:322:           .map(([phone, c]) => ({ phone, name: c.name, label:   c.label }))                                             src\app\dashboard\sms\inbox\page.tsx:323:           .filter((c) => c.name?.trim())                          src\app\dashboard\sms\inbox\page.tsx:324:           .sort((a, b) => a.name.localeCompare(b.name));          src\app\dashboard\sms\inbox\page.tsx:325:  },       [contacts]);                                            src\app\dashboard\sms\inbox\page.tsx:402:  },       [mobileView]);                                          src\app\dashboard\sms\inbox\page.tsx:403:             src\app\dashboard\sms\inbox\page.tsx:404:  const    sendMessage = async () => {                           > src\app\dashboard\sms\inbox\page.tsx:405:    const  targetRecipient = recipient || conversationPeer ||    mobilePeer;                                             src\app\dashboard\sms\inbox\page.tsx:406:    if     (!selectedNumberId || !targetRecipient ||             !text.trim() || sending) return;                        src\app\dashboard\sms\inbox\page.tsx:407:    try {    src\app\dashboard\sms\inbox\page.tsx:408:           setSending(true);                                       src\app\dashboard\sms\inbox\page.tsx:409:           setError("");                                           src\app\dashboard\sms\inbox\page.tsx:410:           setNotice("");                                          src\app\dashboard\sms\inbox\page.tsx:411:           const { supabase } = await import("@/lib/supabase");    src\app\dashboard\sms\inbox\page.tsx:412:           const {                                                 src\app\dashboard\sms\inbox\page.tsx:421:           "Content-Type": "application/json",                     src\app\dashboard\sms\inbox\page.tsx:422:        },   src\app\dashboard\sms\inbox\page.tsx:423:           body: JSON.stringify({                                > src\app\dashboard\sms\inbox\page.tsx:424:           phone_number_id: selectedNumberId,                      src\app\dashboard\sms\inbox\page.tsx:425:           to: String(targetRecipient).trim(),                     src\app\dashboard\sms\inbox\page.tsx:426:           text: text.trim(),                                      src\app\dashboard\sms\inbox\page.tsx:427:           }),                                                     src\app\dashboard\sms\inbox\page.tsx:428:      });    src\app\dashboard\sms\inbox\page.tsx:429:           const data = await response.json();                     src\app\dashboard\sms\inbox\page.tsx:430:      if   (!response.ok) throw new Error(data?.error ||         "Unable to send your message.");                        src\app\dashboard\sms\inbox\page.tsx:431:      if   (data?.message) setMessages((c) => [...c,             data.message]);                                         src\app\dashboard\sms\inbox\page.tsx:493:           window.location.href = "/dashboard/sms?shop=1";         src\app\dashboard\sms\inbox\page.tsx:494:           return;                                                 src\app\dashboard\sms\inbox\page.tsx:495:    }      > src\app\dashboard\sms\inbox\page.tsx:496:    if     (!conversationPeer && !recipient) openCompose();        src\app\dashboard\sms\inbox\page.tsx:497:  };         src\app\dashboard\sms\inbox\page.tsx:498:             src\app\dashboard\sms\inbox\page.tsx:499:  const    handleDialerPress = (key: string) => {                  src\app\dashboard\sms\inbox\page.tsx:500:    if     (inPlaceCall) return;                                   src\app\dashboard\sms\inbox\page.tsx:501:           setDialerInput((p) => `${p}${key}`.slice(0, 16));       src\app\dashboard\sms\inbox\page.tsx:502:  };         src\app\dashboard\sms\inbox\page.tsx:503:             src\app\dashboard\sms\inbox\page.tsx:748:  };         src\app\dashboard\sms\inbox\page.tsx:749:             src\app\dashboard\sms\inbox\page.tsx:750:  const    startInPlaceCall = (raw?: string) => {                > src\app\dashboard\sms\inbox\page.tsx:751:    const  to = (raw || dialerInput || conversationPeer ||       "").trim();                                             src\app\dashboard\sms\inbox\page.tsx:752:             src\app\dashboard\sms\inbox\page.tsx:753:    if     (!to) {                                                 src\app\dashboard\sms\inbox\page.tsx:754:           setNotice("Enter a number to call.");                   src\app\dashboard\sms\inbox\page.tsx:755:           window.setTimeout(() => setNotice(""), 2000);           src\app\dashboard\sms\inbox\page.tsx:756:           return;                                                 src\app\dashboard\sms\inbox\page.tsx:757:    }        src\app\dashboard\sms\inbox\page.tsx:758:             src\app\dashboard\sms\inbox\page.tsx:880:  };         src\app\dashboard\sms\inbox\page.tsx:881:             src\app\dashboard\sms\inbox\page.tsx:882:  const    noNumbers = !loading && numbers.length === 0;         > src\app\dashboard\sms\inbox\page.tsx:883:  const    mobileActivePeer = mobilePeer || conversationPeer ||  "";                                                     src\app\dashboard\sms\inbox\page.tsx:884:  const    profileLetter =                                         src\app\dashboard\sms\inbox\page.tsx:885:           (typeof window !== "undefined" &&                       src\app\dashboard\sms\inbox\page.tsx:886:           (localStorage.getItem("nava-user-initial") ||         "N").charAt(0).toUpperCase()) ||                        src\app\dashboard\sms\inbox\page.tsx:887:    "N";     src\app\dashboard\sms\inbox\page.tsx:888:             src\app\dashboard\sms\inbox\page.tsx:889:  const    callDurationLabel = inPlaceCall                         src\app\dashboard\sms\inbox\page.tsx:890:    ?      formatCallDuration(Date.now() -                       inPlaceCall.startedAt + callTick * 0)                   src\app\dashboard\sms\inbox\page.tsx:1335:                 </select>                                        src\app\dashboard\sms\inbox\page.tsx:1336:               </div>                                             src\app\dashboard\sms\inbox\page.tsx:1337:               <div className="min-h-0 flex-1 overflow-y-auto"> > src\app\dashboard\sms\inbox\page.tsx:1338:                 {desktopThreads.map(({ peer, lastMsg }) => {   > src\app\dashboard\sms\inbox\page.tsx:1339:                   const active = recipient === peer ||         (!recipient && conversationPeer === peer);              src\app\dashboard\sms\inbox\page.tsx:1340:                   return (                                       src\app\dashboard\sms\inbox\page.tsx:1341:                     <button                                      src\app\dashboard\sms\inbox\page.tsx:1342:                       key={peer}                                 src\app\dashboard\sms\inbox\page.tsx:1343:                       type="button"                              src\app\dashboard\sms\inbox\page.tsx:1344:                       onClick={() =>                           openThreadOnDesktop(peer)}                              src\app\dashboard\sms\inbox\page.tsx:1345:                       className={`flex w-full gap-3 border-b   px-3.5 py-3 text-left ${theme.divider} ${               src\app\dashboard\sms\inbox\page.tsx:1346:                         active ? theme.threadActive :          theme.threadHover                                       src\app\dashboard\sms\inbox\page.tsx:1372:             <main className="flex min-h-0 min-w-0 flex-1       flex-col">                                              src\app\dashboard\sms\inbox\page.tsx:1373:               <header className={`flex h-16 items-center       justify-between border-b px-6 ${theme.divider}`}>       src\app\dashboard\sms\inbox\page.tsx:1374:                 <div className="min-w-0 flex-1">               > src\app\dashboard\sms\inbox\page.tsx:1375:                   {conversationPeer ? (                          src\app\dashboard\sms\inbox\page.tsx:1376:                     <>                                         > src\app\dashboard\sms\inbox\page.tsx:1377:                       <PeerTitle peer={conversationPeer}       size="lg" />                                            src\app\dashboard\sms\inbox\page.tsx:1378:                       {selectedNumber && (                       src\app\dashboard\sms\inbox\page.tsx:1379:                         <p className={`text-[11px]             font-semibold ${theme.faint}`}>                         src\app\dashboard\sms\inbox\page.tsx:1380:                           via                                  {formatPhoneNumber(selectedNumber.phone_number)}        src\app\dashboard\sms\inbox\page.tsx:1381:                         </p>                                     src\app\dashboard\sms\inbox\page.tsx:1382:                       )}                                         src\app\dashboard\sms\inbox\page.tsx:1383:                     </>                                          src\app\dashboard\sms\inbox\page.tsx:1384:                   ) : (                                          src\app\dashboard\sms\inbox\page.tsx:1386:                   )}                                             src\app\dashboard\sms\inbox\page.tsx:1387:                 </div>                                           src\app\dashboard\sms\inbox\page.tsx:1388:                 <div className="flex items-center gap-2">      > src\app\dashboard\sms\inbox\page.tsx:1389:                   {conversationPeer && (                         src\app\dashboard\sms\inbox\page.tsx:1390:                     <button                                      src\app\dashboard\sms\inbox\page.tsx:1391:                       type="button"                            > src\app\dashboard\sms\inbox\page.tsx:1392:                       onClick={() =>                           startInPlaceCall(conversationPeer)}                     src\app\dashboard\sms\inbox\page.tsx:1393:                       className={`flex h-10 w-10 items-center  justify-center rounded-full border text-lg            transition hover:border-emerald-400                   hover:text-emerald-500 ${theme.input}`}                 src\app\dashboard\sms\inbox\page.tsx:1394:                       title="Call (stays on this page)"          src\app\dashboard\sms\inbox\page.tsx:1395:                     >                                            src\app\dashboard\sms\inbox\page.tsx:1396:                       📞                                         src\app\dashboard\sms\inbox\page.tsx:1397:                     </button>                                    src\app\dashboard\sms\inbox\page.tsx:1398:                   )}                                           > src\app\dashboard\sms\inbox\page.tsx:1399:                   {conversationPeer && (                         src\app\dashboard\sms\inbox\page.tsx:1400:                     <div className="relative"                  ref={headerMenuRef}>                                    src\app\dashboard\sms\inbox\page.tsx:1401:                       <button                                    src\app\dashboard\sms\inbox\page.tsx:1402:                         type="button"                            src\app\dashboard\sms\inbox\page.tsx:1403:                         onClick={() => setHeaderMenuOpen((v)   => !v)}                                                 src\app\dashboard\sms\inbox\page.tsx:1404:                         className={`flex h-10 w-10             items-center justify-center rounded-full border       text-lg font-black ${theme.input}`}                     src\app\dashboard\sms\inbox\page.tsx:1405:                       >                                          src\app\dashboard\sms\inbox\page.tsx:1406:                         ⋮                                        src\app\dashboard\sms\inbox\page.tsx:1411:                         >                                        src\app\dashboard\sms\inbox\page.tsx:1412:                           <button                                src\app\dashboard\sms\inbox\page.tsx:1413:                             type="button"                      > src\app\dashboard\sms\inbox\page.tsx:1414:                             onClick={() =>                     openPeopleForPeer(conversationPeer)}                    src\app\dashboard\sms\inbox\page.tsx:1415:                             className={`flex w-full gap-3      px-4 py-3 text-left text-sm font-semibold             ${theme.threadHover}`}                                  src\app\dashboard\sms\inbox\page.tsx:1416:                           >                                      src\app\dashboard\sms\inbox\page.tsx:1417:                             👤 People                            src\app\dashboard\sms\inbox\page.tsx:1418:                           </button>                              src\app\dashboard\sms\inbox\page.tsx:1419:                           <button                                src\app\dashboard\sms\inbox\page.tsx:1420:                             type="button"                      > src\app\dashboard\sms\inbox\page.tsx:1421:                             onClick={() =>                     openContactEditor(conversationPeer)}                    src\app\dashboard\sms\inbox\page.tsx:1422:                             className={`flex w-full gap-3      px-4 py-3 text-left text-sm font-semibold             ${theme.threadHover}`}                                  src\app\dashboard\sms\inbox\page.tsx:1423:                           >                                      src\app\dashboard\sms\inbox\page.tsx:1424:                             ✏️{" "}                            > src\app\dashboard\sms\inbox\page.tsx:1425:                             {peerDisplayName(conversationPeer)   src\app\dashboard\sms\inbox\page.tsx:1426:                               ? "Edit contact name"              src\app\dashboard\sms\inbox\page.tsx:1427:                               : "Save contact name"}             src\app\dashboard\sms\inbox\page.tsx:1428:                           </button>                              src\app\dashboard\sms\inbox\page.tsx:1429:                         </div>                                   src\app\dashboard\sms\inbox\page.tsx:1430:                       )}                                         src\app\dashboard\sms\inbox\page.tsx:1431:                     </div>                                       src\app\dashboard\sms\inbox\page.tsx:1432:                   )}                                             src\app\dashboard\sms\inbox\page.tsx:1506:                     onFocus={handleInlineComposerFocus}          src\app\dashboard\sms\inbox\page.tsx:1507:                     onKeyDown={handleComposerKeyDown}            src\app\dashboard\sms\inbox\page.tsx:1508:                     rows={1}                                   > src\app\dashboard\sms\inbox\page.tsx:1509:                     placeholder={conversationPeer ? "Type a    message" : "Select a conversation"}                     src\app\dashboard\sms\inbox\page.tsx:1510:                     className={`min-h-[46px] flex-1            resize-none rounded-2xl border px-5 py-3 text-[14px]  outline-none focus:border-emerald-400                 ${theme.input}`}                                        src\app\dashboard\sms\inbox\page.tsx:1511:                   />                                             src\app\dashboard\sms\inbox\page.tsx:1512:                   <button                                        src\app\dashboard\sms\inbox\page.tsx:1513:                     type="button"                                src\app\dashboard\sms\inbox\page.tsx:1514:                     onClick={() => void sendMessage()}         > src\app\dashboard\sms\inbox\page.tsx:1515:                     disabled={sending || !text.trim() ||       (!recipient && !conversationPeer)}                      src\app\dashboard\sms\inbox\page.tsx:1516:                     className="flex h-11 w-11 items-center     justify-center rounded-full bg-emerald-500 text-xl    font-black text-slate-950 disabled:opacity-40"          src\app\dashboard\sms\inbox\page.tsx:1517:                   >                                              src\app\dashboard\sms\inbox\page.tsx:1518:                     {sending ? "…" : "➢"}                        src\app\dashboard\sms\inbox\page.tsx:1519:                   </button>                                      src\app\dashboard\sms\inbox\page.tsx:1520:                 </div>                                           src\app\dashboard\sms\inbox\page.tsx:1521:               </div>                                             src\app\dashboard\sms\inbox\page.tsx:1522:             </main>                                              src\app\dashboard\sms\inbox\page.tsx:1633:                     </p>                                         src\app\dashboard\sms\inbox\page.tsx:1634:                   </div>                                         src\app\dashboard\sms\inbox\page.tsx:1635:                 </>                                            > src\app\dashboard\sms\inbox\page.tsx:1636:               ) : peopleOpen && conversationPeer ? (             src\app\dashboard\sms\inbox\page.tsx:1637:                 <>                                               src\app\dashboard\sms\inbox\page.tsx:1638:                   <div className={`flex h-16 items-center      justify-between border-b px-4 ${theme.divider}`}>       src\app\dashboard\sms\inbox\page.tsx:1639:                     <p className="text-sm                      font-black">People</p>                                  src\app\dashboard\sms\inbox\page.tsx:1640:                     <button                                      src\app\dashboard\sms\inbox\page.tsx:1641:                       type="button"                              src\app\dashboard\sms\inbox\page.tsx:1642:                       onClick={() => setPeopleOpen(false)}       src\app\dashboard\sms\inbox\page.tsx:1643:                       className={`h-8 w-8 rounded-full border  ${theme.input}`}                                        src\app\dashboard\sms\inbox\page.tsx:1647:                   </div>                                         src\app\dashboard\sms\inbox\page.tsx:1648:                   <div className="p-5">                          src\app\dashboard\sms\inbox\page.tsx:1649:                     <div className={`rounded-2xl border p-4    ${theme.soft}`}>                                      > src\app\dashboard\sms\inbox\page.tsx:1650:                       <PeerTitle peer={conversationPeer}       size="md" />                                            src\app\dashboard\sms\inbox\page.tsx:1651:                     </div>                                       src\app\dashboard\sms\inbox\page.tsx:1652:                     <button                                      src\app\dashboard\sms\inbox\page.tsx:1653:                       type="button"                            > src\app\dashboard\sms\inbox\page.tsx:1654:                       onClick={() =>                           openContactEditor(conversationPeer)}                    src\app\dashboard\sms\inbox\page.tsx:1655:                       className="mt-4 w-full rounded-xl        bg-emerald-500 py-3 text-sm font-black                text-slate-950"                                         src\app\dashboard\sms\inbox\page.tsx:1656:                     >                                          > src\app\dashboard\sms\inbox\page.tsx:1657:                       {peerDisplayName(conversationPeer) ?     "Edit contact name" : "Save contact name"}              src\app\dashboard\sms\inbox\page.tsx:1658:                     </button>                                    src\app\dashboard\sms\inbox\page.tsx:1659:                     <button                                      src\app\dashboard\sms\inbox\page.tsx:1660:                       type="button"                            > src\app\dashboard\sms\inbox\page.tsx:1661:                       onClick={() =>                           startInPlaceCall(conversationPeer)}                     src\app\dashboard\sms\inbox\page.tsx:1662:                       className={`mt-2 w-full rounded-xl       border py-3 text-xs font-bold ${theme.input}`}          src\app\dashboard\sms\inbox\page.tsx:1663:                     >                                            src\app\dashboard\sms\inbox\page.tsx:1664:                       📞 Call (this page)                        src\app\dashboard\sms\inbox\page.tsx:1665:                     </button>                                  > src\app\dashboard\sms\inbox\page.tsx:1666:                     {peerDisplayName(conversationPeer) && (      src\app\dashboard\sms\inbox\page.tsx:1667:                       <button                                    src\app\dashboard\sms\inbox\page.tsx:1668:                         type="button"                          > src\app\dashboard\sms\inbox\page.tsx:1669:                         onClick={() =>                         removeContact(conversationPeer)}                        src\app\dashboard\sms\inbox\page.tsx:1670:                         className={`mt-2 w-full rounded-xl     border py-3 text-xs font-bold ${theme.input}`}          src\app\dashboard\sms\inbox\page.tsx:1671:                       >                                          src\app\dashboard\sms\inbox\page.tsx:1672:                         Remove saved name                        src\app\dashboard\sms\inbox\page.tsx:1673:                       </button>                                  src\app\dashboard\sms\inbox\page.tsx:1674:                     )}                                           src\app\dashboard\sms\inbox\page.tsx:1675:                   </div>                                         src\app\dashboard\sms\inbox\page.tsx:1676:                 </>                                              src\app\dashboard\sms\inbox\page.tsx:1708:                       <button                                    src\app\dashboard\sms\inbox\page.tsx:1709:                         type="button"                            src\app\dashboard\sms\inbox\page.tsx:1710:                         onClick={() => startInPlaceCall()}     > src\app\dashboard\sms\inbox\page.tsx:1711:                         disabled={!dialerInput.trim() &&       !conversationPeer}                                      src\app\dashboard\sms\inbox\page.tsx:1712:                         className="flex h-9 w-9 shrink-0       items-center justify-center rounded-full              bg-emerald-500 text-slate-950 shadow-md transition    hover:bg-emerald-400 disabled:opacity-40"               src\app\dashboard\sms\inbox\page.tsx:1713:                         title="Call without leaving this page"   src\app\dashboard\sms\inbox\page.tsx:1714:                       >                                          src\app\dashboard\sms\inbox\page.tsx:1715:                         📞                                       src\app\dashboard\sms\inbox\page.tsx:1716:                       </button>                                  src\app\dashboard\sms\inbox\page.tsx:1717:                     </div>                                       src\app\dashboard\sms\inbox\page.tsx:1718:            src\app\dashboard\sms\inbox\page.tsx:1731:                       </div>                                     src\app\dashboard\sms\inbox\page.tsx:1732:                     ) : (                                        src\app\dashboard\sms\inbox\page.tsx:1733:                       <div className="space-y-1                overflow-y-auto">                                     > src\app\dashboard\sms\inbox\page.tsx:1734:                         {desktopThreads.map(({ peer }) => (      src\app\dashboard\sms\inbox\page.tsx:1735:                           <button                                src\app\dashboard\sms\inbox\page.tsx:1736:                             key={peer}                           src\app\dashboard\sms\inbox\page.tsx:1737:                             type="button"                        src\app\dashboard\sms\inbox\page.tsx:1738:                             onClick={() =>                     openThreadOnDesktop(peer)}                              src\app\dashboard\sms\inbox\page.tsx:1739:                             className={`flex w-full            rounded-xl px-2 py-2 text-left ${theme.threadHover}`}   src\app\dashboard\sms\inbox\page.tsx:1740:                           >                                      src\app\dashboard\sms\inbox\page.tsx:1741:                             <PeerTitle peer={peer} size="sm"   />                                                      src\app\dashboard\sms\inbox\page.tsx:1748:                       <button                                    src\app\dashboard\sms\inbox\page.tsx:1749:                         type="button"                            src\app\dashboard\sms\inbox\page.tsx:1750:                         onClick={() => startInPlaceCall()}     > src\app\dashboard\sms\inbox\page.tsx:1751:                         disabled={!dialerInput.trim() &&       !conversationPeer}                                      src\app\dashboard\sms\inbox\page.tsx:1752:                         className="w-full rounded-full         bg-emerald-500 py-2.5 text-xs font-black              text-slate-950 disabled:opacity-40"                     src\app\dashboard\sms\inbox\page.tsx:1753:                       >                                          src\app\dashboard\sms\inbox\page.tsx:1754:                         Call                                     src\app\dashboard\sms\inbox\page.tsx:1755:                       </button>                                  src\app\dashboard\sms\inbox\page.tsx:1756:                       <button                                    src\app\dashboard\sms\inbox\page.tsx:1757:                         type="button"                            src\app\dashboard\sms\inbox\page.tsx:1758:                         onClick={() =>                           src\app\dashboard\sms\inbox\page.tsx:1777:             <h2 className="text-lg font-black">                  src\app\dashboard\sms\inbox\page.tsx:1778:               {contacts[editingContactKey] ? "Edit contact" :  "Add"}{" "}                                             src\app\dashboard\sms\inbox\page.tsx:1779:               <span className="text-emerald-400">              > src\app\dashboard\sms\inbox\page.tsx:1780:                 {formatPhoneNumber(editingContactKey ||        mobileActivePeer || conversationPeer || "")}            src\app\dashboard\sms\inbox\page.tsx:1781:               </span>                                            src\app\dashboard\sms\inbox\page.tsx:1782:             </h2>                                                src\app\dashboard\sms\inbox\page.tsx:1783:             <div className="mt-5 space-y-3">                     src\app\dashboard\sms\inbox\page.tsx:1784:               <input                                             src\app\dashboard\sms\inbox\page.tsx:1785:                 autoFocus                                        src\app\dashboard\sms\inbox\page.tsx:1786:                 value={contactNameInput}                         src\app\dashboard\sms\inbox\page.tsx:1787:                 onChange={(e) =>                               setContactNameInput(e.target.value.slice(0, 80))}                                                                                                                 PS C:\Users\Sire-F\OneDrive\Desktop\My Projects\nava-otp>                                            
+PS C:\Users\Sire-F\OneDrive\Desktop\My Projects\nava-otp> $ErrorActionPreference = "Stop"
+PS C:\Users\Sire-F\OneDrive\Desktop\My Projects\nava-otp> $root = "C:\Users\Sire-F\OneDrive\Desktop\My Projects\nava-otp"
+PS C:\Users\Sire-F\OneDrive\Desktop\My Projects\nava-otp>
+PS C:\Users\Sire-F\OneDrive\Desktop\My Projects\nava-otp> Write-Host "`n--- WEBHOOK: NUMBER NORMALIZATION AND DESTINATION MATCHING ---"
+
+--- WEBHOOK: NUMBER NORMALIZATION AND DESTINATION MATCHING ---
+PS C:\Users\Sire-F\OneDrive\Desktop\My Projects\nava-otp> Get-Content "$root\src\app\api\webhooks\telnyx\route.ts" |
+>>     Select-Object -First 145
+import { NextRequest, NextResponse } from "next/server";
+import crypto from "crypto";
+import { createClient } from "@supabase/supabase-js";
+
+export const runtime = "nodejs";
+export const dynamic = "force-dynamic";
+
+/**
+ * Telnyx Messaging webhook
+ * - Verifies Ed25519 signature (Telnyx-Signature-Ed25519 + Telnyx-Timestamp)
+ * - Handles inbound SMS (message.received)
+ * - Maps "to" number â†’ nava_phone_numbers
+ * - Inserts into nava_phone_messages
+ *
+ * Env required:
+ *   TELNYX_PUBLIC_KEY          (base64 Ed25519 public key from Telnyx Mission Control)
+ *   NEXT_PUBLIC_SUPABASE_URL
+ *   SUPABASE_SERVICE_ROLE_KEY  (server-only; bypasses RLS for webhook inserts)
+ *
+ * Optional:
+ *   TELNYX_WEBHOOK_MAX_SKEW_SEC  (default 300)
+ */
+
+type TelnyxInboundPayload = {
+  data?: {
+    event_type?: string;
+    id?: string;
+    occurred_at?: string;
+    payload?: {
+      direction?: string;
+      id?: string; // Telnyx message id
+      from?: { phone_number?: string };
+      to?: Array<{ phone_number?: string }> | { phone_number?: string };
+      text?: string;
+      type?: string;
+      received_at?: string;
+      encoding?: string;
+      media?: unknown[];
+    };
+  };
+  meta?: unknown;
+};
+
+function getServiceSupabase() {
+  const url = process.env.NEXT_PUBLIC_SUPABASE_URL;
+  const key = process.env.SUPABASE_SECRET_KEY || process.env.SUPABASE_SERVICE_ROLE_KEY;
+  if (!url || !key) {
+    throw new Error("Missing NEXT_PUBLIC_SUPABASE_URL or SUPABASE_SECRET_KEY");
+  }
+  return createClient(url, key, {
+    auth: { persistSession: false, autoRefreshToken: false },
+  });
+}
+
+function normalizeE164(raw: string | null | undefined): string | null {
+  if (!raw) return null;
+  const trimmed = String(raw).trim();
+  if (!trimmed) return null;
+  const digits = trimmed.replace(/\D/g, "");
+  if (!digits) return null;
+  if (trimmed.startsWith("+")) return `+${digits}`;
+  // US fallback if 11 digits starting with 1, or 10-digit national
+  if (digits.length === 11 && digits.startsWith("1")) return `+${digits}`;
+  if (digits.length === 10) return `+1${digits}`;
+  return `+${digits}`;
+}
+
+function extractToNumbers(toField: TelnyxInboundPayload["data"]): string[] {
+  const payload = toField?.payload;
+  if (!payload?.to) return [];
+  if (Array.isArray(payload.to)) {
+    return payload.to
+      .map((t) => normalizeE164(t?.phone_number))
+      .filter((n): n is string => Boolean(n));
+  }
+  const single = normalizeE164((payload.to as { phone_number?: string })?.phone_number);
+  return single ? [single] : [];
+}
+
+/**
+ * Verify Telnyx Ed25519 webhook signature.
+ * Signed payload = `${timestamp}|${rawBody}`
+ * Header: telnyx-signature-ed25519 (base64), telnyx-timestamp (unix sec)
+ * @see https://developers.telnyx.com/docs/api/v2/overview#webhook-signing
+ */
+function verifyTelnyxSignature(opts: {
+  rawBody: string;
+  signatureB64: string | null;
+  timestamp: string | null;
+  publicKeyB64: string;
+  maxSkewSec: number;
+}): { ok: true } | { ok: false; reason: string } {
+  const { rawBody, signatureB64, timestamp, publicKeyB64, maxSkewSec } = opts;
+
+  if (!signatureB64 || !timestamp) {
+    return { ok: false, reason: "Missing Telnyx-Signature-Ed25519 or Telnyx-Timestamp" };
+  }
+
+  const ts = Number(timestamp);
+  if (!Number.isFinite(ts)) {
+    return { ok: false, reason: "Invalid Telnyx-Timestamp" };
+  }
+
+  const nowSec = Math.floor(Date.now() / 1000);
+  if (Math.abs(nowSec - ts) > maxSkewSec) {
+    return { ok: false, reason: "Timestamp outside allowed skew" };
+  }
+
+  try {
+    const keyBytes = Buffer.from(publicKeyB64, "base64");
+    const spkiPrefix = Buffer.from("302a300506032b6570032100", "hex");
+    const publicKey = crypto.createPublicKey({
+      key: keyBytes.length === 32 ? Buffer.concat([spkiPrefix, keyBytes]) : keyBytes,
+      format: "der",
+      type: "spki",
+    });
+
+    const signedPayload = Buffer.from(`${timestamp}|${rawBody}`, "utf8");
+    const signature = Buffer.from(signatureB64, "base64");
+
+    const valid = crypto.verify(null, signedPayload, publicKey, signature);
+    if (!valid) return { ok: false, reason: "Invalid signature" };
+    return { ok: true };
+  } catch (err: any) {
+    return { ok: false, reason: `Signature verify error: ${err?.message || "unknown"}` };
+  }
+}
+
+function isInboundSmsEvent(body: TelnyxInboundPayload): boolean {
+  const eventType = String(body?.data?.event_type || "").toLowerCase();
+  const direction = String(body?.data?.payload?.direction || "").toLowerCase();
+  const msgType = String(body?.data?.payload?.type || "").toLowerCase();
+
+  // Primary: message.received
+  if (eventType === "message.received") return true;
+
+  // Fallback shapes some accounts emit
+  if (eventType.includes("message") && direction === "inbound") return true;
+  if (direction === "inbound" && (msgType === "sms" || msgType === "mms" || !msgType)) {
+    return Boolean(body?.data?.payload?.text || body?.data?.payload?.from);
+  }
+  return false;
+}
+
+export async function POST(req: NextRequest) {
+PS C:\Users\Sire-F\OneDrive\Desktop\My Projects\nava-otp>
+PS C:\Users\Sire-F\OneDrive\Desktop\My Projects\nava-otp> Write-Host "`n--- WEBHOOK: INBOUND MESSAGE PERSISTENCE ---"
+
+--- WEBHOOK: INBOUND MESSAGE PERSISTENCE ---
+PS C:\Users\Sire-F\OneDrive\Desktop\My Projects\nava-otp> Get-Content "$root\src\app\api\webhooks\telnyx\route.ts" |
+>>     Select-Object -Skip 175 -First 155
+  try {
+    body = JSON.parse(rawBody) as TelnyxInboundPayload;
+  } catch {
+    return NextResponse.json({ error: "Invalid JSON" }, { status: 400 });
+  }
+
+  // Always ACK non-inbound quickly (delivery updates, etc.)
+  if (!isInboundSmsEvent(body)) {
+    return NextResponse.json({
+      received: true,
+      handled: false,
+      event_type: body?.data?.event_type ?? null,
+    });
+  }
+
+  const payload = body.data?.payload;
+  const telnyxMessageId = payload?.id || body.data?.id || null;
+  const fromNumber = normalizeE164(payload?.from?.phone_number);
+  const toCandidates = extractToNumbers(body.data);
+  const text = typeof payload?.text === "string" ? payload.text : "";
+  const occurredAt =
+    payload?.received_at || body.data?.occurred_at || new Date().toISOString();
+
+  if (!fromNumber || toCandidates.length === 0) {
+    console.warn("[telnyx-webhook] inbound missing from/to", {
+      telnyxMessageId,
+      fromNumber,
+      toCandidates,
+    });
+    // Still 200 so Telnyx does not retry forever on malformed test payloads
+    return NextResponse.json({
+      received: true,
+      handled: false,
+      reason: "missing_from_or_to",
+    });
+  }
+
+  try {
+    const supabase = getServiceSupabase();
+
+    // Find NAVA number matching any "to" candidate (E.164)
+    const { data: navaNumbers, error: lookupError } = await supabase
+      .from("nava_phone_numbers")
+      .select("id, phone_number, user_id, status")
+      .in("phone_number", toCandidates)
+      .eq("status", "active")
+      .limit(5);
+
+    if (lookupError) {
+      console.error("[telnyx-webhook] number lookup failed:", lookupError);
+      return NextResponse.json({ error: "Lookup failed" }, { status: 500 });
+    }
+
+    const navaNumber = navaNumbers?.[0];
+    if (!navaNumber) {
+      console.warn("[telnyx-webhook] no NAVA number for to=", toCandidates);
+      return NextResponse.json({
+        received: true,
+        handled: false,
+        reason: "unknown_destination",
+        to: toCandidates,
+      });
+    }
+
+    const toNumber = normalizeE164(navaNumber.phone_number) || toCandidates[0];
+
+    // Idempotent insert: unique on provider_message_id if you add that column/constraint
+    const row = {
+      phone_number_id: navaNumber.id,
+      user_id: navaNumber.user_id,
+      direction: "inbound" as const,
+      from_number: fromNumber,
+      to_number: toNumber,
+      body: text,
+      status: "received",
+      provider_message_id: telnyxMessageId,
+      created_at: occurredAt,
+    };
+
+    // Prefer upsert when provider_message_id is unique
+    const { data: inserted, error: insertError } = await supabase
+      .from("nava_phone_messages")
+      .upsert(row, {
+        onConflict: "provider_message_id",
+        ignoreDuplicates: true,
+      })
+      .select("id")
+      .maybeSingle();
+
+    // If upsert fails because column/constraint missing, fall back to plain insert
+    if (insertError) {
+      const msg = String(insertError.message || "");
+      const missingConflict =
+        msg.toLowerCase().includes("on conflict") ||
+        msg.toLowerCase().includes("provider_message_id") ||
+        msg.toLowerCase().includes("raw");
+
+      if (!missingConflict) {
+        console.error("[telnyx-webhook] insert failed:", insertError);
+        return NextResponse.json({ error: "Persist failed" }, { status: 500 });
+      }
+
+      // Fallback insert without optional columns
+      const fallback = {
+        phone_number_id: navaNumber.id,
+        user_id: navaNumber.user_id,
+        provider_message_id: telnyxMessageId,
+        direction: "inbound" as const,
+        from_number: fromNumber,
+        to_number: toNumber,
+        body: text,
+        status: "received",
+        created_at: occurredAt,
+      };
+
+      // Dedupe manually if possible
+      if (telnyxMessageId) {
+        const { data: existing } = await supabase
+          .from("nava_phone_messages")
+          .select("id")
+          .eq("from_number", fromNumber)
+          .eq("to_number", toNumber)
+          .eq("body", text)
+          .gte("created_at", new Date(Date.now() - 2 * 60 * 1000).toISOString())
+          .limit(1);
+
+        if (existing && existing.length > 0) {
+          return NextResponse.json({
+            received: true,
+            handled: true,
+            duplicate: true,
+            message_id: existing[0].id,
+          });
+        }
+      }
+
+      const { data: inserted2, error: insertError2 } = await supabase
+        .from("nava_phone_messages")
+        .insert(fallback)
+        .select("id")
+        .maybeSingle();
+
+      if (insertError2) {
+        console.error("[telnyx-webhook] fallback insert failed:", insertError2);
+        return NextResponse.json({ error: "Persist failed" }, { status: 500 });
+      }
+
+      return NextResponse.json({
+        received: true,
+        handled: true,
+        message_id: inserted2?.id ?? null,
+        phone_number_id: navaNumber.id,
+      });
+    }
+
+PS C:\Users\Sire-F\OneDrive\Desktop\My Projects\nava-otp>
+PS C:\Users\Sire-F\OneDrive\Desktop\My Projects\nava-otp> Write-Host "`n--- INBOX API: FETCHED MESSAGES ---"
+
+
+--- INBOX API: FETCHED MESSAGES ---
+PS C:\Users\Sire-F\OneDrive\Desktop\My Projects\nava-otp> Get-Content "$root\src\app\api\phone\messages\route.ts" |
+>>     Select-Object -First 65
+import { NextResponse } from "next/server";
+import { supabaseAdmin } from "@/lib/supabase-admin";
+import { getAuthenticatedSupabaseUser } from "@/lib/supabase-request-auth";
+import { sendTelnyxSms } from "@/lib/telnyx";
+
+function normalizeRecipient(value: unknown) {
+  const raw = String(value || "").trim();
+  const digits = raw.replace(/\D/g, "");
+  if (raw.startsWith("+")) return "+" + digits;
+  return "+" + digits;
+}
+
+export async function GET(req: Request) {
+  try {
+    const user = await getAuthenticatedSupabaseUser(req);
+    if (!user) return NextResponse.json({ error: "Unauthorized. Please log in." }, { status: 401 });
+
+    const { data: numbers, error: numbersError } = await supabaseAdmin
+      .from("nava_phone_numbers")
+      .select("id, phone_number, country_code, status")
+      .eq("user_id", user.id)
+      .neq("status", "released")
+      .order("created_at", { ascending: false });
+
+    if (numbersError) {
+      console.error("NAVA SMS number lookup error:", numbersError);
+      return NextResponse.json({ error: "Unable to load your NAVA Phone numbers." }, { status: 500 });
+    }
+
+    const numberIds = (numbers || []).map((number) => number.id);
+    if (numberIds.length === 0) {
+      return NextResponse.json({ success: true, numbers: [], messages: [] });
+    }
+
+    const { data: messages, error: messagesError } = await supabaseAdmin
+      .from("nava_phone_messages")
+      .select("id, phone_number_id, direction, from_number, to_number, body, status, created_at")
+      .eq("user_id", user.id)
+      .in("phone_number_id", numberIds)
+      .order("created_at", { ascending: true })
+      .limit(500);
+
+    if (messagesError) {
+      console.error("NAVA SMS message lookup error:", messagesError);
+      return NextResponse.json({ error: "Unable to load your NAVA messages." }, { status: 500 });
+    }
+
+    return NextResponse.json({
+      success: true,
+      numbers: numbers || [],
+      messages: messages || [],
+    });
+  } catch (error) {
+    console.error("NAVA SMS inbox error:", error);
+    return NextResponse.json({ error: "Unable to load your NAVA messages." }, { status: 500 });
+  }
+}
+
+export async function POST(req: Request) {
+  try {
+    const user = await getAuthenticatedSupabaseUser(req);
+    if (!user) return NextResponse.json({ error: "Unauthorized. Please log in." }, { status: 401 });
+
+    const body = await req.json();
+    const phoneNumberId = String(body?.phone_number_id || "").trim();
+PS C:\Users\Sire-F\OneDrive\Desktop\My Projects\nava-otp>
+PS C:\Users\Sire-F\OneDrive\Desktop\My Projects\nava-otp> Write-Host "`n--- INBOX: NEW CONVERSATION THREAD DISCOVERY ---"
+
+--- INBOX: NEW CONVERSATION THREAD DISCOVERY ---
+PS C:\Users\Sire-F\OneDrive\Desktop\My Projects\nava-otp> Get-Content "$root\src\app\dashboard\sms\inbox\page.tsx" |
+>>     Select-Object -Skip 245 -First 70
+
+  const selectedNumber = useMemo(
+    () => numbers.find((n) => n.id === selectedNumberId) || null,
+    [numbers, selectedNumberId],
+  );
+
+  const selectedMessages = useMemo(
+    () => messages.filter((m) => m.phone_number_id === selectedNumberId),
+    [messages, selectedNumberId],
+  );
+
+  const conversationPeer = useMemo(() => {
+    if (recipient) return recipient;
+    const last = selectedMessages[selectedMessages.length - 1];
+    if (!last) return null;
+    return last.direction === "inbound" ? last.from_number : last.to_number;
+  }, [selectedMessages, recipient]);
+
+  const getContact = (phone: string | null | undefined): SavedContact | null => {
+    if (!phone) return null;
+    return contacts[normalizePhoneKey(phone)] || null;
+  };
+
+  const peerDisplayName = (phone: string) => getContact(phone)?.name?.trim() || null;
+
+  const allThreads = useMemo(() => {
+    const peers = Array.from(
+      new Set(messages.map((m) => (m.direction === "inbound" ? m.from_number : m.to_number))),
+    );
+    return peers
+      .map((peer) => {
+        const threadMsgs = messages.filter(
+          (m) => (m.direction === "inbound" ? m.from_number : m.to_number) === peer,
+        );
+        const lastMsg = threadMsgs[threadMsgs.length - 1];
+        return { peer, lastMsg, lineId: lastMsg?.phone_number_id || selectedNumberId };
+      })
+      .sort((a, b) => {
+        const ta = a.lastMsg ? new Date(a.lastMsg.created_at).getTime() : 0;
+        const tb = b.lastMsg ? new Date(b.lastMsg.created_at).getTime() : 0;
+        return tb - ta;
+      });
+  }, [messages, selectedNumberId]);
+
+  const desktopThreads = useMemo(() => {
+    const numberMessages = selectedNumberId
+      ? messages.filter((m) => m.phone_number_id === selectedNumberId)
+      : messages;
+    const peers = Array.from(
+      new Set(numberMessages.map((m) => (m.direction === "inbound" ? m.from_number : m.to_number))),
+    );
+    return peers
+      .map((peer) => {
+        const threadMsgs = numberMessages.filter(
+          (m) => (m.direction === "inbound" ? m.from_number : m.to_number) === peer,
+        );
+        return { peer, lastMsg: threadMsgs[threadMsgs.length - 1] };
+      })
+      .sort((a, b) => {
+        const ta = a.lastMsg ? new Date(a.lastMsg.created_at).getTime() : 0;
+        const tb = b.lastMsg ? new Date(b.lastMsg.created_at).getTime() : 0;
+        return tb - ta;
+      });
+  }, [messages, selectedNumberId]);
+
+  const activePeerMessages = useMemo(() => {
+    const activePeer = recipient || conversationPeer;
+    if (!activePeer) return [];
+    return selectedMessages.filter((m) => {
+      const peer = m.direction === "inbound" ? m.from_number : m.to_number;
+PS C:\Users\Sire-F\OneDrive\Desktop\My Projects\nava-otp>
