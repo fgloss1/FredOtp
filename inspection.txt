@@ -1,163 +1,198 @@
-Thank you for the detailed follow-up on NAVA OTP's 10DLC compliance architecture. I've reviewed the relevant Telnyx documentation and can share what the published guidance says, but because you're asking for formal written confirmation of a specific compliance architecture before incurring registration costs, this requires review by a human compliance specialist who can assess your exact model against carrier requirements.
+I understand this spec and I take it seriously. Before I touch any file, I'm going to do exactly what section 11 asks for: inspect first, propose a plan, change nothing yet.
 
-What the documentation clearly states:
+Below is my inspection-and-plan response. I will not create tables, routes, migrations, or UI until you approve it, because this feature touches money, supplier legal boundaries, and existing OTP flows that must not break.
 
-P2P exemption is not available to NAVA OTP. The P2P Definition and Exemption Process explicitly disqualifies Cloud Communication Suites. A platform providing dedicated numbers to consumer accounts fits this definition. Your traffic is classified as A2P and must be registered under 10DLC.
+1. What I need to inspect before writing any code
+To follow the “inspect the code before making changes” rule, I need read-only access to these parts of the current repo. Please confirm the paths exist (names below are the expected Next.js app-router convention):
 
-One shared brand/campaign across unrelated end-users is not the approved architecture. Per the ISVs & 10DLC guidance:
+Existing rentals / 5SIMs flow (must stay untouched)
+src/app/dashboard/rentals/** — current UI
+src/app/api/rentals/** or src/app/api/5sims/** or src/app/api/otp/**
+Any lib/5sims*, lib/providers/5sims*, services/5sims*
+Payments / wallet (must be reused, not duplicated)
+src/app/api/wallet/**, src/app/api/payments/**, src/app/api/transactions/**
+lib/wallet*, lib/payments*
+Supabase tables used today: wallets, transactions, rentals, etc.
+Auth
+src/lib/supabase.ts (client) and server-side admin client file
+Session/authorization helpers used by existing API routes
+Any admin/role check (profiles.role, is_admin, etc.)
+Scheduling / background jobs
+Any of: src/app/api/cron/**, Vercel cron config in vercel.json, Supabase Edge Functions, a queue (BullMQ, Upstash QStash), or none
+Email sender already in use (Resend / Postmark / SMTP?)
+Database tooling
+Supabase SQL migration folder (supabase/migrations/**) or drizzle/ / prisma/ if present
+Naming convention used for existing tables (snake_case, prefix like nava_*)
+I will not assume any of the above exists. I need you to confirm or paste the file tree for src/app/api/ and src/app/dashboard/rentals/.
 
-For every end-user you resell to, you need a separate brand.
-Sharing phone numbers across multiple brands violates 10DLC terms and can result in fines and blocked traffic.
-MNOs will not approve ISVs for special consideration to share numbers across brands.
-Using one brand/campaign across end-users without explicit MNO approval "will likely result in your business receiving fines from mobile network operators, and will likely lead to mobile network operators blocking your traffic."
-Number Pooling agreement is only relevant if you want to use one brand/campaign across end-users. Per the documentation, this is unlikely to be approved by T-Mobile unless your business is a franchise.
+2. What I will build (plan only — not code yet)
+Everything below is additive and isolated. The existing 5SIMs OTP flow is not touched.
 
-Error 40010 is resolved by registering brands/campaigns and assigning numbers to approved campaigns. However, the fix must use the compliant architecture — a single shared campaign without MNO approval risks fines and blocking.
+2.1 New routes (customer)
+/dashboard/rentals — unchanged list; I only add a tab or secondary nav entry:
+“OTP Rentals” (existing)
+“US Mobile eSIM Plans” (new) → /dashboard/rentals/esim
+/dashboard/rentals/esim — catalogue
+/dashboard/rentals/esim/[planId] — plan detail + ZIP selection (only if supplier supports)
+/dashboard/rentals/esim/checkout/[planId] — price breakdown + pay with wallet
+/dashboard/rentals/esim/mine — My eSIMs
+/dashboard/rentals/esim/mine/[orderId] — single line, renew button, history
+2.2 New routes (admin, gated by existing role check)
+/dashboard/admin/esim/orders
+/dashboard/admin/esim/plans
+2.3 New API routes (all namespaced under /api/esim/* so nothing collides with 5SIMs)
+Customer:
 
-The specific nuance for NAVA OTP:
+GET /api/esim/plans — list enabled plans
+GET /api/esim/plans/[id] — plan + current verified pricing snapshot
+POST /api/esim/orders — create pending order (quote lock, idempotency key)
+POST /api/esim/orders/[id]/pay — charge wallet via existing wallet service
+GET /api/esim/orders/[id] — status (ownership-checked)
+POST /api/esim/orders/[id]/renew — create renewal order (new row, not mutate original)
+Admin:
 
-The ISV documentation defines an ISV as a business selling to "end users who are also businesses." NAVA OTP's end-users are individual consumers, not business entities. This creates a specific classification question that the published documentation does not fully resolve for your exact model — namely, whether the per-end-user brand requirement applies identically when end-users are individual consumers rather than businesses, and what the correct campaign use case registration would be for manually composed, personal, two-way SMS from individual consumers.
+GET /api/esim/admin/orders
+POST /api/esim/admin/orders/[id]/fulfill — attach phone number, QR, activation code, mark active
+POST /api/esim/admin/orders/[id]/fail — mark failed, trigger refund via existing wallet refund path
+POST /api/esim/admin/plans / PATCH / DELETE
+Cron (only if scheduler exists; otherwise flagged as “not enabled”):
 
-This is the kind of compliance determination that requires a human specialist to review your specific architecture, traffic patterns, and carrier relationships before you commit to a registration path.
+POST /api/esim/cron/renewal-reminders
+2.4 New database tables (Supabase SQL migration, prefixed nava_esim_* to stay separate)
+text
 
-Your case has been added to the support queue.
+nava_esim_plans
+  id uuid pk
+  supplier text              -- e.g. 'nexitel'
+  carrier  text               -- e.g. 'purple', 'blue_att' (disabled until verified)
+  code     text unique        -- 'purple_text', 'purple_max'
+  name     text
+  description text
+  talk_minutes int            -- null = unlimited
+  text_allowance text         -- 'unlimited' or number
+  data_mb int                 -- null = unlimited
+  supports_zip boolean
+  duration_days int           -- e.g. 30
+  activation_price_cents int
+  renewal_price_cents int
+  regulatory_fee_cents int
+  tax_rate_bps int            -- basis points, or tax_cents_default
+  price_source text           -- 'manual_verified_2025_01_15'
+  price_verified_at timestamptz
+  fulfillment_method text     -- 'manual' | 'api_<name>'
+  is_purchasable boolean default false   -- master kill switch per plan
+  is_visible boolean default true
+  created_at, updated_at
 
-TAIA
-•
-Oct 9
-Hello Telnyx Support,
+nava_esim_orders
+  id uuid pk
+  user_id uuid fk auth.users
+  plan_id uuid fk nava_esim_plans
+  type text                   -- 'activation' | 'renewal'
+  parent_line_id uuid null    -- renewal points to original active line
+  zip_code text null
+  -- price snapshot (never recomputed)
+  plan_price_cents int
+  regulatory_fee_cents int
+  tax_cents int
+  total_cents int
+  currency text default 'USD'
+  -- payment
+  payment_transaction_id uuid null fk <existing transactions table>
+  idempotency_key text unique
+  status text                 -- pending_payment | paid_awaiting_fulfillment |
+                              -- processing | active | renewal_pending |
+                              -- renewal_processing | renewal_completed |
+                              -- failed_requires_review | refunded
+  -- fulfillment (secret, server-only reads)
+  assigned_phone_number text null
+  activation_expiry_at timestamptz null
+  fulfilled_by uuid null
+  fulfilled_at timestamptz null
+  failure_reason text null
+  created_at, updated_at
 
-Thank you for your detailed response.
+nava_esim_order_secrets        -- separate table so secrets never join into list queries
+  order_id uuid pk fk
+  qr_code_png bytea null       -- or storage path
+  activation_code_encrypted text null
+  instructions text null
+  created_at
 
-Before we begin registration, I need clarification on one important point about NAVA OTP.
+nava_esim_reminders
+  id uuid pk
+  order_id uuid fk
+  reminder_type text           -- 'expiry_7d' | 'expiry_3d' | 'expiry_1d'
+  sent_at timestamptz
+  channel text                 -- 'email' | 'inapp'
+  unique(order_id, reminder_type)   -- prevents duplicates
+All tables get RLS:
 
-NAVA OTP provides individual consumers with dedicated US phone numbers through a web-based phone interface. Customers manually compose ordinary one-to-one personal SMS messages and communicate with other individuals. We do not intend to offer bulk marketing or automated promotional messaging.
+nava_esim_plans: public read where is_visible = true.
+nava_esim_orders: user can read only user_id = auth.uid(); admins via role claim.
+nava_esim_order_secrets: no direct RLS select for users; served only through authenticated API that re-checks ownership and status = active.
+2.5 Money handling
+All math in integer cents, server-side.
+Browser never submits totals; it submits plan_id + optional zip_code + idempotency_key.
+Server recomputes quote from nava_esim_plans row, writes snapshot into nava_esim_orders.
+Wallet debit uses the existing wallet service inside a DB transaction with the order insert. Same idempotency key prevents double-charge on retry.
+Refund path = existing wallet credit function + status = refunded.
+2.6 Status machine (enforced server-side)
+text
 
-Your response recommends registering one NAVA OTP brand and campaign and assigning multiple customer numbers to it.
+pending_payment
+  → paid_awaiting_fulfillment   (wallet charged)
+  → processing                  (admin picked it up)
+  → active                      (admin confirmed real supplier activation)
+  → failed_requires_review      (any step; triggers refund decision)
 
-However, your published ISVs & 10DLC guidance states that sharing one brand and campaign across multiple end-users without explicit mobile-carrier approval may result in fines or blocked traffic. It also describes an approved Number Pooling agreement as a possible alternative.
+active
+  → renewal_pending             (customer clicks Renew)
+  → renewal_processing          (wallet charged for renewal order row)
+  → renewal_completed           (admin confirms; expiry updated from supplier
+                                 confirmation, NOT from "now + duration")
+Payment success alone never advances past paid_awaiting_fulfillment / renewal_processing. This is the hard rule from section 4 and 8.
 
-Before we incur registration costs, could you please confirm in writing:
+2.7 Supplier reality (section 9)
+No Nexitel API will be called.
+No scraping of Nexitel retail checkout.
+fulfillment_method = 'manual' for every plan at launch.
+Global env flag ESIM_PUBLIC_SALES_ENABLED (default false). While false, catalogue is visible to admins only; customers see a “Coming soon — join waitlist” state. This matches: “keep real customer sales disabled or restricted to an appropriate test/admin mode”.
+Plans seeded with only what you’ve actually verified:
+PurpleText: activation $11.88 ($9 + $2 fee + $0.88 tax), renewal $12.96 ($10 + $2 + $0.96). price_source = 'manual_verified_checkout_<date>'.
+PurpleMax: created as is_purchasable = false until you confirm the real checkout total.
+Nexitel Blue / AT&T: not inserted, or inserted with is_visible = false.
+2.8 Reminders (section 7)
+I’ll implement the reminder sender as a route POST /api/esim/cron/renewal-reminders that:
 
-Can one NAVA OTP brand and campaign legally and technically cover dedicated US local numbers used by many unrelated consumer accounts for manually composed, personal, two-way SMS?
+Finds active orders with activation_expiry_at in {7d, 3d, 1d} windows.
+Inserts a row into nava_esim_reminders with the unique constraint — insert fails → already sent → skip. No duplicates.
+Sends via existing email transport. In-app notification row written to whatever notifications table already exists (if any — I’ll check first).
+SMS reminders are not required, per your 10DLC note.
+Scheduling: I will not use setInterval in a route. If the project already has Vercel Cron or Supabase scheduled functions, I’ll wire the route to that. If none exists, I’ll stop and ask you which to add rather than inventing one.
 
-Does this arrangement require explicit approval from T-Mobile or another mobile network operator, including a Number Pooling agreement?
+2.9 What I will not do
+Not touch /api/5sims/*, /api/rentals/*, or any existing table.
+Not change existing wallet/transactions schema.
+Not add a second wallet.
+Not display AT&T / Nexitel Blue as buyable.
+Not auto-activate on payment.
+Not deploy, not push, not merge, not change env in production.
+Not fabricate supplier confirmations in code or logs.
+3. What I need from you before I write a single file
+Please confirm or provide:
 
-What exact campaign use case should we register for this model, and will it accurately represent the actual traffic?
+File tree of src/app/api/ and src/app/dashboard/rentals/ (just ls -R, no contents needed yet).
+Wallet charge function name + file path that current 5SIMs rental uses to debit the user. I will reuse it exactly.
+Existing admin role check — how does the current code know a user is an admin?
+Scheduler — is there Vercel Cron, Supabase scheduled functions, Upstash QStash, or none?
+Email transport — Resend, Postmark, Supabase Auth email only, or none?
+Migrations folder path and tool (supabase/migrations, Drizzle, Prisma, raw SQL)?
+Confirm: should the eSIM entry point be a tab inside /dashboard/rentals or a sibling route /dashboard/rentals/esim? I recommend the sibling route so the existing page’s layout and data loaders are not modified at all.
+Confirm the launch posture: admin-only visible at first (I recommend this), or visible to all customers with a “waitlist” CTA?
+Once you answer those 8 items, I will:
 
-If a single campaign is not permitted, what compliant Telnyx product or commercial arrangement supports this consumer use case without requiring each individual consumer to register a separate business brand?
-
-Will the proposed configuration resolve error 40010 for outbound SMS to T-Mobile while remaining compliant with the requirements of other US carriers?
-
-We want to provide customers with a simple experience: rent a dedicated number, send and receive ordinary personal messages, and manage conversations through NAVA OTP.
-
-Please confirm the permitted architecture before we proceed with registration.
-
-Thank you.
-
-1:27 PM
-TAIA
-
-Thank you for the detailed description of NAVA OTP's use case. Here's a breakdown addressing each of your questions:
-
-1. Approved P2P Carrier Messaging Model
-Telnyx offers a P2P exemption from 10DLC requirements, but it has strict criteria. You must satisfy all of the following:
-
-Your messaging excludes business communication of any kind.
-You are not a Cloud Communication Suite.
-Traffic is roughly symmetrical (user-to-user, 1:1 to 1:3).
-There are no automated text messages in your workflow.
-You have a Telnyx contract.
-Key Issue for NAVA OTP: Platforms providing dedicated US phone numbers to individual consumers are likely classified as a Cloud Communication Suite, disqualifying them from the P2P exemption. Messages sent on behalf of any business do not qualify as P2P. NAVA OTP is likely classified as A2P.
-
-If you believe you qualify, contact your Customer Success Manager or sales@telnyx.com to proceed. Approval can take several months due to strict requirements.
-
-2. Classification of NAVA OTP
-NAVA OTP is most likely classified as A2P due to:
-
-Being a platform/business providing numbers to end users, fitting the definition of a Cloud Communication Suite or an ISV.
-ISVs are businesses selling products/services to end users, even if they are individuals.
-Most "P2P" use cases are actually A2P and should be registered.
-3. Compliant Architecture Recommendations
-If classified as A2P, consider these options:
-
-Option A: Register a Brand and Campaign for NAVA OTP (Recommended)
-Register one Brand for NAVA OTP.
-Register one or more Campaigns describing your use case.
-Assign phone numbers to the Campaign.
-Vet your Brand to improve trust score and throughput.
-Note: A number can belong to only one Campaign; T-Mobile limit is 49 numbers per Campaign.
-Option B: Toll-Free Numbers
-Toll-free numbers can send A2P messages and are not subject to 10DLC requirements.
-Separate approval process for Toll-Free messaging applies.
-Option C: Number Lookup to Exclude T-Mobile
-Use Number Lookup tools to identify and exclude T-Mobile numbers.
-This is a workaround, not a solution.
-Key Point: You do not need to register a separate brand and campaign for each consumer. Register one Brand for NAVA OTP and create campaigns that describe your use case.
-
-4. Restrictions on Providing Dedicated US Numbers
-No sharing numbers across brands: Each number must be associated with one campaign and brand.
-T-Mobile number limit: Maximum 49 numbers per Campaign without a special agreement.
-Traffic must match your declared use case: Ensure your campaign description accurately reflects usage.
-From February 3, 2025, unregistered 10DLC traffic is blocked.
-Resolving Error 40010
-The error 40010 - Unregistered 10DLC Message means your sending number is not attached to a 10DLC campaign. To resolve:
-
-Register a Brand for NAVA OTP in the Mission Control Portal or via the 10DLC API.
-(Recommended) Vet the Brand to improve trust score.
-Register a Campaign describing your use case.
-Assign your phone numbers to the Campaign.
-For specific 10DLC compliance questions, reach out to 10dlcquestions@telnyx.com.
-
-Summary & Recommended Next Steps
-Short-term: Register a 10DLC Brand and Campaign for NAVA OTP to resolve the 40010 error.
-Evaluate P2P exemption: If you believe your model qualifies, contact your CSM or sales@telnyx.com.
-Architecture: Use one Brand + Campaign for NAVA OTP, assign numbers to it, and ensure traffic patterns match your declared use case.
-Before expanding: Complete 10DLC registration and vetting to avoid issues.
-Relevant documentation:
-
-P2P Definition and Exemption Process
-ISVs & 10DLC
-10DLC FAQ
-10DLC Quickstart (Developer Docs)
-Traffic Type Feature Guide
-Messaging Error Codes
-10DLC Campaign Compliance Requirements
-TAIA
-•
-Oct 9
-Hello Telnyx Support,
-
-We operate NAVA OTP, a platform offering dedicated US phone numbers to individual customers for personal, two-way SMS conversations.
-
-Our customers manually compose individual messages and communicate with other people. We are not intending to offer bulk SMS marketing or automated promotional messaging.
-
-We recently encountered error 40010, “Not 10DLC registered,” when replying to a T-Mobile US number through our Telnyx API integration.
-
-Requiring every individual consumer to register a separate business brand and campaign would not be practical for our product.
-
-Could you please clarify:
-
-Is there an approved P2P carrier messaging model for a platform like ours, where individual users have dedicated US local numbers and send ordinary personal messages?
-
-Can NAVA Phone qualify for P2P carrier approval, or does Telnyx classify this platform model as A2P regardless of message content and volume?
-
-If P2P approval is unavailable, which Telnyx product or compliant architecture would you recommend for this use case?
-
-Are there specific restrictions on providing dedicated US numbers to multiple consumer accounts through one platform?
-
-We want to resolve this before expanding the service, while complying with carrier requirements and avoiding an onboarding process that requires ordinary consumers to establish business messaging campaigns.
-
-Thank you.
-
-Oct 9
-
-
-
-
-
-
-
-
-
-
+Post the exact list of files I will create (new only — no edits to existing route files unless you explicitly approve a nav link addition).
+Post the SQL migration for your review.
+Only then start implementing, in small commits on the current branch, no push.
+This keeps every non-negotiable in section 1 intact.
