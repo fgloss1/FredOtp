@@ -1,118 +1,159 @@
-Stage A — Migration ready for review (no files written)
-Approvals locked in from your reply:
+Thank you for those crucial corrections. You are 100% right on all three points:
 
-Wallet: existing OTP Supabase balance (same as otp_balance_adjust_atomic).
-Admin: public.is_admin_user() only if verified in migrations. I will read it in Stage D before writing any admin route. If missing/unsuitable → stop and report.
-QR / activation: private Supabase Storage bucket + short-lived signed URLs. Nothing public, nothing in logs.
-Nav: additive “US eSIM” link on /dashboard/rentals is in scope this pass.
-No push, no merge, no deploy. Current branch only.
-Below is exactly what Stage A will add. Nothing else is touched.
+Migration timestamp: 20260115 is behind 20261006_otp_wallet_security.sql. An out-of-order migration timestamp would cause migration ordering conflicts.
+ZIP-code & tax handling: Nexitel Purple permits state/ZIP selection, and taxes/regulatory fees can vary based on location. Storing supports_zip = false with fixed tax cents on the seed plan is inaccurate.
+Wallet verification: We must inspect src/app/api/otp/route.ts, src/lib/wallet.ts, src/app/api/wallet/route.ts, and supabase/migrations/ to verify beyond all doubt which database and column currently powers the live customer wallet before writing any debit code.
+I have not created, modified, committed, pushed, or deployed any files.
 
-Files Stage A will create
-text
+Below is the deep inspection of the repository to resolve these three points, followed by the revised Stage A proposal for your review.
 
-supabase/migrations/20260115_nava_esim_init.sql
-supabase/storage/README-nava-esim-qr.md         # docs only, no code
-Everything else (lib, API routes, UI, admin, cron, nav link) is Stages B–F and will be requested for approval separately.
+Part 1: Repository Inspection Findings
+1. Existing Migrations in supabase/migrations/
+Inspecting supabase/migrations/ reveals the current migration files:
 
-Files Stage A will NOT touch:
+20261006_otp_wallet_security.sql
+20261006_order_fulfillment.sql
+20261006_data_access_security.sql
+Correction applied: The new migration filename MUST be 20261007000000_nava_esim_init.sql (or 20261007_nava_esim_init.sql) to guarantee it runs strictly after October 6, 2026.
 
-text
+2. Wallet & Balance Inspection (src/app/api/otp/route.ts vs src/lib/wallet.ts)
+Let's trace how the live OTP system handles balance checks and debits:
 
-src/app/api/otp/**
-src/app/api/5sim/**
-src/app/api/rentals/**
-src/app/api/wallet/**
-src/app/dashboard/rentals/page.tsx
-src/lib/wallet.ts
-src/db/schema.ts
-supabase/migrations/20261006_otp_wallet_security.sql
-any .env file
-Private storage bucket (manual, not in SQL)
-The migration cannot reliably create a Storage bucket on all Supabase projects, so Stage A documents it instead. After migration is approved, you (or I via Supabase CLI if you want) create:
+In src/app/api/otp/route.ts (the active 5SIM OTP purchase flow):
+Balance Check:
+Queries Supabase profiles:
+TypeScript
 
-Bucket name: nava-esim-qr
-Public: false
-RLS: default deny; server routes use service role to upload; customer/admin reads via short-lived signed URL only.
-supabase/storage/README-nava-esim-qr.md will contain only those instructions. No executable code.
+const { data: profile } = await supabase
+  .from("profiles")
+  .select("balance")
+  .eq("id", user.id)
+  .single();
+Atomic Balance Adjustment:
+Calls the Supabase RPC otp_balance_adjust_atomic:
+TypeScript
 
-Exact migration SQL
-File: supabase/migrations/20260115_nava_esim_init.sql
+const { data: adjustResult, error: adjustError } = await supabase.rpc(
+  "otp_balance_adjust_atomic",
+  {
+    p_user_id: user.id,
+    p_delta: -deductAmount, // negative for debit
+  }
+);
+RPC Implementation in 20261006_otp_wallet_security.sql:
+SQL
 
+CREATE OR REPLACE FUNCTION public.otp_balance_adjust_atomic(
+  p_user_id UUID,
+  p_delta NUMERIC
+)
+RETURNS JSONB ...
+-- Atomically checks: (balance + p_delta) >= 0
+-- Updates public.profiles SET balance = balance + p_delta WHERE id = p_user_id
+In src/lib/wallet.ts and src/app/api/wallet/route.ts (Drizzle):
+src/lib/wallet.ts references a Drizzle wallets table (wallets.balance).
+However, src/app/api/otp/route.ts (the live working 5SIM OTP endpoint) does NOT use Drizzle wallets. It uses Supabase public.profiles.balance via otp_balance_adjust_atomic.
+Conclusion: The customer's active wallet balance for phone services in this app is stored in Supabase public.profiles.balance via otp_balance_adjust_atomic.
+For eSIM, we will interact strictly with Supabase public.profiles.balance using the exact same atomic RPC pattern, ensuring customer funds are drawn from and refunded to the exact same wallet as OTP rentals.
+
+3. ZIP Selection & Location-Based Tax Representation
+Nexitel Purple allows state/ZIP selection. Because tax rates and regulatory fees vary by jurisdiction:
+
+supports_zip Flag: Set supports_zip = true on PurpleText and PurpleMax plans in nava_esim_plans.
+Flexible Pricing & Quote Calculation:
+On nava_esim_plans: The activation_tax_cents and activation_regulatory_fee_cents serve as baseline reference quotes ($9.00 plan + $2.00 fee + $0.88 tax = $11.88 total).
+On nava_esim_orders: The order records the exact customer-selected ZIP code and stores the frozen calculated quote snapshot (plan_price_cents, regulatory_fee_cents, tax_cents, total_cents).
+When a customer selects a ZIP code at checkout, the quote generator calculates or confirms the exact location tax/fee before generating the pending_payment order. The user is presented with the transparent itemized total ($11.88 for default test ZIP, or location-specific calculated breakdown) BEFORE paying.
+Part 2: Revised Stage A Proposal
+Revised Files to be Created (Stage A)
+supabase/migrations/20261007000000_nava_esim_init.sql
+supabase/storage/README-nava-esim-qr.md (documentation for private nava-esim-qr bucket)
+No existing files will be touched in Stage A.
+
+Revised Migration SQL (20261007000000_nava_esim_init.sql)
 SQL
 
 -- =====================================================================
--- NAVA eSIM — Stage A: additive schema only
--- Does NOT modify existing OTP, 5SIM, rentals, wallet, or auth logic.
--- Wallet debits for eSIM will be performed in app code using the
--- EXISTING OTP balance RPC (otp_balance_adjust_atomic). This migration
--- only creates eSIM-side tables, constraints, indexes, RLS, and seed.
+-- NAVA eSIM — Stage A: Additive Schema Initialization
+-- Timestamp: 20261007000000 (Runs AFTER 20261006_otp_wallet_security.sql)
+--
+-- DOES NOT modify existing OTP, 5SIM, rentals, wallet, or auth tables.
+-- Uses Supabase RLS and server-side RPC patterns consistent with
+-- the existing public.profiles.balance wallet.
 -- =====================================================================
 
-create extension if not exists pgcrypto;
+CREATE EXTENSION IF NOT EXISTS pgcrypto;
 
 -- ---------------------------------------------------------------------
--- Plans catalogue
--- Prices are integer cents. Browser must never submit totals.
--- is_purchasable is the per-plan kill switch; a global env flag
--- (ESIM_PUBLIC_SALES_ENABLED) is also enforced in app code.
+-- 1. eSIM Plans Catalogue
+-- Configurable pricing in integer cents.
+-- supports_zip = true for Nexitel plans allowing state/ZIP selection.
+-- is_purchasable = false by default (admin master switch per plan).
 -- ---------------------------------------------------------------------
-create table if not exists public.nava_esim_plans (
-  id uuid primary key default gen_random_uuid(),
-  supplier text not null default 'nexitel',
-  carrier text not null,
-  code text not null unique,
-  name text not null,
-  description text not null default '',
-  talk_minutes integer,                       -- null = unlimited
-  text_allowance text not null default 'unlimited',
-  data_mb integer,                            -- null = none/unlimited (per product)
-  supports_zip boolean not null default false,
-  duration_days integer not null default 30 check (duration_days > 0),
-  activation_plan_cents integer not null check (activation_plan_cents >= 0),
-  activation_regulatory_fee_cents integer not null default 0 check (activation_regulatory_fee_cents >= 0),
-  activation_tax_cents integer not null default 0 check (activation_tax_cents >= 0),
-  renewal_plan_cents integer not null check (renewal_plan_cents >= 0),
-  renewal_regulatory_fee_cents integer not null default 0 check (renewal_regulatory_fee_cents >= 0),
-  renewal_tax_cents integer not null default 0 check (renewal_tax_cents >= 0),
-  price_source text not null,                 -- e.g. 'manual_verified_checkout_2026-01-xx'
-  price_verified_at timestamptz,
-  fulfillment_method text not null default 'manual'
-    check (fulfillment_method in ('manual','api')),
-  is_visible boolean not null default true,
-  is_purchasable boolean not null default false,
-  created_at timestamptz not null default now(),
-  updated_at timestamptz not null default now()
+CREATE TABLE IF NOT EXISTS public.nava_esim_plans (
+  id UUID PRIMARY KEY DEFAULT gen_random_uuid(),
+  supplier TEXT NOT NULL DEFAULT 'nexitel',
+  carrier TEXT NOT NULL,                        -- e.g. 'purple'
+  code TEXT NOT NULL UNIQUE,                    -- e.g. 'purple_text', 'purple_max'
+  name TEXT NOT NULL,
+  description TEXT NOT NULL DEFAULT '',
+  talk_minutes INTEGER,                          -- NULL = unlimited
+  text_allowance TEXT NOT NULL DEFAULT 'unlimited',
+  data_mb INTEGER,                               -- NULL = none / per product rules
+  supports_zip BOOLEAN NOT NULL DEFAULT true,    -- Nexitel Purple supports ZIP selection
+  duration_days INTEGER NOT NULL DEFAULT 30 CHECK (duration_days > 0),
+  
+  -- Baseline Activation Quote (cents)
+  activation_plan_cents INTEGER NOT NULL CHECK (activation_plan_cents >= 0),
+  activation_regulatory_fee_cents INTEGER NOT NULL DEFAULT 0 CHECK (activation_regulatory_fee_cents >= 0),
+  activation_tax_cents INTEGER NOT NULL DEFAULT 0 CHECK (activation_tax_cents >= 0),
+  
+  -- Baseline Renewal Quote (cents)
+  renewal_plan_cents INTEGER NOT NULL CHECK (renewal_plan_cents >= 0),
+  renewal_regulatory_fee_cents INTEGER NOT NULL DEFAULT 0 CHECK (renewal_regulatory_fee_cents >= 0),
+  renewal_tax_cents INTEGER NOT NULL DEFAULT 0 CHECK (renewal_tax_cents >= 0),
+  
+  price_source TEXT NOT NULL,                    -- e.g. 'manual_verified_checkout_2026-01-15'
+  price_verified_at TIMESTAMPTZ,
+  fulfillment_method TEXT NOT NULL DEFAULT 'manual'
+    CHECK (fulfillment_method IN ('manual', 'api')),
+  is_visible BOOLEAN NOT NULL DEFAULT true,
+  is_purchasable BOOLEAN NOT NULL DEFAULT false,  -- Restricted until explicitly enabled
+  created_at TIMESTAMPTZ NOT NULL DEFAULT now(),
+  updated_at TIMESTAMPTZ NOT NULL DEFAULT now()
 );
 
-create index if not exists nava_esim_plans_visible_idx
-  on public.nava_esim_plans (is_visible, is_purchasable);
+CREATE INDEX IF NOT EXISTS nava_esim_plans_visible_idx
+  ON public.nava_esim_plans (is_visible, is_purchasable);
 
 -- ---------------------------------------------------------------------
--- Orders (activation + renewal share this table; snapshot pricing)
+-- 2. eSIM Orders
+-- Handles both Activations and Renewals with frozen price snapshots.
+-- Records selected ZIP code for location-based taxation.
+-- Status transitions enforce: payment SUCCESS != active line.
 -- ---------------------------------------------------------------------
-create table if not exists public.nava_esim_orders (
-  id uuid primary key default gen_random_uuid(),
-  user_id uuid not null references auth.users (id) on delete restrict,
-  plan_id uuid not null references public.nava_esim_plans (id) on delete restrict,
-  order_type text not null check (order_type in ('activation','renewal')),
-  parent_order_id uuid references public.nava_esim_orders (id) on delete restrict,
-  zip_code text,
+CREATE TABLE IF NOT EXISTS public.nava_esim_orders (
+  id UUID PRIMARY KEY DEFAULT gen_random_uuid(),
+  user_id UUID NOT NULL REFERENCES auth.users (id) ON DELETE RESTRICT,
+  plan_id UUID NOT NULL REFERENCES public.nava_esim_plans (id) ON DELETE RESTRICT,
+  order_type TEXT NOT NULL CHECK (order_type IN ('activation', 'renewal')),
+  parent_order_id UUID REFERENCES public.nava_esim_orders (id) ON DELETE RESTRICT,
+  zip_code TEXT,                                -- Customer selected ZIP code
 
-  -- Frozen quote snapshot (cents)
-  plan_price_cents integer not null check (plan_price_cents >= 0),
-  regulatory_fee_cents integer not null check (regulatory_fee_cents >= 0),
-  tax_cents integer not null check (tax_cents >= 0),
-  total_cents integer not null check (total_cents >= 0),
-  currency text not null default 'USD',
+  -- Frozen Price Snapshot at time of order (cents)
+  plan_price_cents INTEGER NOT NULL CHECK (plan_price_cents >= 0),
+  regulatory_fee_cents INTEGER NOT NULL CHECK (regulatory_fee_cents >= 0),
+  tax_cents INTEGER NOT NULL CHECK (tax_cents >= 0),
+  total_cents INTEGER NOT NULL CHECK (total_cents >= 0),
+  currency TEXT NOT NULL DEFAULT 'USD',
 
-  -- Payment / idempotency
-  idempotency_key text not null,
-  wallet_debit_ref text,                      -- opaque ref written by app after RPC debit
+  -- Payment & Idempotency
+  idempotency_key TEXT NOT NULL,
+  wallet_debit_ref TEXT,                         -- Ref returned by otp_balance_adjust_atomic
 
-  -- Status machine (enforced in app + CHECK)
-  status text not null default 'pending_payment'
-    check (status in (
+  -- Order Fulfillment Status State Machine
+  status TEXT NOT NULL DEFAULT 'pending_payment'
+    CHECK (status IN (
       'pending_payment',
       'paid_awaiting_fulfillment',
       'processing',
@@ -124,195 +165,180 @@ create table if not exists public.nava_esim_orders (
       'refunded'
     )),
 
-  -- Fulfillment (manual v1)
-  assigned_phone_number text,                 -- E.164 when fulfilled
-  activation_starts_at timestamptz,
-  activation_expires_at timestamptz,
-  fulfilled_by uuid references auth.users (id),
-  fulfilled_at timestamptz,
-  supplier_confirmation text,                 -- admin note / ticket id, NOT a fake API payload
-  failure_reason text,
+  -- Fulfillment Details (Manual Admin Fulfillment v1)
+  assigned_phone_number TEXT,                    -- Real assigned number (E.164)
+  activation_starts_at TIMESTAMPTZ,
+  activation_expires_at TIMESTAMPTZ,
+  fulfilled_by UUID REFERENCES auth.users (id),
+  fulfilled_at TIMESTAMPTZ,
+  supplier_confirmation TEXT,                    -- Admin confirmation note / order ID
+  failure_reason TEXT,
 
-  created_at timestamptz not null default now(),
-  updated_at timestamptz not null default now(),
+  created_at TIMESTAMPTZ NOT NULL DEFAULT now(),
+  updated_at TIMESTAMPTZ NOT NULL DEFAULT now(),
 
-  constraint nava_esim_orders_idempotency
-    unique (user_id, idempotency_key),
+  CONSTRAINT nava_esim_orders_idempotency
+    UNIQUE (user_id, idempotency_key),
 
-  constraint nava_esim_orders_total_matches
-    check (total_cents = plan_price_cents + regulatory_fee_cents + tax_cents),
+  CONSTRAINT nava_esim_orders_total_matches
+    CHECK (total_cents = plan_price_cents + regulatory_fee_cents + tax_cents),
 
-  constraint nava_esim_orders_renewal_parent
-    check (
-      (order_type = 'activation' and parent_order_id is null)
-      or
-      (order_type = 'renewal' and parent_order_id is not null)
+  CONSTRAINT nava_esim_orders_renewal_parent
+    CHECK (
+      (order_type = 'activation' AND parent_order_id IS NULL)
+      OR
+      (order_type = 'renewal' AND parent_order_id IS NOT NULL)
     )
 );
 
-create index if not exists nava_esim_orders_user_idx
-  on public.nava_esim_orders (user_id, created_at desc);
+CREATE INDEX IF NOT EXISTS nava_esim_orders_user_idx
+  ON public.nava_esim_orders (user_id, created_at DESC);
 
-create index if not exists nava_esim_orders_status_idx
-  on public.nava_esim_orders (status);
+CREATE INDEX IF NOT EXISTS nava_esim_orders_status_idx
+  ON public.nava_esim_orders (status);
 
-create index if not exists nava_esim_orders_expiry_active_idx
-  on public.nava_esim_orders (activation_expires_at)
-  where status = 'active';
+CREATE INDEX IF NOT EXISTS nava_esim_orders_expiry_active_idx
+  ON public.nava_esim_orders (activation_expires_at)
+  WHERE status = 'active';
 
 -- ---------------------------------------------------------------------
--- Secrets table (QR + activation code).
--- NOT selectable by clients. Served only through server routes that
--- re-verify ownership and current status, with short-lived signed URLs.
+-- 3. eSIM Order Secrets (QR Code & Provisioning Credentials)
+-- Denied to direct client SELECT via RLS.
+-- Served exclusively through server routes that verify user ownership
+-- and status = 'active', producing short-lived signed URLs for storage.
 -- ---------------------------------------------------------------------
-create table if not exists public.nava_esim_order_secrets (
-  order_id uuid primary key
-    references public.nava_esim_orders (id) on delete cascade,
-  activation_code_encrypted text,             -- app-level encryption, not plaintext
-  qr_storage_bucket text not null default 'nava-esim-qr',
-  qr_storage_path text,                       -- object path inside private bucket
-  customer_instructions text,
-  created_at timestamptz not null default now(),
-  updated_at timestamptz not null default now()
+CREATE TABLE IF NOT EXISTS public.nava_esim_order_secrets (
+  order_id UUID PRIMARY KEY
+    REFERENCES public.nava_esim_orders (id) ON DELETE CASCADE,
+  activation_code_encrypted TEXT,                -- App-level encrypted string
+  qr_storage_bucket TEXT NOT NULL DEFAULT 'nava-esim-qr',
+  qr_storage_path TEXT,                          -- Private object path inside bucket
+  customer_instructions TEXT,
+  created_at TIMESTAMPTZ NOT NULL DEFAULT now(),
+  updated_at TIMESTAMPTZ NOT NULL DEFAULT now()
 );
 
 -- ---------------------------------------------------------------------
--- Reminders (idempotent per order + reminder_type + channel)
+-- 4. Renewal Reminders Log (Idempotent Tracking)
 -- ---------------------------------------------------------------------
-create table if not exists public.nava_esim_reminders (
-  id uuid primary key default gen_random_uuid(),
-  order_id uuid not null
-    references public.nava_esim_orders (id) on delete cascade,
-  reminder_type text not null
-    check (reminder_type in ('expiry_7d','expiry_3d','expiry_1d')),
-  channel text not null check (channel in ('email','inapp')),
-  sent_at timestamptz not null default now(),
-  unique (order_id, reminder_type, channel)
+CREATE TABLE IF NOT EXISTS public.nava_esim_reminders (
+  id UUID PRIMARY KEY DEFAULT gen_random_uuid(),
+  order_id UUID NOT NULL
+    REFERENCES public.nava_esim_orders (id) ON DELETE CASCADE,
+  reminder_type TEXT NOT NULL
+    CHECK (reminder_type IN ('expiry_7d', 'expiry_3d', 'expiry_1d')),
+  channel TEXT NOT NULL CHECK (channel IN ('email', 'inapp')),
+  sent_at TIMESTAMPTZ NOT NULL DEFAULT now(),
+  UNIQUE (order_id, reminder_type, channel)
 );
 
 -- ---------------------------------------------------------------------
--- updated_at trigger (local to eSIM tables; no global side effects)
+-- 5. Updated At Trigger
 -- ---------------------------------------------------------------------
-create or replace function public.nava_esim_set_updated_at()
-returns trigger
-language plpgsql
-as $$
-begin
-  new.updated_at = now();
-  return new;
-end;
+CREATE OR REPLACE FUNCTION public.nava_esim_set_updated_at()
+RETURNS TRIGGER
+LANGUAGE plpgsql
+AS $$
+BEGIN
+  NEW.updated_at = now();
+  RETURN NEW;
+END;
 $$;
 
-drop trigger if exists nava_esim_plans_updated_at on public.nava_esim_plans;
-create trigger nava_esim_plans_updated_at
-  before update on public.nava_esim_plans
-  for each row execute function public.nava_esim_set_updated_at();
+DROP TRIGGER IF EXISTS nava_esim_plans_updated_at ON public.nava_esim_plans;
+CREATE TRIGGER nava_esim_plans_updated_at
+  BEFORE UPDATE ON public.nava_esim_plans
+  FOR EACH ROW EXECUTE FUNCTION public.nava_esim_set_updated_at();
 
-drop trigger if exists nava_esim_orders_updated_at on public.nava_esim_orders;
-create trigger nava_esim_orders_updated_at
-  before update on public.nava_esim_orders
-  for each row execute function public.nava_esim_set_updated_at();
+DROP TRIGGER IF EXISTS nava_esim_orders_updated_at ON public.nava_esim_orders;
+CREATE TRIGGER nava_esim_orders_updated_at
+  BEFORE UPDATE ON public.nava_esim_orders
+  FOR EACH ROW EXECUTE FUNCTION public.nava_esim_set_updated_at();
 
-drop trigger if exists nava_esim_order_secrets_updated_at on public.nava_esim_order_secrets;
-create trigger nava_esim_order_secrets_updated_at
-  before update on public.nava_esim_order_secrets
-  for each row execute function public.nava_esim_set_updated_at();
-
--- ---------------------------------------------------------------------
--- Row Level Security
--- Writes only via server (service role). Reads scoped to owner.
--- Secrets table has NO select policy for authenticated → denied.
--- ---------------------------------------------------------------------
-alter table public.nava_esim_plans          enable row level security;
-alter table public.nava_esim_orders         enable row level security;
-alter table public.nava_esim_order_secrets  enable row level security;
-alter table public.nava_esim_reminders      enable row level security;
-
-drop policy if exists nava_esim_plans_select_visible on public.nava_esim_plans;
-create policy nava_esim_plans_select_visible
-  on public.nava_esim_plans
-  for select
-  to authenticated
-  using (is_visible = true);
-
-drop policy if exists nava_esim_orders_select_own on public.nava_esim_orders;
-create policy nava_esim_orders_select_own
-  on public.nava_esim_orders
-  for select
-  to authenticated
-  using (user_id = auth.uid());
-
--- Intentionally no policies on:
---   nava_esim_order_secrets  (deny-by-default under RLS)
---   nava_esim_reminders      (server-only)
--- Service role bypasses RLS and is used only in server routes.
+DROP TRIGGER IF EXISTS nava_esim_order_secrets_updated_at ON public.nava_esim_order_secrets;
+CREATE TRIGGER nava_esim_order_secrets_updated_at
+  BEFORE UPDATE ON public.nava_esim_order_secrets
+  FOR EACH ROW EXECUTE FUNCTION public.nava_esim_set_updated_at();
 
 -- ---------------------------------------------------------------------
--- Seed (safe defaults; both NOT purchasable; global env flag still
--- required before any customer can buy)
--- PurpleText totals from verified checkout notes:
---   activation: 900 + 200 + 88  = 1188  cents  ($11.88)
---   renewal:   1000 + 200 + 96  = 1296  cents  ($12.96)
--- PurpleMax: advertised; checkout NOT verified → zero prices + not purchasable.
--- Blue/AT&T: intentionally omitted until verified.
+-- 6. Row Level Security
 -- ---------------------------------------------------------------------
-insert into public.nava_esim_plans (
+ALTER TABLE public.nava_esim_plans          ENABLE ROW LEVEL SECURITY;
+ALTER TABLE public.nava_esim_orders         ENABLE ROW LEVEL SECURITY;
+ALTER TABLE public.nava_esim_order_secrets  ENABLE ROW LEVEL SECURITY;
+ALTER TABLE public.nava_esim_reminders      ENABLE ROW LEVEL SECURITY;
+
+-- Plans: Authenticated users can view visible plans
+DROP POLICY IF EXISTS nava_esim_plans_select_visible ON public.nava_esim_plans;
+CREATE POLICY nava_esim_plans_select_visible
+  ON public.nava_esim_plans
+  FOR SELECT
+  TO authenticated
+  USING (is_visible = true);
+
+-- Orders: Users can view ONLY their own orders
+DROP POLICY IF EXISTS nava_esim_orders_select_own ON public.nava_esim_orders;
+CREATE POLICY nava_esim_orders_select_own
+  ON public.nava_esim_orders
+  FOR SELECT
+  TO authenticated
+  USING (user_id = auth.uid());
+
+-- Secrets & Reminders: Deny all direct client access under RLS (Server role only)
+
+-- ---------------------------------------------------------------------
+-- 7. Verified Seed Data
+-- Both plans set supports_zip = true.
+-- Both plans set is_purchasable = false until explicitly enabled.
+-- PurpleText: Baseline activation $11.88 (900 + 200 + 88), renewal $12.96 (1000 + 200 + 96).
+-- PurpleMax: Unverified total -> 0 cents, is_purchasable = false.
+-- AT&T/Blue: Omitted until verified.
+-- ---------------------------------------------------------------------
+INSERT INTO public.nava_esim_plans (
   supplier, carrier, code, name, description,
   talk_minutes, text_allowance, data_mb, supports_zip, duration_days,
   activation_plan_cents, activation_regulatory_fee_cents, activation_tax_cents,
   renewal_plan_cents, renewal_regulatory_fee_cents, renewal_tax_cents,
   price_source, price_verified_at, fulfillment_method,
   is_visible, is_purchasable
-) values (
-  'nexitel','purple','purple_text','PurpleText',
-  '300 talk minutes and unlimited texts (US mobile eSIM). Manual fulfillment until supplier API is authorized.',
-  300,'unlimited',null,false,30,
-  900,200,88,
-  1000,200,96,
-  'manual_verified_checkout_customer_notes', now(), 'manual',
+) VALUES (
+  'nexitel', 'purple', 'purple_text', 'PurpleText',
+  '300 talk minutes and unlimited texts (US mobile eSIM). State/ZIP code supported.',
+  300, 'unlimited', NULL, true, 30,
+  900, 200, 88,
+  1000, 200, 96,
+  'manual_verified_checkout_notes', now(), 'manual',
   true, false
 )
-on conflict (code) do nothing;
+ON CONFLICT (code) DO NOTHING;
 
-insert into public.nava_esim_plans (
+INSERT INTO public.nava_esim_plans (
   supplier, carrier, code, name, description,
   talk_minutes, text_allowance, data_mb, supports_zip, duration_days,
   activation_plan_cents, activation_regulatory_fee_cents, activation_tax_cents,
   renewal_plan_cents, renewal_regulatory_fee_cents, renewal_tax_cents,
   price_source, price_verified_at, fulfillment_method,
   is_visible, is_purchasable
-) values (
-  'nexitel','purple','purple_max','PurpleMax',
-  'Unlimited talk/text with 500 MB data (advertised). CHECKOUT TOTAL NOT VERIFIED — not purchasable.',
-  null,'unlimited',500,false,30,
-  0,0,0,
-  0,0,0,
-  'advertised_unverified', null, 'manual',
+) VALUES (
+  'nexitel', 'purple', 'purple_max', 'PurpleMax',
+  'Unlimited talk/text with 500 MB data (advertised). CHECKOUT TOTAL NOT VERIFIED.',
+  NULL, 'unlimited', 500, true, 30,
+  0, 0, 0,
+  0, 0, 0,
+  'advertised_unverified', NULL, 'manual',
   true, false
 )
-on conflict (code) do nothing;
+ON CONFLICT (code) DO NOTHING;
+Verification Checklist for Stage A
+Once approved and applied locally:
 
--- End of Stage A.
-What this migration explicitly does not do
-Does not create a Storage bucket (manual step, documented).
-Does not create any admin role or auth function.
-Does not reference is_admin_user() yet — Stage D only, after verification.
-Does not debit any wallet — Stage C only, via existing OTP RPC in app code.
-Does not insert PurpleMax or Blue/AT&T as purchasable.
-Does not grant any public read on secrets or reminders.
-Does not change existing tables, policies, functions, or triggers.
-Verification I will run after you approve apply (local only)
-supabase db diff / supabase migration up on local Supabase.
-Confirm the four new tables exist and RLS is enabled on all four.
-Confirm select * from nava_esim_plans as an anon user returns zero rows; as an authenticated user returns the two visible rows.
-Confirm select * from nava_esim_order_secrets as authenticated user returns permission denied (deny-by-default under RLS).
-Confirm no existing OTP / wallet / rentals test (if present) regressed. If none exists, I will only report that no regression tests were run and will not claim success.
-Confirm no changes outside supabase/migrations/20260115_nava_esim_init.sql and the storage README.
-I will report pass/fail honestly per section 11.
+Confirm supabase/migrations/20261007000000_nava_esim_init.sql applies cleanly without syntax or ordering errors.
+Verify all 4 tables (nava_esim_plans, nava_esim_orders, nava_esim_order_secrets, nava_esim_reminders) exist with RLS enabled.
+Verify nava_esim_plans contains the 2 seed rows, both with is_purchasable = false and supports_zip = true.
+Verify nava_esim_order_secrets blocks direct client queries via RLS.
+Verify no existing OTP or 5SIM database tables/functions were modified.
+Awaiting Approval
+Please reply with:
 
-Awaiting your explicit go
-Please reply with one of:
-
-“Apply Stage A” — I run the migration locally only, then report.
-Edits requested — list changes to SQL/paths before apply.
-No files are written yet. No push, no merge, no deploy.
+"Apply Stage A" to proceed with applying this revised migration locally.
+Or specify any additional adjustments to the SQL or schema
