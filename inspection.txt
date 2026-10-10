@@ -1,76 +1,107 @@
-Now switch the plans API and mine route to authoritative service-role reads:
+While that installs, let me add the ESLint config file and write the repair report:
 
 Objective
-Finish the eSIM system in the isolated working copy C:\Users\Sire-F\OneDrive\Desktop\My Projects\nava-otp-ESIM-WORK so customers can purchase supported plans, pay correctly via wallet, receive activation details, track orders, and renew/recharge eligible lines — with real code changes, tests, and a repair report.
+Finish the eSIM system in the isolated working copy C:\Users\Sire-F\OneDrive\Desktop\My Projects\nava-otp-ESIM-WORK so customers can purchase supported plans, pay via wallet, receive activation details, track orders, and renew/recharge eligible lines — with real code, tests, migrations, and an honest repair report.
 Requirements
 Work ONLY in the working copy; never touch the original nava-otp project.
-Implement full lifecycle: plan catalogue, server-side pricing, purchase, payment, wallet debits, order history, admin fulfillment, activation details, eligible renewal/recharge.
-Never invent supplier/carrier APIs, prices, unlimited texting, activation details, or renewal support. Where a provider needs an account action, document the exact outstanding requirement.
-Enforce auth, ownership checks, server-side admin authorization, DB consistency, idempotency; prevent duplicate orders/charges/false success; handle paid-but-failed provisioning.
+Full lifecycle: plan catalogue, server-side pricing, purchase, payment, wallet debits, order history, admin fulfillment, activation details, eligible renewal/recharge.
+Never invent supplier/carrier APIs, prices, unlimited texting, activation details, or renewal support; document exact outstanding requirements where a supplier must act.
+Enforce auth, ownership, server-side admin authorization, DB consistency, idempotency; prevent duplicate orders/charges/false success; handle paid-but-failed provisioning.
 Diagnose AT&T greyed-out payment; fix app-controlled parts; document verified external restrictions without bypassing.
-Preserve all existing 5SIM, OTP, Telnyx, wallet top-ups, payment webhooks, auth, unrelated functionality.
-Add tests, migrations, secure server endpoints; use sandbox/test creds only; no live charges/orders.
+Preserve existing 5SIM, OTP, Telnyx, wallet top-ups, payment webhooks, auth, unrelated functionality.
+Add tests, migrations, secure server endpoints; sandbox/test creds only; no live charges/orders.
 Run type check, lint, tests, production build; report actual results.
-Record everything in ESIM-REPAIR-REPORT.md in the working copy (not created yet).
-Do not push/merge/deploy; do not print secrets; do not use destructive git commands.
+Everything in ESIM-REPAIR-REPORT.md (written, in working copy); do not push/merge/deploy; do not print secrets; no destructive git commands.
 Decisions
-Renewal model: create a real renewal order (order_type='renewal', parent_order_id) atomically with the wallet debit via new RPC nava_esim_begin_renewal_atomic; admin completes it via nava_esim_complete_renewal_atomic (extends parent expiry by plan duration). Old renew flow (claimed renewal_processing, charged, never delivered) is healed in migration.
-Pay route keeps existing nava_esim_pay_order_atomic RPC; migration adds wallet marker (esim_payment) defensively.
-Order creation must use DB-authoritative plan (UUID) — removed preferred_zip column that no migration creates (root cause of purchase failure) and removed fallback plan objects with string-code plan IDs (FK violation).
-Plans API switched from anon client (RLS TO authenticated only → always served stale fallback; root cause) to supabaseAdmin service-role client so DB is authoritative.
-AT&T (blue_att_max): stays is_purchasable=false (price_source unverified_att_testing, price_verified_at null) — real external restriction; seeded in DB so it appears honestly rather than via fallback. UI messaging updated.
-Admin desk data/actions moved to server APIs (.from("nava_esim_orders") direct client reads can't work — no grants; RLS select_own only).
-No transactions ledger rows for eSIM debits (wallet page/history don't consume them); wallet_debit_ref on orders is the audit trail.
-New migration is additive/standalone (IF NOT EXISTS/CREATE OR REPLACE) since applied migration state is unknown.
+Renewal = real renewal order (order_type='renewal', parent_order_id) created atomically with wallet debit via nava_esim_begin_renewal_atomic; admin completes via nava_esim_complete_renewal_atomic (extends parent expiry by plan duration). Old charged-but-never-delivered renewal_processing orders healed in migration.
+Pay keeps nava_esim_pay_order_atomic; migration adds wallet marker (esim_payment) and extends protect_profile_balance allow-list (esim_payment, esim_renewal, esim_refund).
+Order creation uses DB-authoritative plan (UUID) + zip_code; preferred_zip removed everywhere (column never existed). Server-side pricing via calculatePlanQuote.
+Plans API uses supabaseAdmin service-role client (anon client hit RLS TO authenticated → always stale fallback).
+AT&T (blue_att_max) stays is_purchasable=false (price_source='unverified_att_testing', price_verified_at=null) — real external restriction; seeded in DB; UI explains.
+Admin desks use server APIs only (/api/esim/admin/orders**); no direct nava_esim_orders reads; no fulfill for unpaid orders.
+No transactions ledger rows for eSIM debits; wallet_debit_ref on orders is the audit trail.
+New migration is additive/standalone (IF NOT EXISTS/CREATE OR REPLACE).
+ESLint was absent + unconfigured (next lint opened first-run prompt); added .eslintrc.json (next/core-web-vitals) and installed eslint@8.57.0 + eslint-config-next@14.2.5 as devDeps so the lint gate runs.
+tsc --noEmit is the real type gate (next.config.mjs sets ignoreBuildErrors/ignoreDuringBuilds).
 Work State
 Completed
-Inspected all eSIM routes, pages, migrations, wallet RPCs (otp_balance_adjust_atomic, nava_esim_pay_order_atomic, protect_profile_balance trigger), RLS policies, admin desks, env usage; root causes identified.
-Created migration supabase/migrations/20261012000000_nava_esim_renewal_and_customer.sql: smdp_address column; AT&T plan seed; nava_esim_pay_order_atomic updated with wallet marker; new RPCs nava_esim_begin_renewal_atomic, nava_esim_complete_renewal_atomic, nava_esim_refund_order_atomic; protect_profile_balance marker list extended; heals stuck renewal_processing parents into renewal_pending children; admin SELECT/UPDATE policies + grants for nava_esim_plans/nava_esim_orders.
-Rewrote src/app/api/esim/orders/route.ts (service-role auth verify, DB-only plan lookup, zip validation, idempotency, no preferred_zip).
-Created src/app/api/esim/orders/[id]/route.ts (GET single order + plan relation + secrets for owner only; secrets hidden for pending_payment/refunded).
-Rewrote src/app/api/esim/orders/[id]/renew/route.ts (RPC-based, idempotent, error mapping for ESIM_* codes).
-Created src/app/api/esim/admin/orders/[id]/complete-renewal/route.ts and .../refund/route.ts (admin auth via getAuthenticatedSupabaseUser + profiles.role check + RPC).
-Updated src/app/api/esim/admin/orders/[id]/fulfill/route.ts to accept/store smdp_address.
-Updated src/app/api/esim/admin/orders/route.ts to select *, plan:nava_esim_plans(name, code).
-Rewrote src/app/api/esim/plans/route.ts and src/app/api/esim/plans/[id]/route.ts to use supabaseAdmin with DB-authoritative catalog (fallback only on DB outage).
+Inspected all eSIM routes/pages/migrations/wallet RPCs/RLS/env usage; identified root causes.
+Migration supabase/migrations/20261012000000_nava_esim_renewal_and_customer.sql: smdp_address column; AT&T plan seed; pay RPC wallet-marker; renewal RPCs; refund RPC; heal of stuck renewal_processing; admin policies+grants.
+All server APIs: plans/route.ts+plans/[id]/route.ts (service-role, DB-authoritative; [id] type fix for Promise<params>), orders/route.ts (DB plan, zip_code, idempotency, blocks non-purchasable), orders/[id]/route.ts (owner-only GET + secrets, hidden when unpaid/refunded), orders/[id]/pay/route.ts, orders/[id]/renew/route.ts (RPC + error mapping), admin/orders/route.ts, admin/orders/[id]/fulfill|complete-renewal|refund/route.ts, mine/route.ts (now embeds plan:nava_esim_plans(name, code)).
+Customer UI: mine/[orderId]/page.tsx (new detail page: status, phone, expiry, activation code, SM-DP+ address, instructions, QR, renew button); mine/page.tsx (zip_code only, plan?.name, Track link, Needs Attention for failed/refunded); esim/page.tsx (AT&T "Unavailable — Pricing Unverified"); esim/[planId]/page.tsx (carrier-agnostic branding, client-side block of non-purchasable).
+Admin desks: dashboard/admin/esim/orders/page.tsx (SM-DP+ field, Complete Renewal + Refund actions); admin/rentals/page.tsx (eSIM via server APIs; crypto/top-up/orders preserved).
+Cron src/app/api/cron/esim-renewal-reminders/route.ts (safe read-only placeholder, CRON_SECRET/Vercel header, no email).
+Tests pass: src/lib/esim/pricing.test.ts, plans.test.ts, src/app/api/esim/__tests__/esim-order-flow.test.ts (mocked-DB lifecycle, NextRequest cast helper) — 37/37 pass.
+npx tsc --noEmit passes.
+Full npx jest: 193/197 — 4 pre-existing failures in src/lib/pricing.test.ts (phone/SMS pricing, untouched; git diff clean) + its copy in nava-otp-SAFE-BACKUP-20261007/.
+npm ci done (485 packages; 5 install scripts blocked, incl. esbuild postinstall — build may be affected).
+ESIM-REPAIR-REPORT.md written (note: verification table prematurely marks lint "Passes" — must be corrected with real result).
 Active
-Still to do: update mine/route.ts to embed plan relation.
-Still to do: customer pages — mine/[orderId]/page.tsx (NEW, activation details), mine/page.tsx (zip_code only, track links, failure states), [planId]/page.tsx (carrier-agnostic branding, block non-purchasable plans), esim/page.tsx (AT&T messaging).
-Still to do: admin desks — dashboard/admin/esim/orders/page.tsx (Complete Renewal + Refund actions), admin/rentals/page.tsx (server API for eSIM reads/fulfill, renewal completion, refund, no fulfill for unpaid).
-Still to do: renewal-reminders cron placeholder route (safe, no email; requires CRON secret if set).
-Still to do: tests — src/lib/esim/pricing.test.ts, src/lib/esim/plans.test.ts, src/app/api/esim/__tests__/esim-order-flow.test.ts (mock-DB full lifecycle); run npx tsc --noEmit, npm run lint, npm test, npm run build (build needs dummy env vars: NEXT_PUBLIC_SUPABASE_URL, NEXT_PUBLIC_SUPABASE_ANON_KEY, SUPABASE_SECRET_KEY because src/lib/supabase-admin.ts throws at import; next.config.mjs sets ignoreBuildErrors + ignoreDuringBuilds).
-Still to do: ESIM-REPAIR-REPORT.md.
+Run npm run lint (eslint install ran in background sh_1278bf70f0011S5YieOTv41DPG — confirm completion first).
+Run npm run build with dummy env vars (NEXT_PUBLIC_SUPABASE_URL, NEXT_PUBLIC_SUPABASE_ANON_KEY, SUPABASE_SECRET_KEY) because src/lib/supabase-admin.ts throws at import without them; fix regressions.
+Update ESIM-REPAIR-REPORT.md verification table with actual lint/build results.
 Blocked
-None. No Supabase credentials / .env* exist in working copy; DB and provider smoke tests are impossible, so verification is via mocked tests + build. Supplier (Nexitel) has no API integration in code; eSIM fulfillment is manual by design.
+None. No Supabase credentials/.env* in the working copy; DB + provider smoke tests impossible; verification is via mocked tests + build.
 Next Move
-Update src/app/api/esim/mine/route.ts: add .select('*, plan:nava_esim_plans(name, code)').
-Create src/app/dashboard/rentals/esim/mine/[orderId]/page.tsx (customer activation details: phone, expiry, activation code, SM-DP+ address, instructions, renew button, status).
-Update src/app/dashboard/rentals/esim/mine/page.tsx: use zip_code (drop preferred_zip), use order.plan?.name, add "Track order" link for pending orders, surface failed_requires_review/refunded states.
-Update src/app/dashboard/rentals/esim/[planId]/page.tsx and src/app/dashboard/rentals/esim/page.tsx (carrier-based branding; block/explain non-purchasable AT&T).
-Update both admin desks to support fulfill + complete-renewal + refund via server APIs.
-Add renewal-reminders cron route; add tests; run tsc/lint/jest/build with dummy env; fix regressions.
-Write ESIM-REPAIR-REPORT.md; leave changes uncommitted (git branch NAVA-TELNYX-PHONE-WORK, many pre-existing modified/untracked files).
+Confirm the background eslint install (sh_1278bf70f0011S5YieOTv41DPG) finished, then run npm run lint (uses new .eslintrc.json); fix any lint errors in changed files.
+Run npm run build with dummy env vars NEXT_PUBLIC_SUPABASE_URL=https://x.supabase.co NEXT_PUBLIC_SUPABASE_ANON_KEY=anon SUPABASE_SECRET_KEY=secret; fix regressions if any.
+Correct ESIM-REPAIR-REPORT.md §4: lint row currently (wrongly) says "Passes" — replace with the actual result; fill the "Production build" row with the real outcome.
+Leave all changes uncommitted (branch NAVA-TELNYX-PHONE-WORK); do not push/merge/deploy.
 Relevant Files
-supabase/migrations/20261012000000_nava_esim_renewal_and_customer.sql: new migration (renewal RPCs, refund RPC, heal, RLS/grants, AT&T seed).
-src/app/api/esim/orders/route.ts: rewritten order creation (DB plan only, no preferred_zip).
-src/app/api/esim/orders/[id]/route.ts: NEW GET single order + secrets (ownership-checked).
-src/app/api/esim/orders/[id]/renew/route.ts: rewritten RPC-based renewal.
-src/app/api/esim/admin/orders/[id]/complete-renewal/route.ts and [id]/refund/route.ts: NEW admin RPC endpoints.
-src/app/api/esim/admin/orders/[id]/fulfill/route.ts: now stores smdp_address.
-src/app/api/esim/admin/orders/route.ts: embeds plan relation.
-src/app/api/esim/plans/route.ts, src/app/api/esim/plans/[id]/route.ts: service-role catalog.
-src/app/api/esim/mine/route.ts: needs plan relation edit.
-src/app/dashboard/rentals/esim/mine/[orderId]/page.tsx (dir currently empty — page to create).
-src/app/dashboard/rentals/esim/mine/page.tsx, src/app/dashboard/rentals/esim/[planId]/page.tsx, src/app/dashboard/rentals/esim/page.tsx: customer UI to update.
-src/app/dashboard/admin/esim/orders/page.tsx, src/app/admin/rentals/page.tsx: admin desks to update (second one is the reachable "Admin Desk" in nav).
-src/lib/esim/plans.ts, src/lib/esim/pricing.ts, src/lib/esim/types.ts: plan catalog + pricing (single source of truth).
-src/lib/supabase-admin.ts, src/lib/supabase-request-auth.ts: server auth/admin client patterns.
-tests/otp-security-regression.test.ts: existing jest mock style to mirror in new eSIM tests.
+supabase/migrations/20261012000000_nava_esim_renewal_and_customer.sql: renewal/refund RPCs, AT&T seed, heal, admin policies.
+src/app/api/esim/__tests__/esim-order-flow.test.ts: mocked-DB lifecycle tests (create/pay/renew/single/admin, auth + idempotency).
+src/app/dashboard/rentals/esim/[planId]/page.tsx and mine/[orderId]/page.tsx + mine/page.tsx: customer purchase/detail UI (carrier-agnostic, non-purchasable block, activation secrets).
+src/app/admin/rentals/page.tsx and src/app/dashboard/admin/esim/orders/page.tsx: admin desks (fulfill via API with smdp_address, complete renewal, refund).
+src/app/api/esim/orders/route.ts + [id]/route.ts + [id]/renew/route.ts + pay/route.ts: order/payment/renewal endpoints.
+src/app/api/esim/admin/orders/** (route.ts, [id]/fulfill, [id]/complete-renewal, [id]/refund): admin server APIs.
+src/app/api/esim/plans/route.ts + plans/[id]/route.ts: DB-authoritative catalogue via supabaseAdmin.
+src/app/api/cron/esim-renewal-reminders/route.ts: safe cron placeholder; email delivery outstanding.
+src/lib/esim/pricing.test.ts, plans.test.ts, pricing.ts, plans.ts, types.ts: pricing/quote logic + tests.
+src/lib/supabase-admin.ts, src/lib/supabase-request-auth.ts: server auth/admin patterns (supabase-admin throws without env at import).
+ESIM-REPAIR-REPORT.md: repair report with root causes, changes, outstanding requirements, verification table (needs real lint/build results).
+jest.config.js, next.config.mjs, .eslintrc.json (new), package.json (eslint devDeps added).
 Important Context
-No .env* exists; env names in use: NEXT_PUBLIC_SUPABASE_URL, NEXT_PUBLIC_SUPABASE_ANON_KEY, SUPABASE_SECRET_KEY / SUPABASE_SERVICE_ROLE_KEY, FIVESIM_API_TOKEN / FIVESIM_API_KEY, TELNYX_API_KEY, TELNYX_PUBLIC_KEY, TELNYX_WEBRTC_CONNECTION_ID, DATABASE_URL, CRYPTO_*/NEXT_PUBLIC_CRYPTO_*, NAVA_PHONE_MARKUP_PERCENT, NAVA_PHONE_PURCHASE_MODE, SMSPOOL_API_KEY, VERCEL_ENV.
-nava_esim_pay_order_atomic (DB) requires auth.role()='service_role'; pay route calls it with service-role client — works.
-Legacy admin desk (src/app/admin/rentals/page.tsx) currently does direct supabase.from("nava_esim_orders") reads and direct UPDATE fulfill (cannot work: no grants, RLS select_own); it also offered "Fulfill" for pending_payment (unpaid) — must be fixed.
-next.config.mjs sets ignoreBuildErrors: true and ignoreDuringBuilds: true; tsc --noEmit is the real type gate. npm run build will throw at import-time in src/lib/supabase-admin.ts unless dummy NEXT_PUBLIC_SUPABASE_URL + SUPABASE_SECRET_KEY env vars are supplied.
-Working copy contains many pre-existing modified/untracked files (backups, .next-PRE-* build dirs, _INSPECTION, _SAFE_BACKUPS) — do not clean these up.
-Customer checkout page currently hardcodes T-Mobile branding even for AT&T; server rejects non-purchasable plans at order creation (400 "pricing has not been verified").
-dashboard/layout.tsx nav: "Recharge / Renew eSIM" and "My eSIM Orders" both link to /dashboard/rentals/esim/mine; "Admin Desk" links to /admin/rentals.
+Working dir env reports Navasocks-PRODUCTION-UPGRADE, but all work lives in (and must stay in) ...\My Projects\nava-otp-ESIM-WORK — always pass explicit paths/workdir.
+jest picks up tests inside nested backup dirs (nava-otp/, nava-otp-SAFE-BACKUP-20261007/) — pre-existing 4 failures in src/lib/pricing.test.ts (phone/SMS pricing, untouched) and backup copy; do not "fix" them.
+Do not clean up pre-existing modified/untracked files: backups, .next-PRE-*, _INSPECTION, _SAFE_BACKUPS, .bak* files, nested nava-otp/ copies.
+Order creation defaults empty ZIP to 33917; plans without verified pricing are blocked both client- and server-side.
+Renewal heal: migrated parents are active with renewal_pending children — an operator must complete or refund them.
+No live charges/orders were ever made; no Supabase credentials exist in the copy.
+I'll pick up where the work left off. First, let me verify the eslint install finished and check the current state.
+
+The eslint install completed. Now let me run the lint gate:
+
+The lint gate runs, but there are pre-existing errors in files I didn't touch (OtpModal.tsx conditional hooks, wallet/page.tsx unescaped entities). Let me capture the full output to categorize errors vs. warnings and identify which are in eSIM files I changed.
+
+Now let me confirm exactly which files I changed vs. pre-existing files, using git status, and look at the specific error lines in my mine/page.tsx.
+
+I can see the two errors in my mine/page.tsx: unescaped apostrophes in What's (line 243) and We'll (line 251). Let me fix both:
+
+Both fixed. Now let me verify all eSIM files I changed are lint-clean by scoping next lint to those directories:
+
+The scoped lint on all my eSIM work now shows zero errors — only warnings that match existing codebase conventions (the same <img> and exhaustive-deps warnings appear across pre-existing files). The 2 errors I fixed are gone.
+
+Let me quickly verify the nature of the remaining full-repo lint errors so the report is accurate — checking whether OtpModal's conditional hooks are a genuine violation and who owns those files:
+
+Confirmed — all three files are unmodified (pre-existing code), and OtpModal has a genuine pre-existing rules-of-hooks violation (hooks after an early return null, lines 39–65), unrelated to eSIM work. I'll document it rather than refactor unrelated OTP functionality.
+
+Let me re-run the full lint to capture the exact post-fix result for the report:
+
+Everything is in its final state. Here's the wrap-up of this final stretch:
+
+Verified gates (all run in nava-otp-ESIM-WORK)
+Gate	Result
+npx jest src/lib/esim src/app/api/esim	37/37 pass
+npx jest (full)	193/197 — same 4 pre-existing failures in src/lib/pricing.test.ts (+ backup copy), untouched
+npx tsc --noEmit	Passes
+npm run lint (full)	Fails on pre-existing issues only: 15 errors + 37 warnings, every error in unmodified files (OtpModal ×12 conditional hooks, OtpCatalog ×2, wallet ×1) — documented, not refactored (out of scope)
+eSIM-scoped next lint --dir …	0 errors
+npm run build (dummy env)	Passes, exit 0
+Fixes made in this stretch
+Lint errors in my own files: fixed 2 unescaped apostrophes in dashboard/rentals/esim/mine/page.tsx (What's / We'll → &apos;).
+Real build bug found & fixed: the route table showed /api/esim/plans and /api/cron/esim-renewal-reminders as statically prerendered — the plan catalogue and cron response would have been baked at build time from the fallback/error path instead of reading the DB live. Added export const dynamic = 'force-dynamic' to all 11 eSIM API routes that read the Authorization/cron headers (matching the existing convention in api/otp/catalog/** and api/webhooks/telnyx). Rebuild confirms every eSIM route is now correctly Dynamic (ƒ); only pre-existing /api/phone* probe noise remains.
+ESIM-REPAIR-REPORT.md updated: the lint row now reports the real outcome (fails on pre-existing issues; eSIM-scoped clean), the build row is filled in with the pass result + the force-dynamic fix, the changes section gained a bullet for it, and the date was corrected.
+State
+Branch NAVA-TELNYX-PHONE-WORK, all changes uncommitted, nothing pushed/merged/deployed.
+Original nava-otp project untouched; no secrets printed; no live charges/orders.
+Outstanding supplier-dependent items remain honestly documented in report §6: AT&T price verification, Nexitel API integration, reminder email delivery, QR storage policy.
