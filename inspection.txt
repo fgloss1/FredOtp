@@ -1,347 +1,174 @@
-PS C:\Users\Sire-F\OneDrive\Desktop\My Projects\nava-otp>
+PS C:\Users\Sire-F\OneDrive\Desktop\My Projects\nava-otp> ```powershell
+`powershell : The term '`powershell' is not recognized as the name of a cmdlet,
+function, script file, or operable program. Check the spelling of the name, or if a
+path was included, verify that the path is correct and try again.
+At line:1 char:1
++ ```powershell
++ ~~~~~~~~~~~~~
+    + CategoryInfo          : ObjectNotFound: (`powershell:String) [], ParentContains
+   ErrorRecordException
+    + FullyQualifiedErrorId : CommandNotFoundException
+
 PS C:\Users\Sire-F\OneDrive\Desktop\My Projects\nava-otp> $Root = "C:\Users\Sire-F\OneDrive\Desktop\My Projects\nava-otp"
 PS C:\Users\Sire-F\OneDrive\Desktop\My Projects\nava-otp> Set-Location $Root
 PS C:\Users\Sire-F\OneDrive\Desktop\My Projects\nava-otp>
-PS C:\Users\Sire-F\OneDrive\Desktop\My Projects\nava-otp> $FilesToInspect = @(
->>     "src/app/api/esim/orders/route.ts",
->>     "src/app/dashboard/rentals/esim/mine/page.tsx",
->>     "supabase/migrations/20261007000000_nava_esim_init.sql"
->> )
+PS C:\Users\Sire-F\OneDrive\Desktop\My Projects\nava-otp> $Files = Get-ChildItem ".\src\app\api" -Recurse -File -Filter "route.ts" |
+>>     Where-Object {
+>>         $_.FullName -match '\\(wallet|rentals|esim|payments)\\'
+>>     }
 PS C:\Users\Sire-F\OneDrive\Desktop\My Projects\nava-otp>
-PS C:\Users\Sire-F\OneDrive\Desktop\My Projects\nava-otp> foreach ($RelativePath in $FilesToInspect) {
->>     $Path = Join-Path $Root $RelativePath
+PS C:\Users\Sire-F\OneDrive\Desktop\My Projects\nava-otp> foreach ($File in $Files) {
+>>     $Matches = Select-String -LiteralPath $File.FullName `
+>>         -Pattern 'profiles|transactions|balance|debit|idempotency|nava_esim_orders|wallet' `
+>>         -Context 2,3
 >>
->>     Write-Host "`n========================================" -ForegroundColor Cyan
->>     Write-Host "FILE: $RelativePath" -ForegroundColor Cyan
->>     Write-Host "========================================" -ForegroundColor Cyan
->>
->>     if (Test-Path -LiteralPath $Path -PathType Leaf) {
->>         $Line = 0
->>         Get-Content -LiteralPath $Path | ForEach-Object {
->>             $Line++
->>             "{0,4}: {1}" -f $Line, $_
->>         }
->>     } else {
->>         Write-Host "FILE NOT FOUND"
+>>     if ($Matches) {
+>>         Write-Host "`n===== $($File.FullName) =====" -ForegroundColor Cyan
+>>         $Matches | ForEach-Object { $_.ToString() }
 >>     }
 >> }
 
-========================================
-FILE: src/app/api/esim/orders/route.ts
-========================================
-   1: import { NextRequest, NextResponse } from 'next/server';
-   2: import { createClient } from '@supabase/supabase-js';
-   3:
-   4: export async function POST(req: NextRequest) {
-   5:   try {
-   6:     const authHeader = req.headers.get('authorization');
-   7:     if (!authHeader || !authHeader.startsWith('Bearer ')) {
-   8:       return NextResponse.json({ error: 'Unauthorized: Session missing' }, { status: 401 });
-   9:     }
-  10:
-  11:     const token = authHeader.replace('Bearer ', '').trim();
-  12:     const supabaseUrl = process.env.NEXT_PUBLIC_SUPABASE_URL || '';
-  13:     const supabaseAnonKey = process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY || '';
-  14:     const serviceRoleKey = process.env.SUPABASE_SERVICE_ROLE_KEY || supabaseAnonKey;
-  15:
-  16:     const supabaseAnon = createClient(supabaseUrl, supabaseAnonKey);
-  17:     const { data: { user }, error: userError } = await supabaseAnon.auth.getUser(token);
-  18:
-  19:     if (userError || !user) {
-  20:       return NextResponse.json({ error: 'Unauthorized: Invalid or expired session' }, { status: 401 });
-  21:     }
-  22:
-  23:     const body = await req.json();
-  24:     const { planId, zipCode } = body;
-  25:
-  26:     if (!planId) {
-  27:       return NextResponse.json({ error: 'Plan ID required' }, { status: 400 });
-  28:     }
-  29:
-  30:     const db = createClient(supabaseUrl, serviceRoleKey);
-  31:
-  32:     const { data: order, error: insertError } = await db
-  33:       .from('nava_esim_orders')
-  34:       .insert({
-  35:         user_id: user.id,
-  36:         plan_id: planId,
-  37:         preferred_zip: zipCode || '33917',
-  38:         status: 'pending_payment',
-  39:         created_at: new Date().toISOString()
-  40:       })
-  41:       .select('id')
-  42:       .single();
-  43:
-  44:     if (insertError || !order) {
-  45:       console.error('Order Insert Error:', insertError);
-  46:       return NextResponse.json({ error: insertError?.message || 'Failed to create order' }, { status: 500 });
-  47:     }
-  48:
-  49:     return NextResponse.json({ orderId: order.id, success: true });
-  50:   } catch (err: any) {
-  51:     console.error('Order Exception:', err);
-  52:     return NextResponse.json({ error: err.message || 'Internal server error' }, { status: 500 });
-  53:   }
-  54: }
+===== C:\Users\Sire-F\OneDrive\Desktop\My Projects\nava-otp\src\app\api\esim\admin\orders\[id]\fulfill\route.ts =====
+  C:\Users\Sire-F\OneDrive\Desktop\My Projects\nava-otp\src\app\api\esim\admin\orders\[id]\fulfill\route.ts:22:
+  C:\Users\Sire-F\OneDrive\Desktop\My Projects\nava-otp\src\app\api\esim\admin\orders\[id]\fulfill\route.ts:23:    const { data: order, error: orderError } = await supabase
+> C:\Users\Sire-F\OneDrive\Desktop\My Projects\nava-otp\src\app\api\esim\admin\orders\[id]\fulfill\route.ts:24:      .from("nava_esim_orders")
+  C:\Users\Sire-F\OneDrive\Desktop\My Projects\nava-otp\src\app\api\esim\admin\orders\[id]\fulfill\route.ts:25:      .update({
+  C:\Users\Sire-F\OneDrive\Desktop\My Projects\nava-otp\src\app\api\esim\admin\orders\[id]\fulfill\route.ts:26:        assigned_phone_number,
+  C:\Users\Sire-F\OneDrive\Desktop\My Projects\nava-otp\src\app\api\esim\admin\orders\[id]\fulfill\route.ts:27:        status: "active",
 
-========================================
-FILE: src/app/dashboard/rentals/esim/mine/page.tsx
-========================================
-   1: 'use client';
-   2:
-   3: import React, { useEffect, useState } from 'react';
-   4: import Link from 'next/link';
-   5:
-   6: export default function MyEsimLinesPage() {
-   7:   const [orders, setOrders] = useState([]);
-   8:   const [loading, setLoading] = useState(true);
-   9:   const [renewingId, setRenewingId] = useState(null);
-  10:
-  11:   useEffect(() => {
-  12:     fetch('/api/esim/mine')
-  13:       .then(r => r.json())
-  14:       .then(d => setOrders(Array.isArray(d) ? d : []))
-  15:       .finally(() => setLoading(false));
-  16:   }, []);
-  17:
-  18:   const handleRenew = async (orderId) => {
-  19:     if (!confirm('Renew this line for 30 days? Wallet will be charged.')) return;
-  20:     setRenewingId(orderId);
-  21:     try {
-  22:       const res = await fetch(`/api/esim/orders/${orderId}/renew`, { method: 'POST' });
-  23:       const result = await res.json();
-  24:       if (res.ok) {
-  25:         alert(result.message || 'Renewal successful');
-  26:         window.location.reload();
-  27:       } else {
-  28:         alert(result.error || 'Renewal failed');
-  29:       }
-  30:     } catch (e) {
-  31:       alert('Renewal failed');
-  32:     } finally {
-  33:       setRenewingId(null);
-  34:     }
-  35:   };
-  36:
-  37:   const formatDate = (dateString) => {
-  38:     if (!dateString) return 'N/A';
-  39:     const d = new Date(dateString);
-  40:     return d.toLocaleDateString('en-US', { month: 'short', day: 'numeric', year: 'numeric' });
-  41:   };
-  42:
-  43:   if (loading) return <div className="p-20 text-center text-slate-500">Loading...</div>;
-  44:
-  45:   return (
-  46:     <div className="p-6 max-w-6xl mx-auto space-y-8">
-  47:       <div className="flex justify-between items-center">
-  48:         <h1 className="text-2xl font-bold text-white">My eSIM Lines</h1>
-  49:         <Link href="/dashboard/rentals/esim" className="bg-emerald-600 px-4 py-2 rounded text-white text-sm font-bold">Buy New</Link>
-  50:       </div>
-  51:       <div className="grid gap-4">
-  52:         {orders.length === 0 ? (
-  53:           <div className="bg-slate-900 border border-slate-800 p-10 rounded-xl text-center text-slate-500">No active lines found.</div>
-  54:         ) : (
-  55:           orders.map(order => {
-  56:             const isExpiring = order.expires_at && (new Date(order.expires_at).getTime() - Date.now()) < (3 * 24 * 60 * 60 * 1000);
-  57:             return (
-  58:               <div key={order.id} className="bg-slate-900 border border-slate-800 p-5 rounded-xl flex flex-col md:flex-row justify-between items-start md:items-center gap-4">
-  59:                 <div className="flex items-center gap-4">
-  60:                   <div className={`w-3 h-3 rounded-full ${order.status === 'active' ? 'bg-emerald-500' : 'bg-amber-500'}`} />
-  61:                   <div>
-  62:                     <div className="text-white font-bold">{order.phone_number || 'Pending Assignment'}</div>
-  63:                     <div className="text-[10px] text-slate-500 uppercase font-bold">{order.plan_id?.replace('_',' ')}</div>
-  64:                     <div className="text-[10px] text-slate-400 mt-1">Expires: {formatDate(order.expires_at)}</div>
-  65:                     {isExpiring && order.status === 'active' && <div className="text-[10px] text-amber-500 font-bold mt-1">Expiring Soon!</div>}
-  66:                   </div>
-  67:                 </div>
-  68:                 <div className="flex gap-3 items-center w-full md:w-auto">
-  69:                   {order.status === 'active' && (
-  70:                     <button onClick={() => handleRenew(order.id)} disabled={renewingId === order.id} className="bg-slate-800 hover:bg-slate-700 text-slate-200 px-4 py-2 rounded-lg text-sm font-bold disabled:opacity-50">
-  71:                       {renewingId === order.id ? 'Processing...' : 'Renew +30 Days'}
-  72:                     </button>
-  73:                   )}
-  74:                   <Link href={`/dashboard/rentals/esim/mine/${order.id}`} className="bg-blue-600/10 text-blue-400 px-4 py-2 rounded-lg text-sm font-bold border border-blue-600/20">Details</Link>
-  75:                 </div>
-  76:               </div>
-  77:             );
-  78:           })
-  79:         )}
-  80:       </div>
-  81:     </div>
-  82:   );
-  83: }
+===== C:\Users\Sire-F\OneDrive\Desktop\My Projects\nava-otp\src\app\api\esim\mine\route.ts =====
+  C:\Users\Sire-F\OneDrive\Desktop\My Projects\nava-otp\src\app\api\esim\mine\route.ts:24:
+  C:\Users\Sire-F\OneDrive\Desktop\My Projects\nava-otp\src\app\api\esim\mine\route.ts:25:    const { data: orders, error } = await db
+> C:\Users\Sire-F\OneDrive\Desktop\My Projects\nava-otp\src\app\api\esim\mine\route.ts:26:      .from('nava_esim_orders')
+  C:\Users\Sire-F\OneDrive\Desktop\My Projects\nava-otp\src\app\api\esim\mine\route.ts:27:      .select('*')
+  C:\Users\Sire-F\OneDrive\Desktop\My Projects\nava-otp\src\app\api\esim\mine\route.ts:28:      .eq('user_id', user.id)
+  C:\Users\Sire-F\OneDrive\Desktop\My Projects\nava-otp\src\app\api\esim\mine\route.ts:29:      .order('created_at', { ascending: false });
 
-========================================
-FILE: supabase/migrations/20261007000000_nava_esim_init.sql
-========================================
-   1: -- =====================================================================
-   2: -- NAVA eSIM — Stage A: Additive Schema Initialization
-   3: -- Timestamp: 20261007000000
-   4: -- =====================================================================
-   5:
-   6: CREATE EXTENSION IF NOT EXISTS pgcrypto;
-   7:
-   8: CREATE TABLE IF NOT EXISTS public.nava_esim_plans (
-   9:   id UUID PRIMARY KEY DEFAULT gen_random_uuid(),
-  10:   supplier TEXT NOT NULL DEFAULT 'nexitel',
-  11:   carrier TEXT NOT NULL,
-  12:   code TEXT NOT NULL UNIQUE,
-  13:   name TEXT NOT NULL,
-  14:   description TEXT NOT NULL DEFAULT '',
-  15:   talk_minutes INTEGER,
-  16:   text_allowance TEXT NOT NULL DEFAULT 'unlimited',
-  17:   data_mb INTEGER,
-  18:   supports_zip BOOLEAN NOT NULL DEFAULT true,
-  19:   duration_days INTEGER NOT NULL DEFAULT 30 CHECK (duration_days > 0),
-  20:   activation_plan_cents INTEGER NOT NULL CHECK (activation_plan_cents >= 0),
-  21:   activation_regulatory_fee_cents INTEGER NOT NULL DEFAULT 0 CHECK (activation_regulatory_fee_cents >= 0),
-  22:   activation_tax_cents INTEGER NOT NULL DEFAULT 0 CHECK (activation_tax_cents >= 0),
-  23:   renewal_plan_cents INTEGER NOT NULL CHECK (renewal_plan_cents >= 0),
-  24:   renewal_regulatory_fee_cents INTEGER NOT NULL DEFAULT 0 CHECK (renewal_regulatory_fee_cents >= 0),
-  25:   renewal_tax_cents INTEGER NOT NULL DEFAULT 0 CHECK (renewal_tax_cents >= 0),
-  26:   price_source TEXT NOT NULL,
-  27:   price_verified_at TIMESTAMPTZ,
-  28:   fulfillment_method TEXT NOT NULL DEFAULT 'manual' CHECK (fulfillment_method IN ('manual', 'api')),
-  29:   is_visible BOOLEAN NOT NULL DEFAULT true,
-  30:   is_purchasable BOOLEAN NOT NULL DEFAULT true,
-  31:   created_at TIMESTAMPTZ NOT NULL DEFAULT now(),
-  32:   updated_at TIMESTAMPTZ NOT NULL DEFAULT now()
-  33: );
-  34:
-  35: CREATE INDEX IF NOT EXISTS nava_esim_plans_visible_idx
-  36:   ON public.nava_esim_plans (is_visible, is_purchasable);
-  37:
-  38: CREATE TABLE IF NOT EXISTS public.nava_esim_orders (
-  39:   id UUID PRIMARY KEY DEFAULT gen_random_uuid(),
-  40:   user_id UUID NOT NULL REFERENCES auth.users (id) ON DELETE RESTRICT,
-  41:   plan_id UUID NOT NULL REFERENCES public.nava_esim_plans (id) ON DELETE RESTRICT,
-  42:   order_type TEXT NOT NULL CHECK (order_type IN ('activation', 'renewal')),
-  43:   parent_order_id UUID REFERENCES public.nava_esim_orders (id) ON DELETE RESTRICT,
-  44:   zip_code TEXT,
-  45:   plan_price_cents INTEGER NOT NULL CHECK (plan_price_cents >= 0),
-  46:   regulatory_fee_cents INTEGER NOT NULL CHECK (regulatory_fee_cents >= 0),
-  47:   tax_cents INTEGER NOT NULL CHECK (tax_cents >= 0),
-  48:   total_cents INTEGER NOT NULL CHECK (total_cents >= 0),
-  49:   currency TEXT NOT NULL DEFAULT 'USD',
-  50:   idempotency_key TEXT NOT NULL,
-  51:   wallet_debit_ref TEXT,
-  52:   status TEXT NOT NULL DEFAULT 'pending_payment'
-  53:     CHECK (status IN (
-  54:       'pending_payment',
-  55:       'paid_awaiting_fulfillment',
-  56:       'processing',
-  57:       'active',
-  58:       'renewal_pending',
-  59:       'renewal_processing',
-  60:       'renewal_completed',
-  61:       'failed_requires_review',
-  62:       'refunded'
-  63:     )),
-  64:   assigned_phone_number TEXT,
-  65:   activation_starts_at TIMESTAMPTZ,
-  66:   activation_expires_at TIMESTAMPTZ,
-  67:   fulfilled_by UUID REFERENCES auth.users (id),
-  68:   fulfilled_at TIMESTAMPTZ,
-  69:   supplier_confirmation TEXT,
-  70:   failure_reason TEXT,
-  71:   created_at TIMESTAMPTZ NOT NULL DEFAULT now(),
-  72:   updated_at TIMESTAMPTZ NOT NULL DEFAULT now(),
-  73:   CONSTRAINT nava_esim_orders_idempotency UNIQUE (user_id, idempotency_key),
-  74:   CONSTRAINT nava_esim_orders_total_matches CHECK (total_cents = plan_price_cents + regulatory_fee_cents + tax_cents),
-  75:   CONSTRAINT nava_esim_orders_renewal_parent CHECK (
-  76:     (order_type = 'activation' AND parent_order_id IS NULL)
-  77:     OR
-  78:     (order_type = 'renewal' AND parent_order_id IS NOT NULL)
-  79:   )
-  80: );
-  81:
-  82: CREATE INDEX IF NOT EXISTS nava_esim_orders_user_idx ON public.nava_esim_orders (user_id, created_at DESC);
-  83: CREATE INDEX IF NOT EXISTS nava_esim_orders_status_idx ON public.nava_esim_orders (status);
-  84: CREATE INDEX IF NOT EXISTS nava_esim_orders_expiry_active_idx ON public.nava_esim_orders (activation_expires_at) WHERE status = 'active';
-  85:
-  86: CREATE TABLE IF NOT EXISTS public.nava_esim_order_secrets (
-  87:   order_id UUID PRIMARY KEY REFERENCES public.nava_esim_orders (id) ON DELETE CASCADE,
-  88:   activation_code_encrypted TEXT,
-  89:   qr_storage_bucket TEXT NOT NULL DEFAULT 'nava-esim-qr',
-  90:   qr_storage_path TEXT,
-  91:   customer_instructions TEXT,
-  92:   created_at TIMESTAMPTZ NOT NULL DEFAULT now(),
-  93:   updated_at TIMESTAMPTZ NOT NULL DEFAULT now()
-  94: );
-  95:
-  96: CREATE TABLE IF NOT EXISTS public.nava_esim_reminders (
-  97:   id UUID PRIMARY KEY DEFAULT gen_random_uuid(),
-  98:   order_id UUID NOT NULL REFERENCES public.nava_esim_orders (id) ON DELETE CASCADE,
-  99:   reminder_type TEXT NOT NULL CHECK (reminder_type IN ('expiry_7d', 'expiry_3d', 'expiry_1d')),
- 100:   channel TEXT NOT NULL CHECK (channel IN ('email', 'inapp')),
- 101:   sent_at TIMESTAMPTZ NOT NULL DEFAULT now(),
- 102:   UNIQUE (order_id, reminder_type, channel)
- 103: );
- 104:
- 105: CREATE OR REPLACE FUNCTION public.nava_esim_set_updated_at()
- 106: RETURNS TRIGGER LANGUAGE plpgsql AS $$
- 107: BEGIN
- 108:   NEW.updated_at = now();
- 109:   RETURN NEW;
- 110: END;
- 111: $$;
- 112:
- 113: DROP TRIGGER IF EXISTS nava_esim_plans_updated_at ON public.nava_esim_plans;
- 114: CREATE TRIGGER nava_esim_plans_updated_at BEFORE UPDATE ON public.nava_esim_plans FOR EACH ROW EXECUTE FUNCTION public.nava_esim_set_updated_at();
- 115:
- 116: DROP TRIGGER IF EXISTS nava_esim_orders_updated_at ON public.nava_esim_orders;
- 117: CREATE TRIGGER nava_esim_orders_updated_at BEFORE UPDATE ON public.nava_esim_orders FOR EACH ROW EXECUTE FUNCTION public.nava_esim_set_updated_at();
- 118:
- 119: DROP TRIGGER IF EXISTS nava_esim_order_secrets_updated_at ON public.nava_esim_order_secrets;
- 120: CREATE TRIGGER nava_esim_order_secrets_updated_at BEFORE UPDATE ON public.nava_esim_order_secrets FOR EACH ROW EXECUTE FUNCTION public.nava_esim_set_updated_at();
- 121:
- 122: ALTER TABLE public.nava_esim_plans ENABLE ROW LEVEL SECURITY;
- 123: ALTER TABLE public.nava_esim_orders ENABLE ROW LEVEL SECURITY;
- 124: ALTER TABLE public.nava_esim_order_secrets ENABLE ROW LEVEL SECURITY;
- 125: ALTER TABLE public.nava_esim_reminders ENABLE ROW LEVEL SECURITY;
- 126:
- 127: DROP POLICY IF EXISTS nava_esim_plans_select_visible ON public.nava_esim_plans;
- 128: CREATE POLICY nava_esim_plans_select_visible ON public.nava_esim_plans FOR SELECT TO authenticated USING (is_visible = true);
- 129:
- 130: DROP POLICY IF EXISTS nava_esim_orders_select_own ON public.nava_esim_orders;
- 131: CREATE POLICY nava_esim_orders_select_own ON public.nava_esim_orders FOR SELECT TO authenticated USING (user_id = auth.uid());
- 132:
- 133: INSERT INTO public.nava_esim_plans (
- 134:   supplier, carrier, code, name, description, talk_minutes, text_allowance, data_mb, supports_zip, duration_days,
- 135:   activation_plan_cents, activation_regulatory_fee_cents, activation_tax_cents, renewal_plan_cents, renewal_regulatory_fee_cents, renewal_tax_cents,
- 136:   price_source, price_verified_at, fulfillment_method, is_visible, is_purchasable
- 137: ) VALUES (
- 138:   'nexitel', 'purple', 'purple_text', 'PurpleText (300 Mins + Unlimited Text)',
- 139:   '300 talk minutes and unlimited texts (30-day dedicated US mobile eSIM line). ZIP code choice supported.',
- 140:   300, 'unlimited', NULL, true, 30,
- 141:   2700, 200, 100, 2700, 200, 100,
- 142:   'configured_price_30', now(), 'manual', true, true
- 143: ) ON CONFLICT (code) DO UPDATE SET
- 144:   activation_plan_cents = 2700, activation_regulatory_fee_cents = 200, activation_tax_cents = 100,
- 145:   is_purchasable = true;
- 146:
- 147: INSERT INTO public.nava_esim_plans (
- 148:   supplier, carrier, code, name, description, talk_minutes, text_allowance, data_mb, supports_zip, duration_days,
- 149:   activation_plan_cents, activation_regulatory_fee_cents, activation_tax_cents, renewal_plan_cents, renewal_regulatory_fee_cents, renewal_tax_cents,
- 150:   price_source, price_verified_at, fulfillment_method, is_visible, is_purchasable
- 151: ) VALUES (
- 152:   'nexitel', 'purple', 'purple_max', 'PurpleMax (Unlimited Calling + Text)',
- 153:   'Unlimited talk and text (30-day dedicated US mobile eSIM line). ZIP code choice supported.',
- 154:   NULL, 'unlimited', 500, true, 30,
- 155:   3600, 300, 100, 3600, 300, 100,
- 156:   'configured_price_40', now(), 'manual', true, true
- 157: ) ON CONFLICT (code) DO UPDATE SET
- 158:   activation_plan_cents = 3600, activation_regulatory_fee_cents = 300, activation_tax_cents = 100,
- 159:   is_purchasable = true;
+===== C:\Users\Sire-F\OneDrive\Desktop\My Projects\nava-otp\src\app\api\esim\orders\route.ts =====
+  C:\Users\Sire-F\OneDrive\Desktop\My Projects\nava-otp\src\app\api\esim\orders\route.ts:31:
+  C:\Users\Sire-F\OneDrive\Desktop\My Projects\nava-otp\src\app\api\esim\orders\route.ts:32:    const { data: order, error: insertError } = await db
+> C:\Users\Sire-F\OneDrive\Desktop\My Projects\nava-otp\src\app\api\esim\orders\route.ts:33:      .from('nava_esim_orders')
+  C:\Users\Sire-F\OneDrive\Desktop\My Projects\nava-otp\src\app\api\esim\orders\route.ts:34:      .insert({
+  C:\Users\Sire-F\OneDrive\Desktop\My Projects\nava-otp\src\app\api\esim\orders\route.ts:35:        user_id: user.id,
+  C:\Users\Sire-F\OneDrive\Desktop\My Projects\nava-otp\src\app\api\esim\orders\route.ts:36:        plan_id: planId,
+
+===== C:\Users\Sire-F\OneDrive\Desktop\My Projects\nava-otp\src\app\api\esim\orders\[id]\pay\route.ts =====
+  C:\Users\Sire-F\OneDrive\Desktop\My Projects\nava-otp\src\app\api\esim\orders\[id]\pay\route.ts:31:    // Get order
+  C:\Users\Sire-F\OneDrive\Desktop\My Projects\nava-otp\src\app\api\esim\orders\[id]\pay\route.ts:32:    const { data: order, error: orderErr } = await db
+> C:\Users\Sire-F\OneDrive\Desktop\My Projects\nava-otp\src\app\api\esim\orders\[id]\pay\route.ts:33:      .from('nava_esim_orders')
+  C:\Users\Sire-F\OneDrive\Desktop\My Projects\nava-otp\src\app\api\esim\orders\[id]\pay\route.ts:34:      .select('*')
+  C:\Users\Sire-F\OneDrive\Desktop\My Projects\nava-otp\src\app\api\esim\orders\[id]\pay\route.ts:35:      .eq('id', orderId)
+  C:\Users\Sire-F\OneDrive\Desktop\My Projects\nava-otp\src\app\api\esim\orders\[id]\pay\route.ts:36:      .eq('user_id', user.id)
+  C:\Users\Sire-F\OneDrive\Desktop\My Projects\nava-otp\src\app\api\esim\orders\[id]\pay\route.ts:50:    const totalCents = quote.total_cents;
+  C:\Users\Sire-F\OneDrive\Desktop\My Projects\nava-otp\src\app\api\esim\orders\[id]\pay\route.ts:51:
+> C:\Users\Sire-F\OneDrive\Desktop\My Projects\nava-otp\src\app\api\esim\orders\[id]\pay\route.ts:52:    // Deduct balance atomically via RPC
+> C:\Users\Sire-F\OneDrive\Desktop\My Projects\nava-otp\src\app\api\esim\orders\[id]\pay\route.ts:53:    const { data: balanceResult, error: balanceErr } = await db.rpc(
+> C:\Users\Sire-F\OneDrive\Desktop\My Projects\nava-otp\src\app\api\esim\orders\[id]\pay\route.ts:54:      'otp_balance_adjust_atomic',
+  C:\Users\Sire-F\OneDrive\Desktop\My Projects\nava-otp\src\app\api\esim\orders\[id]\pay\route.ts:55:      {
+  C:\Users\Sire-F\OneDrive\Desktop\My Projects\nava-otp\src\app\api\esim\orders\[id]\pay\route.ts:56:        target_user_id: user.id,
+  C:\Users\Sire-F\OneDrive\Desktop\My Projects\nava-otp\src\app\api\esim\orders\[id]\pay\route.ts:57:        amount_cents: -totalCents
+  C:\Users\Sire-F\OneDrive\Desktop\My Projects\nava-otp\src\app\api\esim\orders\[id]\pay\route.ts:59:    );
+  C:\Users\Sire-F\OneDrive\Desktop\My Projects\nava-otp\src\app\api\esim\orders\[id]\pay\route.ts:60:
+> C:\Users\Sire-F\OneDrive\Desktop\My Projects\nava-otp\src\app\api\esim\orders\[id]\pay\route.ts:61:    if (balanceErr) {
+> C:\Users\Sire-F\OneDrive\Desktop\My Projects\nava-otp\src\app\api\esim\orders\[id]\pay\route.ts:62:      console.error('Wallet RPC Error:', balanceErr);
+> C:\Users\Sire-F\OneDrive\Desktop\My Projects\nava-otp\src\app\api\esim\orders\[id]\pay\route.ts:63:      return NextResponse.json({ error: 'Failed to process wallet payment' }, { status: 500 });
+  C:\Users\Sire-F\OneDrive\Desktop\My Projects\nava-otp\src\app\api\esim\orders\[id]\pay\route.ts:64:    }
+  C:\Users\Sire-F\OneDrive\Desktop\My Projects\nava-otp\src\app\api\esim\orders\[id]\pay\route.ts:65:
+> C:\Users\Sire-F\OneDrive\Desktop\My Projects\nava-otp\src\app\api\esim\orders\[id]\pay\route.ts:66:    if (balanceResult && balanceResult.success === false) {
+  C:\Users\Sire-F\OneDrive\Desktop\My Projects\nava-otp\src\app\api\esim\orders\[id]\pay\route.ts:67:      return NextResponse.json({
+> C:\Users\Sire-F\OneDrive\Desktop\My Projects\nava-otp\src\app\api\esim\orders\[id]\pay\route.ts:68:        error: balanceResult.message || 'Insufficient wallet balance'
+  C:\Users\Sire-F\OneDrive\Desktop\My Projects\nava-otp\src\app\api\esim\orders\[id]\pay\route.ts:69:      }, { status: 402 });
+  C:\Users\Sire-F\OneDrive\Desktop\My Projects\nava-otp\src\app\api\esim\orders\[id]\pay\route.ts:70:    }
+  C:\Users\Sire-F\OneDrive\Desktop\My Projects\nava-otp\src\app\api\esim\orders\[id]\pay\route.ts:71:
+  C:\Users\Sire-F\OneDrive\Desktop\My Projects\nava-otp\src\app\api\esim\orders\[id]\pay\route.ts:72:    // Set order status to paid_awaiting_fulfillment
+  C:\Users\Sire-F\OneDrive\Desktop\My Projects\nava-otp\src\app\api\esim\orders\[id]\pay\route.ts:73:    const { error: updateErr } = await db
+> C:\Users\Sire-F\OneDrive\Desktop\My Projects\nava-otp\src\app\api\esim\orders\[id]\pay\route.ts:74:      .from('nava_esim_orders')
+  C:\Users\Sire-F\OneDrive\Desktop\My Projects\nava-otp\src\app\api\esim\orders\[id]\pay\route.ts:75:      .update({
+  C:\Users\Sire-F\OneDrive\Desktop\My Projects\nava-otp\src\app\api\esim\orders\[id]\pay\route.ts:76:        status: 'paid_awaiting_fulfillment',
+  C:\Users\Sire-F\OneDrive\Desktop\My Projects\nava-otp\src\app\api\esim\orders\[id]\pay\route.ts:77:        updated_at: new Date().toISOString()
+
+===== C:\Users\Sire-F\OneDrive\Desktop\My Projects\nava-otp\src\app\api\esim\orders\[id]\renew\route.ts =====
+  C:\Users\Sire-F\OneDrive\Desktop\My Projects\nava-otp\src\app\api\esim\orders\[id]\renew\route.ts:30:
+  C:\Users\Sire-F\OneDrive\Desktop\My Projects\nava-otp\src\app\api\esim\orders\[id]\renew\route.ts:31:    const { data: order, error: orderErr } = await db
+> C:\Users\Sire-F\OneDrive\Desktop\My Projects\nava-otp\src\app\api\esim\orders\[id]\renew\route.ts:32:      .from('nava_esim_orders')
+  C:\Users\Sire-F\OneDrive\Desktop\My Projects\nava-otp\src\app\api\esim\orders\[id]\renew\route.ts:33:      .select('*')
+  C:\Users\Sire-F\OneDrive\Desktop\My Projects\nava-otp\src\app\api\esim\orders\[id]\renew\route.ts:34:      .eq('id', orderId)
+  C:\Users\Sire-F\OneDrive\Desktop\My Projects\nava-otp\src\app\api\esim\orders\[id]\renew\route.ts:35:      .eq('user_id', user.id)
+  C:\Users\Sire-F\OneDrive\Desktop\My Projects\nava-otp\src\app\api\esim\orders\[id]\renew\route.ts:48:    const totalCents = quote.total_cents;
+  C:\Users\Sire-F\OneDrive\Desktop\My Projects\nava-otp\src\app\api\esim\orders\[id]\renew\route.ts:49:
+> C:\Users\Sire-F\OneDrive\Desktop\My Projects\nava-otp\src\app\api\esim\orders\[id]\renew\route.ts:50:    const { data: balanceResult, error: balanceErr } = await db.rpc(
+> C:\Users\Sire-F\OneDrive\Desktop\My Projects\nava-otp\src\app\api\esim\orders\[id]\renew\route.ts:51:      'otp_balance_adjust_atomic',
+  C:\Users\Sire-F\OneDrive\Desktop\My Projects\nava-otp\src\app\api\esim\orders\[id]\renew\route.ts:52:      {
+  C:\Users\Sire-F\OneDrive\Desktop\My Projects\nava-otp\src\app\api\esim\orders\[id]\renew\route.ts:53:        target_user_id: user.id,
+  C:\Users\Sire-F\OneDrive\Desktop\My Projects\nava-otp\src\app\api\esim\orders\[id]\renew\route.ts:54:        amount_cents: -totalCents
+  C:\Users\Sire-F\OneDrive\Desktop\My Projects\nava-otp\src\app\api\esim\orders\[id]\renew\route.ts:56:    );
+  C:\Users\Sire-F\OneDrive\Desktop\My Projects\nava-otp\src\app\api\esim\orders\[id]\renew\route.ts:57:
+> C:\Users\Sire-F\OneDrive\Desktop\My Projects\nava-otp\src\app\api\esim\orders\[id]\renew\route.ts:58:    if (balanceErr || balanceResult?.success === false) {
+> C:\Users\Sire-F\OneDrive\Desktop\My Projects\nava-otp\src\app\api\esim\orders\[id]\renew\route.ts:59:      return NextResponse.json({ error: balanceResult?.message || 'Insufficient wallet balance' }, { status: 402 });
+  C:\Users\Sire-F\OneDrive\Desktop\My Projects\nava-otp\src\app\api\esim\orders\[id]\renew\route.ts:60:    }
+  C:\Users\Sire-F\OneDrive\Desktop\My Projects\nava-otp\src\app\api\esim\orders\[id]\renew\route.ts:61:
+  C:\Users\Sire-F\OneDrive\Desktop\My Projects\nava-otp\src\app\api\esim\orders\[id]\renew\route.ts:62:    const { error: updateErr } = await db
+> C:\Users\Sire-F\OneDrive\Desktop\My Projects\nava-otp\src\app\api\esim\orders\[id]\renew\route.ts:63:      .from('nava_esim_orders')
+  C:\Users\Sire-F\OneDrive\Desktop\My Projects\nava-otp\src\app\api\esim\orders\[id]\renew\route.ts:64:      .update({
+  C:\Users\Sire-F\OneDrive\Desktop\My Projects\nava-otp\src\app\api\esim\orders\[id]\renew\route.ts:65:        status: 'renewal_processing',
+  C:\Users\Sire-F\OneDrive\Desktop\My Projects\nava-otp\src\app\api\esim\orders\[id]\renew\route.ts:66:        updated_at: new Date().toISOString()
+
+===== C:\Users\Sire-F\OneDrive\Desktop\My Projects\nava-otp\src\app\api\rentals\expire\route.ts =====
+  C:\Users\Sire-F\OneDrive\Desktop\My Projects\nava-otp\src\app\api\rentals\expire\route.ts:141:              success: false,
+  C:\Users\Sire-F\OneDrive\Desktop\My Projects\nava-otp\src\app\api\rentals\expire\route.ts:142:              error:
+> C:\Users\Sire-F\OneDrive\Desktop\My Projects\nava-otp\src\app\api\rentals\expire\route.ts:143:                "5SIM could not confirm the cancellation state. No wallet refund was issued.",
+  C:\Users\Sire-F\OneDrive\Desktop\My Projects\nava-otp\src\app\api\rentals\expire\route.ts:144:            },
+  C:\Users\Sire-F\OneDrive\Desktop\My Projects\nava-otp\src\app\api\rentals\expire\route.ts:145:            { status: 502 }
+  C:\Users\Sire-F\OneDrive\Desktop\My Projects\nava-otp\src\app\api\rentals\expire\route.ts:146:          );
+  C:\Users\Sire-F\OneDrive\Desktop\My Projects\nava-otp\src\app\api\rentals\expire\route.ts:167:              success: false,
+  C:\Users\Sire-F\OneDrive\Desktop\My Projects\nava-otp\src\app\api\rentals\expire\route.ts:168:              error:
+> C:\Users\Sire-F\OneDrive\Desktop\My Projects\nava-otp\src\app\api\rentals\expire\route.ts:169:                "The 5SIM activation is still active. No wallet refund was issued.",
+  C:\Users\Sire-F\OneDrive\Desktop\My Projects\nava-otp\src\app\api\rentals\expire\route.ts:170:            },
+  C:\Users\Sire-F\OneDrive\Desktop\My Projects\nava-otp\src\app\api\rentals\expire\route.ts:171:            { status: 502 }
+  C:\Users\Sire-F\OneDrive\Desktop\My Projects\nava-otp\src\app\api\rentals\expire\route.ts:172:          );
+  C:\Users\Sire-F\OneDrive\Desktop\My Projects\nava-otp\src\app\api\rentals\expire\route.ts:185:     *   2. lock the order
+  C:\Users\Sire-F\OneDrive\Desktop\My Projects\nava-otp\src\app\api\rentals\expire\route.ts:186:     *   3. prevent duplicate refunds
+> C:\Users\Sire-F\OneDrive\Desktop\My Projects\nava-otp\src\app\api\rentals\expire\route.ts:187:     *   4. credit the wallet
+  C:\Users\Sire-F\OneDrive\Desktop\My Projects\nava-otp\src\app\api\rentals\expire\route.ts:188:     *   5. mark the order expired
+  C:\Users\Sire-F\OneDrive\Desktop\My Projects\nava-otp\src\app\api\rentals\expire\route.ts:189:     */
+  C:\Users\Sire-F\OneDrive\Desktop\My Projects\nava-otp\src\app\api\rentals\expire\route.ts:190:    const { data, error } =
+  C:\Users\Sire-F\OneDrive\Desktop\My Projects\nava-otp\src\app\api\rentals\expire\route.ts:211:      );
+  C:\Users\Sire-F\OneDrive\Desktop\My Projects\nava-otp\src\app\api\rentals\expire\route.ts:212:
+> C:\Users\Sire-F\OneDrive\Desktop\My Projects\nava-otp\src\app\api\rentals\expire\route.ts:213:    const newBalance =
+  C:\Users\Sire-F\OneDrive\Desktop\My Projects\nava-otp\src\app\api\rentals\expire\route.ts:214:      Number(
+> C:\Users\Sire-F\OneDrive\Desktop\My Projects\nava-otp\src\app\api\rentals\expire\route.ts:215:        result?.new_balance || 0
+  C:\Users\Sire-F\OneDrive\Desktop\My Projects\nava-otp\src\app\api\rentals\expire\route.ts:216:      );
+  C:\Users\Sire-F\OneDrive\Desktop\My Projects\nava-otp\src\app\api\rentals\expire\route.ts:217:
+  C:\Users\Sire-F\OneDrive\Desktop\My Projects\nava-otp\src\app\api\rentals\expire\route.ts:218:    return NextResponse.json({
+  C:\Users\Sire-F\OneDrive\Desktop\My Projects\nava-otp\src\app\api\rentals\expire\route.ts:219:      success: true,
+  C:\Users\Sire-F\OneDrive\Desktop\My Projects\nava-otp\src\app\api\rentals\expire\route.ts:220:      refundedAmount,
+> C:\Users\Sire-F\OneDrive\Desktop\My Projects\nava-otp\src\app\api\rentals\expire\route.ts:221:      newBalance,
+  C:\Users\Sire-F\OneDrive\Desktop\My Projects\nava-otp\src\app\api\rentals\expire\route.ts:222:      status:
+  C:\Users\Sire-F\OneDrive\Desktop\My Projects\nava-otp\src\app\api\rentals\expire\route.ts:223:        result?.status || "expired",
+  C:\Users\Sire-F\OneDrive\Desktop\My Projects\nava-otp\src\app\api\rentals\expire\route.ts:224:      message:
+  C:\Users\Sire-F\OneDrive\Desktop\My Projects\nava-otp\src\app\api\rentals\expire\route.ts:226:          ? "$" +
+  C:\Users\Sire-F\OneDrive\Desktop\My Projects\nava-otp\src\app\api\rentals\expire\route.ts:227:            refundedAmount.toFixed(2) +
+> C:\Users\Sire-F\OneDrive\Desktop\My Projects\nava-otp\src\app\api\rentals\expire\route.ts:228:            " automatically refunded to your wallet balance."
+  C:\Users\Sire-F\OneDrive\Desktop\My Projects\nava-otp\src\app\api\rentals\expire\route.ts:229:          : "Order expired successfully.",
+  C:\Users\Sire-F\OneDrive\Desktop\My Projects\nava-otp\src\app\api\rentals\expire\route.ts:230:    });
+  C:\Users\Sire-F\OneDrive\Desktop\My Projects\nava-otp\src\app\api\rentals\expire\route.ts:231:  } catch (err: any) {
+
+===== C:\Users\Sire-F\OneDrive\Desktop\My Projects\nava-otp\src\app\api\wallet\route.ts =====
+  C:\Users\Sire-F\OneDrive\Desktop\My Projects\nava-otp\src\app\api\wallet\route.ts:1:import { NextResponse } from "next/server";
+  C:\Users\Sire-F\OneDrive\Desktop\My Projects\nava-otp\src\app\api\wallet\route.ts:2:import { requireAuth } from "@/lib/auth";
+> C:\Users\Sire-F\OneDrive\Desktop\My Projects\nava-otp\src\app\api\wallet\route.ts:3:import { getWallet } from "@/lib/wallet";
+  C:\Users\Sire-F\OneDrive\Desktop\My Projects\nava-otp\src\app\api\wallet\route.ts:4:import { db } from "@/db";
+> C:\Users\Sire-F\OneDrive\Desktop\My Projects\nava-otp\src\app\api\wallet\route.ts:5:import { transactions } from "@/db/schema";
+  C:\Users\Sire-F\OneDrive\Desktop\My Projects\nava-otp\src\app\api\wallet\route.ts:6:import { eq, desc } from "drizzle-orm";
+  C:\Users\Sire-F\OneDrive\Desktop\My Projects\nava-otp\src\app\api\wallet\route.ts:7:
+  C:\Users\Sire-F\OneDrive\Desktop\My Projects\nava-otp\src\app\api\wallet\route.ts:8:export async function GET() {
+  C:\Users\Sire-F\OneDrive\Desktop\My Projects\nava-otp\src\app\api\wallet\route.ts:9:  try {
+  C:\Users\Sire-F\OneDrive\Desktop\My Projects\nava-otp\src\app\api\wallet\route.ts:10:    const { user } = await requireAuth();
+> C:\Users\Sire-F\OneDrive\Desktop\My Projects\nava-otp\src\app\api\wallet\route.ts:11:    const wallet = await getWallet(user.id);
+> C:\Users\Sire-F\OneDrive\Desktop\My Projects\nava-otp\src\app\api\wallet\route.ts:12:    const txs = await db.select().from(transactions).where(eq(transactions.walletId, wallet.id)).orderBy(desc(transactions.createdAt)).limit(20);
+> C:\Users\Sire-F\OneDrive\Desktop\My Projects\nava-otp\src\app\api\wallet\route.ts:13:    return NextResponse.json({ balance: wallet.balance, currency: wallet.currency, transactions: txs });
+  C:\Users\Sire-F\OneDrive\Desktop\My Projects\nava-otp\src\app\api\wallet\route.ts:14:  } catch {
+  C:\Users\Sire-F\OneDrive\Desktop\My Projects\nava-otp\src\app\api\wallet\route.ts:15:    return NextResponse.json({ error: "Unauthorized" }, { status: 401 });
+  C:\Users\Sire-F\OneDrive\Desktop\My Projects\nava-otp\src\app\api\wallet\route.ts:16:  }
 PS C:\Users\Sire-F\OneDrive\Desktop\My Projects\nava-otp>
-PS C:\Users\Sire-F\OneDrive\Desktop\My Projects\nava-otp> Write-Host "`n=== CHANGE STATUS OF THESE FILES ===" -ForegroundColor Cyan
-
-=== CHANGE STATUS OF THESE FILES ===
-PS C:\Users\Sire-F\OneDrive\Desktop\My Projects\nava-otp> git status --short -- `
->>     src/app/api/esim/orders/route.ts `
->>     src/app/dashboard/rentals/esim/mine/page.tsx `
->>     supabase/migrations/20261007000000_nava_esim_init.sql
-?? src/app/api/esim/orders/route.ts
-?? src/app/dashboard/rentals/esim/mine/page.tsx
-?? supabase/migrations/20261007000000_nava_esim_init.sql
 PS C:\Users\Sire-F\OneDrive\Desktop\My Projects\nava-otp>
