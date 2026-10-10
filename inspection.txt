@@ -1,7 +1,6 @@
 PS C:\Users\Sire-F\OneDrive\Desktop\My Projects\nava-otp> ```powershell
-`powershell : The term '`powershell' is not recognized as the name of a cmdlet, function, script file, or
-operable program. Check the spelling of the name, or if a path was included, verify that the path is correct
-and try again.
+`powershell : The term '`powershell' is not recognized as the name of a cmdlet, function, script file, or operable program. Check the spelling of
+the name, or if a path was included, verify that the path is correct and try again.
 At line:1 char:1
 + ```powershell
 + ~~~~~~~~~~~~~
@@ -10,144 +9,279 @@ At line:1 char:1
 
 PS C:\Users\Sire-F\OneDrive\Desktop\My Projects\nava-otp> $Root = "C:\Users\Sire-F\OneDrive\Desktop\My Projects\nava-otp"
 PS C:\Users\Sire-F\OneDrive\Desktop\My Projects\nava-otp> Set-Location $Root
+PS C:\Users\Sire-F\OneDrive\Desktop\My Projects\nava-otp> $ErrorActionPreference = "Stop"
 PS C:\Users\Sire-F\OneDrive\Desktop\My Projects\nava-otp>
-PS C:\Users\Sire-F\OneDrive\Desktop\My Projects\nava-otp> Write-Host "`n=== ADMIN API ROUTES ==="
-
-=== ADMIN API ROUTES ===
-PS C:\Users\Sire-F\OneDrive\Desktop\My Projects\nava-otp> Get-ChildItem ".\src\app\api" -Recurse -Filter "route.ts" -File |
->>     Where-Object { $_.FullName -match '[\\/]admin[\\/]' } |
->>     Select-Object -ExpandProperty FullName
-C:\Users\Sire-F\OneDrive\Desktop\My Projects\nava-otp\src\app\api\admin\approve-crypto\route.ts
-C:\Users\Sire-F\OneDrive\Desktop\My Projects\nava-otp\src\app\api\admin\crypto-recovery\route.ts
-C:\Users\Sire-F\OneDrive\Desktop\My Projects\nava-otp\src\app\api\admin\numbers\route.ts
-C:\Users\Sire-F\OneDrive\Desktop\My Projects\nava-otp\src\app\api\esim\admin\orders\[id]\fulfill\route.ts
+PS C:\Users\Sire-F\OneDrive\Desktop\My Projects\nava-otp> function Replace-Exact {
+>>     param(
+>>         [string]$Path,
+>>         [string]$Old,
+>>         [string]$New
+>>     )
+>>
+>>     $Content = [System.IO.File]::ReadAllText($Path)
+>>     $NormalizedOld = $Old -replace "`n", "`r`n"
+>>     $NormalizedNew = $New -replace "`n", "`r`n"
+>>
+>>     if (-not $Content.Contains($NormalizedOld)) {
+>>         throw "STOP: Expected code not found in $Path. No replacement made to this file."
+>>     }
+>>
+>>     $Updated = $Content.Replace($NormalizedOld, $NormalizedNew)
+>>     [System.IO.File]::WriteAllText(
+>>         $Path,
+>>         $Updated,
+>>         [System.Text.UTF8Encoding]::new($false)
+>>     )
+>>     Write-Host "Updated: $Path" -ForegroundColor Green
+>> }
 PS C:\Users\Sire-F\OneDrive\Desktop\My Projects\nava-otp>
-PS C:\Users\Sire-F\OneDrive\Desktop\My Projects\nava-otp> Write-Host "`n=== EXISTING ADMIN AUTH PATTERNS ==="
-
-=== EXISTING ADMIN AUTH PATTERNS ===
-PS C:\Users\Sire-F\OneDrive\Desktop\My Projects\nava-otp> Get-ChildItem ".\src\app\api" -Recurse -Filter "route.ts" -File |
->>     Select-String -Pattern "requireAdmin|supabaseAdmin|SUPABASE_SECRET_KEY" |
->>     Select-Object -First 60 Path, LineNumber, Line
-
-Path                                                                                                      LineNu
-                                                                                                            mber
-----                                                                                                      ------
-C:\Users\Sire-F\OneDrive\Desktop\My Projects\nava-otp\src\app\api\admin\crypto-recovery\route.ts               3
-C:\Users\Sire-F\OneDrive\Desktop\My Projects\nava-otp\src\app\api\admin\crypto-recovery\route.ts              41
-C:\Users\Sire-F\OneDrive\Desktop\My Projects\nava-otp\src\app\api\admin\crypto-recovery\route.ts              61
-C:\Users\Sire-F\OneDrive\Desktop\My Projects\nava-otp\src\app\api\admin\numbers\route.ts                       2
-C:\Users\Sire-F\OneDrive\Desktop\My Projects\nava-otp\src\app\api\admin\numbers\route.ts                       8
-C:\Users\Sire-F\OneDrive\Desktop\My Projects\nava-otp\src\app\api\auth\username-login\route.ts                 3
-C:\Users\Sire-F\OneDrive\Desktop\My Projects\nava-otp\src\app\api\auth\username-login\route.ts                33
-C:\Users\Sire-F\OneDrive\Desktop\My Projects\nava-otp\src\app\api\auth\username-login\route.ts                47
-C:\Users\Sire-F\OneDrive\Desktop\My Projects\nava-otp\src\app\api\crypto\deposit\route.ts                      3
-C:\Users\Sire-F\OneDrive\Desktop\My Projects\nava-otp\src\app\api\crypto\deposit\route.ts                     90
-C:\Users\Sire-F\OneDrive\Desktop\My Projects\nava-otp\src\app\api\crypto\deposit\route.ts                    114
-C:\Users\Sire-F\OneDrive\Desktop\My Projects\nava-otp\src\app\api\crypto\deposit\route.ts                    326
-C:\Users\Sire-F\OneDrive\Desktop\My Projects\nava-otp\src\app\api\crypto\deposit-intent\route.ts               3
-C:\Users\Sire-F\OneDrive\Desktop\My Projects\nava-otp\src\app\api\crypto\deposit-intent\route.ts             102
-C:\Users\Sire-F\OneDrive\Desktop\My Projects\nava-otp\src\app\api\crypto\deposit-intent\route.ts             128
-C:\Users\Sire-F\OneDrive\Desktop\My Projects\nava-otp\src\app\api\crypto\recovery\route.ts                     3
-C:\Users\Sire-F\OneDrive\Desktop\My Projects\nava-otp\src\app\api\crypto\recovery\route.ts                    99
-C:\Users\Sire-F\OneDrive\Desktop\My Projects\nava-otp\src\app\api\crypto\recovery\route.ts                   107
-C:\Users\Sire-F\OneDrive\Desktop\My Projects\nava-otp\src\app\api\crypto\recovery\route.ts                   176
-C:\Users\Sire-F\OneDrive\Desktop\My Projects\nava-otp\src\app\api\crypto\recovery\route.ts                   238
-C:\Users\Sire-F\OneDrive\Desktop\My Projects\nava-otp\src\app\api\crypto\recovery\route.ts                   243
-C:\Users\Sire-F\OneDrive\Desktop\My Projects\nava-otp\src\app\api\crypto\recovery\route.ts                   275
-C:\Users\Sire-F\OneDrive\Desktop\My Projects\nava-otp\src\app\api\esim\admin\orders\[id]\fulfill\route.ts      2
-C:\Users\Sire-F\OneDrive\Desktop\My Projects\nava-otp\src\app\api\esim\admin\orders\[id]\fulfill\route.ts      3
-C:\Users\Sire-F\OneDrive\Desktop\My Projects\nava-otp\src\app\api\esim\admin\orders\[id]\fulfill\route.ts     14
-C:\Users\Sire-F\OneDrive\Desktop\My Projects\nava-otp\src\app\api\esim\admin\orders\[id]\fulfill\route.ts     83
-C:\Users\Sire-F\OneDrive\Desktop\My Projects\nava-otp\src\app\api\esim\admin\orders\[id]\fulfill\route.ts    112
-C:\Users\Sire-F\OneDrive\Desktop\My Projects\nava-otp\src\app\api\esim\admin\orders\[id]\fulfill\route.ts    141
-C:\Users\Sire-F\OneDrive\Desktop\My Projects\nava-otp\src\app\api\esim\admin\orders\[id]\fulfill\route.ts    157
-C:\Users\Sire-F\OneDrive\Desktop\My Projects\nava-otp\src\app\api\esim\admin\orders\[id]\fulfill\route.ts    175
-C:\Users\Sire-F\OneDrive\Desktop\My Projects\nava-otp\src\app\api\esim\admin\orders\[id]\fulfill\route.ts    182
-C:\Users\Sire-F\OneDrive\Desktop\My Projects\nava-otp\src\app\api\esim\admin\orders\[id]\fulfill\route.ts    195
-C:\Users\Sire-F\OneDrive\Desktop\My Projects\nava-otp\src\app\api\esim\admin\orders\[id]\fulfill\route.ts    223
-C:\Users\Sire-F\OneDrive\Desktop\My Projects\nava-otp\src\app\api\esim\mine\route.ts                          14
-C:\Users\Sire-F\OneDrive\Desktop\My Projects\nava-otp\src\app\api\esim\orders\route.ts                        16
-C:\Users\Sire-F\OneDrive\Desktop\My Projects\nava-otp\src\app\api\esim\orders\route.ts                        19
-C:\Users\Sire-F\OneDrive\Desktop\My Projects\nava-otp\src\app\api\esim\orders\[id]\pay\route.ts               17
-C:\Users\Sire-F\OneDrive\Desktop\My Projects\nava-otp\src\app\api\esim\orders\[id]\pay\route.ts               20
-C:\Users\Sire-F\OneDrive\Desktop\My Projects\nava-otp\src\app\api\esim\orders\[id]\renew\route.ts             19
-C:\Users\Sire-F\OneDrive\Desktop\My Projects\nava-otp\src\app\api\otp\route.ts                                 2
-C:\Users\Sire-F\OneDrive\Desktop\My Projects\nava-otp\src\app\api\otp\route.ts                                44
-C:\Users\Sire-F\OneDrive\Desktop\My Projects\nava-otp\src\app\api\otp\route.ts                               117
-C:\Users\Sire-F\OneDrive\Desktop\My Projects\nava-otp\src\app\api\otp\route.ts                               274
-C:\Users\Sire-F\OneDrive\Desktop\My Projects\nava-otp\src\app\api\otp\route.ts                               361
-C:\Users\Sire-F\OneDrive\Desktop\My Projects\nava-otp\src\app\api\otp\route.ts                               490
-C:\Users\Sire-F\OneDrive\Desktop\My Projects\nava-otp\src\app\api\otp\route.ts                               785
-C:\Users\Sire-F\OneDrive\Desktop\My Projects\nava-otp\src\app\api\otp\cancel\route.ts                          2
-C:\Users\Sire-F\OneDrive\Desktop\My Projects\nava-otp\src\app\api\otp\cancel\route.ts                         32
-C:\Users\Sire-F\OneDrive\Desktop\My Projects\nava-otp\src\app\api\otp\cancel\route.ts                        174
-C:\Users\Sire-F\OneDrive\Desktop\My Projects\nava-otp\src\app\api\phone\route.ts                               2
-C:\Users\Sire-F\OneDrive\Desktop\My Projects\nava-otp\src\app\api\phone\route.ts                              16
-C:\Users\Sire-F\OneDrive\Desktop\My Projects\nava-otp\src\app\api\phone\messages\route.ts                     15
-C:\Users\Sire-F\OneDrive\Desktop\My Projects\nava-otp\src\app\api\phone\messages\route.ts                     29
-C:\Users\Sire-F\OneDrive\Desktop\My Projects\nava-otp\src\app\api\phone\messages\route.ts                     48
-C:\Users\Sire-F\OneDrive\Desktop\My Projects\nava-otp\src\app\api\phone\messages\route.ts                     64
-C:\Users\Sire-F\OneDrive\Desktop\My Projects\nava-otp\src\app\api\phone\messages\route.ts                     81
-C:\Users\Sire-F\OneDrive\Desktop\My Projects\nava-otp\src\app\api\phone\messages\route.ts                    127
-C:\Users\Sire-F\OneDrive\Desktop\My Projects\nava-otp\src\app\api\phone\messages\route.ts                    166
-C:\Users\Sire-F\OneDrive\Desktop\My Projects\nava-otp\src\app\api\phone\purchase\route.ts                      5
-C:\Users\Sire-F\OneDrive\Desktop\My Projects\nava-otp\src\app\api\phone\purchase\route.ts                     51
-
+PS C:\Users\Sire-F\OneDrive\Desktop\My Projects\nava-otp> # 1. Admin order-list API: verify Supabase user and profile role.
+PS C:\Users\Sire-F\OneDrive\Desktop\My Projects\nava-otp> $List = "src\app\api\esim\admin\orders\route.ts"
+PS C:\Users\Sire-F\OneDrive\Desktop\My Projects\nava-otp>
+PS C:\Users\Sire-F\OneDrive\Desktop\My Projects\nava-otp> Replace-Exact $List `
+>> 'import { requireAdmin } from "@/lib/auth";' `
+>> 'import { getAuthenticatedSupabaseUser } from "@/lib/supabase-request-auth";'
+Exception calling "ReadAllText" with "1" argument(s): "Could not find a part of the path
+'C:\Users\Sire-F\src\app\api\esim\admin\orders\route.ts'."
+At line:8 char:5
++     $Content = [System.IO.File]::ReadAllText($Path)
++     ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
+    + CategoryInfo          : NotSpecified: (:) [], ParentContainsErrorRecordException
+    + FullyQualifiedErrorId : DirectoryNotFoundException
 
 PS C:\Users\Sire-F\OneDrive\Desktop\My Projects\nava-otp>
-PS C:\Users\Sire-F\OneDrive\Desktop\My Projects\nava-otp> Write-Host "`n=== ESIM API ROUTES ==="
+PS C:\Users\Sire-F\OneDrive\Desktop\My Projects\nava-otp> Replace-Exact $List `
+>> 'export async function GET() {' `
+>> 'export async function GET(req: Request) {'
+Exception calling "ReadAllText" with "1" argument(s): "Could not find a part of the path
+'C:\Users\Sire-F\src\app\api\esim\admin\orders\route.ts'."
+At line:8 char:5
++     $Content = [System.IO.File]::ReadAllText($Path)
++     ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
+    + CategoryInfo          : NotSpecified: (:) [], ParentContainsErrorRecordException
+    + FullyQualifiedErrorId : DirectoryNotFoundException
 
-=== ESIM API ROUTES ===
-PS C:\Users\Sire-F\OneDrive\Desktop\My Projects\nava-otp> Get-ChildItem ".\src\app\api\esim" -Recurse -Filter "route.ts" -File |
->>     Select-Object -ExpandProperty FullName
-C:\Users\Sire-F\OneDrive\Desktop\My Projects\nava-otp\src\app\api\esim\admin\orders\[id]\fulfill\route.ts
-C:\Users\Sire-F\OneDrive\Desktop\My Projects\nava-otp\src\app\api\esim\mine\route.ts
-C:\Users\Sire-F\OneDrive\Desktop\My Projects\nava-otp\src\app\api\esim\orders\route.ts
-C:\Users\Sire-F\OneDrive\Desktop\My Projects\nava-otp\src\app\api\esim\orders\[id]\pay\route.ts
-C:\Users\Sire-F\OneDrive\Desktop\My Projects\nava-otp\src\app\api\esim\orders\[id]\renew\route.ts
-C:\Users\Sire-F\OneDrive\Desktop\My Projects\nava-otp\src\app\api\esim\plans\route.ts
-C:\Users\Sire-F\OneDrive\Desktop\My Projects\nava-otp\src\app\api\esim\plans\[id]\route.ts
 PS C:\Users\Sire-F\OneDrive\Desktop\My Projects\nava-otp>
-PS C:\Users\Sire-F\OneDrive\Desktop\My Projects\nava-otp> Write-Host "`n=== ADMIN ESIM PAGE FETCH AND ORDER HANDLING ==="
+PS C:\Users\Sire-F\OneDrive\Desktop\My Projects\nava-otp> Replace-Exact $List `
+>> '    await requireAdmin();' `
+>> @'
+>>     const authUser = await getAuthenticatedSupabaseUser(req);
+>>
+>>     if (!authUser) {
+>>       return NextResponse.json({ error: "Unauthorized" }, { status: 401 });
+>>     }
+>>
+>>     const { data: profile, error: profileError } = await supabaseAdmin
+>>       .from("profiles")
+>>       .select("role")
+>>       .eq("id", authUser.id)
+>>       .maybeSingle();
+>>
+>>     if (profileError) {
+>>       console.error("Admin profile lookup failed:", profileError.message);
+>>       return NextResponse.json({ error: "Unable to verify admin access" }, { status: 500 });
+>>     }
+>>
+>>     if (profile?.role !== "admin") {
+>>       return NextResponse.json({ error: "Forbidden" }, { status: 403 });
+>>     }
+>> '@
+Exception calling "ReadAllText" with "1" argument(s): "Could not find a part of the path
+'C:\Users\Sire-F\src\app\api\esim\admin\orders\route.ts'."
+At line:8 char:5
++     $Content = [System.IO.File]::ReadAllText($Path)
++     ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
+    + CategoryInfo          : NotSpecified: (:) [], ParentContainsErrorRecordException
+    + FullyQualifiedErrorId : DirectoryNotFoundException
 
-=== ADMIN ESIM PAGE FETCH AND ORDER HANDLING ===
-PS C:\Users\Sire-F\OneDrive\Desktop\My Projects\nava-otp> Select-String -LiteralPath ".\src\app\dashboard\admin\esim\orders\page.tsx" `
->>     -Pattern "fetch\(|data\.orders|setOrders|handleFulfill|Authorization" `
->>     -Context 2,3
+PS C:\Users\Sire-F\OneDrive\Desktop\My Projects\nava-otp>
+PS C:\Users\Sire-F\OneDrive\Desktop\My Projects\nava-otp> # 2. Fulfillment API: authenticate once and reuse the verified user ID.
+PS C:\Users\Sire-F\OneDrive\Desktop\My Projects\nava-otp> $Fulfill = "src\app\api\esim\admin\orders\[id]\fulfill\route.ts"
+PS C:\Users\Sire-F\OneDrive\Desktop\My Projects\nava-otp>
+PS C:\Users\Sire-F\OneDrive\Desktop\My Projects\nava-otp> Replace-Exact $Fulfill `
+>> 'import { requireAdmin } from "@/lib/auth";' `
+>> 'import { getAuthenticatedSupabaseUser } from "@/lib/supabase-request-auth";'
+Exception calling "ReadAllText" with "1" argument(s): "Could not find a part of the path
+'C:\Users\Sire-F\src\app\api\esim\admin\orders\[id]\fulfill\route.ts'."
+At line:8 char:5
++     $Content = [System.IO.File]::ReadAllText($Path)
++     ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
+    + CategoryInfo          : NotSpecified: (:) [], ParentContainsErrorRecordException
+    + FullyQualifiedErrorId : DirectoryNotFoundException
 
-  src\app\dashboard\admin\esim\orders\page.tsx:4:
-  src\app\dashboard\admin\esim\orders\page.tsx:5:export default function AdminEsimOrdersPage() {
-> src\app\dashboard\admin\esim\orders\page.tsx:6:  const [orders, setOrders] = useState<any[]>([]);
-  src\app\dashboard\admin\esim\orders\page.tsx:7:  const [loading, setLoading] = useState(true);
-  src\app\dashboard\admin\esim\orders\page.tsx:8:  const [selectedOrder, setSelectedOrder] =
-useState<any>(null);
-  src\app\dashboard\admin\esim\orders\page.tsx:9:  const [phoneNumber, setPhoneNumber] = useState("");
-  src\app\dashboard\admin\esim\orders\page.tsx:12:
-  src\app\dashboard\admin\esim\orders\page.tsx:13:  useEffect(() => {
-> src\app\dashboard\admin\esim\orders\page.tsx:14:    fetch("/api/esim/mine")
-  src\app\dashboard\admin\esim\orders\page.tsx:15:      .then((res) => res.json())
-  src\app\dashboard\admin\esim\orders\page.tsx:16:      .then((data) => {
-> src\app\dashboard\admin\esim\orders\page.tsx:17:        if (data.orders) setOrders(data.orders);
-  src\app\dashboard\admin\esim\orders\page.tsx:18:      })
-  src\app\dashboard\admin\esim\orders\page.tsx:19:      .finally(() => setLoading(false));
-  src\app\dashboard\admin\esim\orders\page.tsx:20:  }, []);
-  src\app\dashboard\admin\esim\orders\page.tsx:21:
-> src\app\dashboard\admin\esim\orders\page.tsx:22:  async function handleFulfill() {
-  src\app\dashboard\admin\esim\orders\page.tsx:23:    if (!selectedOrder || !phoneNumber) return;
-  src\app\dashboard\admin\esim\orders\page.tsx:24:    try {
-  src\app\dashboard\admin\esim\orders\page.tsx:25:      setFulfilling(true);
-> src\app\dashboard\admin\esim\orders\page.tsx:26:      const res = await
-fetch(`/api/esim/admin/orders/${selectedOrder.id}/fulfill`, {
-  src\app\dashboard\admin\esim\orders\page.tsx:27:        method: "POST",
-  src\app\dashboard\admin\esim\orders\page.tsx:28:        headers: { "Content-Type": "application/json" },
-  src\app\dashboard\admin\esim\orders\page.tsx:29:        body: JSON.stringify({
-  src\app\dashboard\admin\esim\orders\page.tsx:94:                Cancel
-  src\app\dashboard\admin\esim\orders\page.tsx:95:              </button>
-> src\app\dashboard\admin\esim\orders\page.tsx:96:              <button onClick={handleFulfill}
-disabled={fulfilling} className="flex-1 py-3 bg-emerald-500 text-slate-950 text-xs font-black rounded-xl">
-  src\app\dashboard\admin\esim\orders\page.tsx:97:                {fulfilling ? "Activating..." : "Mark Active"}
-  src\app\dashboard\admin\esim\orders\page.tsx:98:              </button>
-  src\app\dashboard\admin\esim\orders\page.tsx:99:            </div>
+PS C:\Users\Sire-F\OneDrive\Desktop\My Projects\nava-otp>
+PS C:\Users\Sire-F\OneDrive\Desktop\My Projects\nava-otp> Replace-Exact $Fulfill `
+>> '  let claimedOrderId: string | null = null;' `
+>> '  let claimedOrderId: string | null = null;`r`n  let adminUserId: string | null = null;'
+Exception calling "ReadAllText" with "1" argument(s): "Could not find a part of the path
+'C:\Users\Sire-F\src\app\api\esim\admin\orders\[id]\fulfill\route.ts'."
+At line:8 char:5
++     $Content = [System.IO.File]::ReadAllText($Path)
++     ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
+    + CategoryInfo          : NotSpecified: (:) [], ParentContainsErrorRecordException
+    + FullyQualifiedErrorId : DirectoryNotFoundException
 
+PS C:\Users\Sire-F\OneDrive\Desktop\My Projects\nava-otp>
+PS C:\Users\Sire-F\OneDrive\Desktop\My Projects\nava-otp> Replace-Exact $Fulfill `
+>> @'
+>>     try {
+>>       await requireAdmin();
+>>     } catch (error) {
+>>       const message =
+>>         error instanceof Error ? error.message : "Unauthorized";
+>>
+>>       if (message === "Forbidden") {
+>>         return NextResponse.json({ error: "Forbidden" }, { status: 403 });
+>>       }
+>>
+>>       if (message === "Unauthorized") {
+>>         return NextResponse.json({ error: "Unauthorized" }, { status: 401 });
+>>       }
+>>
+>>       throw error;
+>>     }
+>> '@ `
+>> @'
+>>     const authUser = await getAuthenticatedSupabaseUser(req);
+>>
+>>     if (!authUser) {
+>>       return NextResponse.json({ error: "Unauthorized" }, { status: 401 });
+>>     }
+>>
+>>     const { data: profile, error: profileError } = await supabaseAdmin
+>>       .from("profiles")
+>>       .select("role")
+>>       .eq("id", authUser.id)
+>>       .maybeSingle();
+>>
+>>     if (profileError) {
+>>       console.error("Admin profile lookup failed:", profileError.message);
+>>       return NextResponse.json({ error: "Unable to verify admin access" }, { status: 500 });
+>>     }
+>>
+>>     if (profile?.role !== "admin") {
+>>       return NextResponse.json({ error: "Forbidden" }, { status: 403 });
+>>     }
+>>
+>>     adminUserId = authUser.id;
+>> '@
+Exception calling "ReadAllText" with "1" argument(s): "Could not find a part of the path
+'C:\Users\Sire-F\src\app\api\esim\admin\orders\[id]\fulfill\route.ts'."
+At line:8 char:5
++     $Content = [System.IO.File]::ReadAllText($Path)
++     ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
+    + CategoryInfo          : NotSpecified: (:) [], ParentContainsErrorRecordException
+    + FullyQualifiedErrorId : DirectoryNotFoundException
 
-PS C:\Users\Sire-F\OneDrive\Desktop\My Projects\nava-otp> ```
+PS C:\Users\Sire-F\OneDrive\Desktop\My Projects\nava-otp>
+PS C:\Users\Sire-F\OneDrive\Desktop\My Projects\nava-otp> Replace-Exact $Fulfill `
+>> '        fulfilled_by: (await requireAdmin()).user.id,' `
+>> '        fulfilled_by: adminUserId,'
+Exception calling "ReadAllText" with "1" argument(s): "Could not find a part of the path
+'C:\Users\Sire-F\src\app\api\esim\admin\orders\[id]\fulfill\route.ts'."
+At line:8 char:5
++     $Content = [System.IO.File]::ReadAllText($Path)
++     ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
+    + CategoryInfo          : NotSpecified: (:) [], ParentContainsErrorRecordException
+    + FullyQualifiedErrorId : DirectoryNotFoundException
+
+PS C:\Users\Sire-F\OneDrive\Desktop\My Projects\nava-otp>
+PS C:\Users\Sire-F\OneDrive\Desktop\My Projects\nava-otp> # 3. Admin page: obtain the Supabase session and send its access token.
+PS C:\Users\Sire-F\OneDrive\Desktop\My Projects\nava-otp> $Page = "src\app\dashboard\admin\esim\orders\page.tsx"
+PS C:\Users\Sire-F\OneDrive\Desktop\My Projects\nava-otp>
+PS C:\Users\Sire-F\OneDrive\Desktop\My Projects\nava-otp> Replace-Exact $Page `
+>> 'import { useEffect, useState } from "react";' `
+>> 'import { useEffect, useState } from "react";`r`nimport { supabase } from "@/lib/supabase";'
+Exception calling "ReadAllText" with "1" argument(s): "Could not find a part of the path
+'C:\Users\Sire-F\src\app\dashboard\admin\esim\orders\page.tsx'."
+At line:8 char:5
++     $Content = [System.IO.File]::ReadAllText($Path)
++     ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
+    + CategoryInfo          : NotSpecified: (:) [], ParentContainsErrorRecordException
+    + FullyQualifiedErrorId : DirectoryNotFoundException
+
+PS C:\Users\Sire-F\OneDrive\Desktop\My Projects\nava-otp>
+PS C:\Users\Sire-F\OneDrive\Desktop\My Projects\nava-otp> Replace-Exact $Page `
+>> @'
+>>   useEffect(() => {
+>>     fetch("/api/esim/admin/orders")
+>>       .then((res) => res.json())
+>>       .then((data) => {
+>>         if (data.orders) setOrders(data.orders);
+>>       })
+>>       .finally(() => setLoading(false));
+>>   }, []);
+>> '@ `
+>> @'
+>>   useEffect(() => {
+>>     let cancelled = false;
+>>
+>>     async function loadOrders() {
+>>       try {
+>>         const { data: { session }, error: sessionError } =
+>>           await supabase.auth.getSession();
+>>
+>>         if (sessionError) throw sessionError;
+>>         if (!session) throw new Error("Please sign in again.");
+>>
+>>         const res = await fetch("/api/esim/admin/orders", {
+>>           headers: { Authorization: `Bearer ${session.access_token}` },
+>>         });
+>>         const data = await res.json();
+>>
+>>         if (!res.ok) {
+>>           throw new Error(data.error || "Unable to load eSIM orders");
+>>         }
+>>
+>>         if (!cancelled && data.orders) setOrders(data.orders);
+>>       } catch (error) {
+>>         console.error("Loading admin eSIM orders failed:", error);
+>>         if (!cancelled) {
+>>           alert(error instanceof Error ? error.message : "Unable to load eSIM orders");
+>>         }
+>>       } finally {
+>>         if (!cancelled) setLoading(false);
+>>       }
+>>     }
+>>
+>>     void loadOrders();
+>>     return () => { cancelled = true; };
+>>   }, []);
+>> '@
+Exception calling "ReadAllText" with "1" argument(s): "Could not find a part of the path
+'C:\Users\Sire-F\src\app\dashboard\admin\esim\orders\page.tsx'."
+At line:8 char:5
++     $Content = [System.IO.File]::ReadAllText($Path)
++     ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
+    + CategoryInfo          : NotSpecified: (:) [], ParentContainsErrorRecordException
+    + FullyQualifiedErrorId : DirectoryNotFoundException
+
+PS C:\Users\Sire-F\OneDrive\Desktop\My Projects\nava-otp>
+PS C:\Users\Sire-F\OneDrive\Desktop\My Projects\nava-otp> Replace-Exact $Page `
+>> '    try {`r`n      setFulfilling(true);' `
+>> '    try {`r`n      setFulfilling(true);`r`n      const { data: { session }, error: sessionError } = await supabase.auth.getSession();`r`n      if (sessionError) throw sessionError;`r`n      if (!session) throw new Error("Please sign in again.");'
+Exception calling "ReadAllText" with "1" argument(s): "Could not find a part of the path
+'C:\Users\Sire-F\src\app\dashboard\admin\esim\orders\page.tsx'."
+At line:8 char:5
++     $Content = [System.IO.File]::ReadAllText($Path)
++     ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
+    + CategoryInfo          : NotSpecified: (:) [], ParentContainsErrorRecordException
+    + FullyQualifiedErrorId : DirectoryNotFoundException
+
+PS C:\Users\Sire-F\OneDrive\Desktop\My Projects\nava-otp>
+PS C:\Users\Sire-F\OneDrive\Desktop\My Projects\nava-otp> Replace-Exact $Page `
+>> '          headers: { "Content-Type": "application/json" },' `
+>> '          headers: {`r`n            "Content-Type": "application/json",`r`n            Authorization: `Bearer ${session.access_token}`,`r`n          },'
+Exception calling "ReadAllText" with "1" argument(s): "Could not find a part of the path
+'C:\Users\Sire-F\src\app\dashboard\admin\esim\orders\page.tsx'."
+At line:8 char:5
++     $Content = [System.IO.File]::ReadAllText($Path)
++     ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
+    + CategoryInfo          : NotSpecified: (:) [], ParentContainsErrorRecordException
+    + FullyQualifiedErrorId : DirectoryNotFoundException
+
+PS C:\Users\Sire-F\OneDrive\Desktop\My Projects\nava-otp>
+PS C:\Users\Sire-F\OneDrive\Desktop\My Projects\nava-otp> Write-Host "`nPatch script completed. No commit or deployment performed." -ForegroundColor Cyan
+
+Patch script completed. No commit or deployment performed.
+PS C:\Users\Sire-F\OneDrive\Desktop\My Projects\nava-otp> 
