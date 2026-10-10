@@ -1,217 +1,118 @@
-$projectRoot = "C:\Users\Sire-F\OneDrive\Desktop\My Projects\nava-otp"
-$layoutPath = Join-Path $projectRoot "src\app\dashboard\layout.tsx"
+Stage 1A — Inspection Report (no code written)
+I inspected your current src/app/dashboard/layout.tsx only.
+I did not rewrite it. I did not touch auth, wallet, theme, SMS/phone shell, or IdleTimer.
 
-$layoutTsx = @'
-'use client';
+1. What your layout already does well (must preserve)
+Area	Status	Notes
+Auth gate	Keep	supabase.auth.getUser() + redirect to /login
+Wallet balance	Keep	Loaded from profiles.balance, shown in header
+Theme	Keep	ThemeToggle, nava-theme, dark/light DOM background
+Currency	Keep	CurrencyToggle
+Idle logout	Keep	<IdleTimer />
+Phone workspace shell	Keep	isPhoneShell for /dashboard/sms* with Google Voice-style side rail
+Mobile drawer + bottom nav	Keep	Existing glass icons + responsive structure
+Admin gate	Keep	userRole === "admin" for Admin Desk
+Visual system	Keep	Glass 3D icons, emerald active states, sticky header
+Conclusion: Stage 1A must be a minimal nav-label/link edit only, not a layout rewrite.
 
-import React, { useState, useEffect } from 'react';
-import Link from 'next/link';
-import { usePathname, useRouter } from 'next/navigation';
-import { createClient } from '@supabase/supabase-js';
+2. Current desktop nav (source of truth in layout)
+TypeScript
 
-const supabase = createClient(
-  process.env.NEXT_PUBLIC_SUPABASE_URL || '',
-  process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY || ''
-);
+allNavItems = [
+  { href: "/dashboard",            label: "Rent a number",     icon: "phone" },
+  { href: "/dashboard/sms/inbox",  label: "Phone",             icon: "chat" },
+  { href: "/dashboard/rentals",    label: "Rental Services",   icon: "store" },
+  { href: "/dashboard/history",    label: "History",           icon: "history" },
+  { href: "/dashboard/wallet",     label: "Wallet & Top Up",   icon: "wallet" },
+  { href: "/dashboard/otp",        label: "Price list",        icon: "tag" },
+  { href: "/dashboard/support",    label: "Help & Support",    icon: "support" },
+  { href: "/admin/rentals",        label: "Admin Desk",        icon: "admin", adminOnly: true },
+]
+Mobile bottom nav is a shorter subset of the same destinations.
 
-interface NavItem {
-  label: string;
-  href: string;
-  icon: string;
-  badge?: string;
-}
+3. Customer UX problem (why Stage 1A is needed)
+Current labels are ambiguous for eSIM customers:
 
-interface NavGroup {
-  title: string;
-  items: NavItem[];
-}
+Current label	Actual destination	Customer confusion
+Rent a number	/dashboard	Sounds like any number; usually OTP
+Rental Services	/dashboard/rentals	Mixes OTP services + eSIM entry
+Phone	/dashboard/sms/inbox	Correct destination, label is broad
+History	/dashboard/history	Unclear if OTP-only or all orders
+(missing)	eSIM catalog / My Lines / Recharge	Customers cannot find eSIM after purchase
+4. Route verification status
+Your page listing came back truncated (FullName cut off), so I cannot yet certify every path.
 
-export default function DashboardLayout({ children }: { children: React.ReactNode }) {
-  const pathname = usePathname();
-  const router = useRouter();
-  const [balance, setBalance] = useState<string>('0.00');
-  const [userEmail, setUserEmail] = useState<string>('');
-  const [isAdmin, setIsAdmin] = useState<boolean>(false);
-  const [mobileOpen, setMobileOpen] = useState<boolean>(false);
+From this conversation + layout, these are known to exist:
 
-  useEffect(() => {
-    async function loadUser() {
-      const { data: { session } } = await supabase.auth.getSession();
-      if (!session) return;
+/dashboard
+/dashboard/sms, /dashboard/sms/inbox, /dashboard/sms/calling
+/dashboard/rentals
+/dashboard/rentals/esim
+/dashboard/rentals/esim/mine
+/dashboard/rentals/esim/[planId]
+/dashboard/history
+/dashboard/wallet
+/dashboard/otp
+/dashboard/support
+/admin/rentals
+Unverified / maybe missing (do not link until confirmed):
 
-      setUserEmail(session.user.email || '');
+/dashboard/rentals/esim/recharge (Stage 3 target; may not exist yet)
+/dashboard/phone (layout uses /dashboard/sms/inbox, not /dashboard/phone)
+5. Proposed Stage 1A changes (minimal, for your approval)
+Scope: only allNavItems + matching mobile bottom items + profile dropdown text if needed.
+No new layout shell, no auth/theme/wallet/SMS shell changes.
 
-      // Load balance from profiles table
-      const { data: profile } = await supabase
-        .from('profiles')
-        .select('balance, role, username')
-        .eq('id', session.user.id)
-        .single();
+Proposed desktop nav mapping
+New customer label	href	Why safe
+Get OTP Number	/dashboard	Existing home/OTP entry
+Phone	/dashboard/sms/inbox	Existing
+Buy eSIM	/dashboard/rentals/esim	Existing catalog
+My eSIM Lines	/dashboard/rentals/esim/mine	Existing
+Rental Services	/dashboard/rentals	Keep as hub (optional keep/remove)
+History	/dashboard/history	Existing
+Wallet & Top Up	/dashboard/wallet	Existing
+Price list	/dashboard/otp	Existing
+Help & Support	/dashboard/support	Existing
+Admin Desk	/admin/rentals	Admin only, existing
+Explicitly not in Stage 1A
+No Recharge link until page exists and is verified
+No grouped section headers yet (would be a larger UI change)
+No dashboard home card redesign (Stage 1B)
+No eSIM payment/API changes
+No sidebar visual redesign
+Optional tiny label cleanups only
+"Rent a number" → "Get OTP Number"
+"Rental Services" stays, or becomes hub text only
+Add 2 links: Buy eSIM + My eSIM Lines
+6. Risk check
+Risk	Mitigation
+Dead link	Verify page exists before adding href
+Break phone shell	Do not touch isPhoneShell branches
+Break active states	Keep same sidebarLinkClass / pathname logic
+Broader rewrite temptation	Stop if edit needs more than nav arrays
+If implementation needs more than editing allNavItems / mobile arrays / maybe 1–2 profile menu links, I will stop and report.
 
-      if (profile) {
-        setBalance(Number(profile.balance || 0).toFixed(2));
-        setIsAdmin(profile.role === 'admin' || profile.role === 'superadmin');
-      }
-    }
+7. One command needed before I write any code
+Please run this so destinations are fully verified (non-truncated):
 
-    loadUser();
-  }, [pathname]);
+PowerShell
 
-  const navGroups: NavGroup[] = [
-    {
-      title: 'Overview',
-      items: [
-        { label: 'Dashboard', href: '/dashboard', icon: '🏠' }
-      ]
-    },
-    {
-      title: 'Numbers & Verification',
-      items: [
-        { label: 'Get OTP Number', href: '/dashboard/rentals', icon: '⚡' },
-        { label: 'OTP Order History', href: '/dashboard/history', icon: '📋' }
-      ]
-    },
-    {
-      title: 'Mobile Lines',
-      items: [
-        { label: 'Buy an eSIM', href: '/dashboard/rentals/esim', icon: '📱' },
-        { label: 'My eSIM Lines', href: '/dashboard/rentals/esim/mine', icon: '📶' },
-        { label: 'Recharge a Line', href: '/dashboard/rentals/esim/recharge', icon: '🔄' }
-      ]
-    },
-    {
-      title: 'Communication',
-      items: [
-        { label: 'Phone & Dialer', href: '/dashboard/phone', icon: '📞' },
-        { label: 'SMS Messages', href: '/dashboard/sms', icon: '💬' }
-      ]
-    },
-    {
-      title: 'Account',
-      items: [
-        { label: 'Wallet & Top Up', href: '/dashboard/wallet', icon: '💳' },
-        { label: 'Price List', href: '/dashboard/pricelist', icon: '🏷️' }
-      ]
-    }
-  ];
+Get-ChildItem -Path "src/app/dashboard","src/app/admin" -Recurse -Filter "page.tsx" |
+  ForEach-Object { $_.FullName.Replace((Get-Location).Path + "\", "") }
+Also confirm:
 
-  if (isAdmin) {
-    navGroups.push({
-      title: 'Administration',
-      items: [
-        { label: 'Admin Desk', href: '/admin/rentals', icon: '🛠️' }
-      ]
-    });
-  }
+Should Rental Services remain in the sidebar?
+For Stage 1A, add only Buy eSIM + My eSIM Lines, or also rename Rent a number → Get OTP Number?
+8. Next step after your approval
+Once you approve the mapping and paste the route list:
 
-  const handleSignOut = async () => {
-    await supabase.auth.signOut();
-    router.push('/login');
-  };
+Backup layout.tsx
+Apply only approved nav array edits
+Run npx tsc --noEmit and lint on changed file
+Report exact diff + test checklist
+Stop (no Stage 1B until you say go)
+I am waiting for:
 
-  return (
-    <div className="min-h-screen bg-[#070c18] text-slate-100 flex flex-col md:flex-row font-sans">
-      {/* Mobile Top Header */}
-      <div className="md:hidden bg-[#0b1329] border-b border-slate-800 p-4 flex items-center justify-between sticky top-0 z-40">
-        <Link href="/dashboard" className="flex items-center gap-2">
-          <div className="w-8 h-8 bg-emerald-500 rounded-lg flex items-center justify-center font-black text-black text-lg">N</div>
-          <span className="font-black tracking-tight text-white text-lg">NAVA</span>
-        </Link>
-
-        <div className="flex items-center gap-3">
-          <div className="bg-slate-900 border border-slate-800 px-3 py-1 rounded-lg text-xs font-mono font-bold text-emerald-400">
-            ${balance}
-          </div>
-          <button 
-            onClick={() => setMobileOpen(!mobileOpen)}
-            className="p-2 text-slate-400 hover:text-white bg-slate-900 border border-slate-800 rounded-lg"
-          >
-            {mobileOpen ? '✕' : '☰'}
-          </button>
-        </div>
-      </div>
-
-      {/* Sidebar Navigation */}
-      <aside className={`
-        fixed md:static inset-y-0 left-0 z-50 w-64 bg-[#080e1e] border-r border-slate-800/80 flex flex-col justify-between transition-transform duration-200 ease-in-out
-        ${mobileOpen ? 'translate-x-0' : '-translate-x-full md:translate-x-0'}
-      `}>
-        <div className="p-6 space-y-6 overflow-y-auto max-h-[calc(100vh-80px)] md:max-h-none">
-          {/* Logo */}
-          <Link href="/dashboard" className="flex items-center gap-2.5">
-            <div className="w-9 h-9 bg-emerald-500 rounded-xl flex items-center justify-center font-black text-black text-xl shadow-lg shadow-emerald-950/50">N</div>
-            <span className="font-black tracking-tight text-white text-xl">NAVA</span>
-          </Link>
-
-          {/* Grouped Links */}
-          <div className="space-y-6 pt-2">
-            {navGroups.map((group, idx) => (
-              <div key={idx} className="space-y-2">
-                <h3 className="text-[10px] font-bold text-slate-500 uppercase tracking-widest px-3">
-                  {group.title}
-                </h3>
-                <div className="space-y-1">
-                  {group.items.map((item) => {
-                    const isActive = pathname === item.href || (item.href !== '/dashboard' && pathname?.startsWith(item.href));
-                    return (
-                      <Link
-                        key={item.href}
-                        href={item.href}
-                        onClick={() => setMobileOpen(false)}
-                        className={`
-                          flex items-center gap-3 px-3 py-2 rounded-xl text-xs font-semibold transition-all
-                          ${isActive 
-                            ? 'bg-emerald-500/10 text-emerald-400 border border-emerald-500/20 font-bold' 
-                            : 'text-slate-400 hover:text-white hover:bg-slate-900/60'
-                          }
-                        `}
-                      >
-                        <span className="text-sm">{item.icon}</span>
-                        <span>{item.label}</span>
-                      </Link>
-                    );
-                  })}
-                </div>
-              </div>
-            ))}
-          </div>
-        </div>
-
-        {/* User Footer / Balance */}
-        <div className="p-4 border-t border-slate-800/80 bg-[#060b18] space-y-3">
-          <div className="bg-[#0b1329] border border-slate-800 rounded-xl p-3 flex items-center justify-between">
-            <div className="truncate pr-2">
-              <div className="text-[10px] text-slate-500 font-bold uppercase tracking-wider">Wallet Balance</div>
-              <div className="text-sm font-black text-emerald-400 font-mono">${balance}</div>
-            </div>
-            <Link 
-              href="/dashboard/wallet"
-              className="bg-emerald-600 hover:bg-emerald-500 text-white text-[10px] font-bold px-2.5 py-1.5 rounded-lg transition-all"
-            >
-              Top Up
-            </Link>
-          </div>
-
-          <div className="flex items-center justify-between text-xs px-1 text-slate-500">
-            <span className="truncate max-w-[130px]" title={userEmail}>{userEmail || 'Account'}</span>
-            <button 
-              onClick={handleSignOut}
-              className="text-slate-400 hover:text-red-400 text-[11px] font-semibold transition-colors"
-            >
-              Sign Out
-            </button>
-          </div>
-        </div>
-      </aside>
-
-      {/* Main Content Viewport */}
-      <main className="flex-1 bg-[#070c18] overflow-y-auto">
-        {children}
-      </main>
-    </div>
-  );
-}
-'@
-
-[System.IO.File]::WriteAllText($layoutPath, $layoutTsx)
-Write-Host "Dashboard Navigation Layout updated successfully!" -ForegroundColor Green
+the route list output, and
+your yes/no on the proposed nav mapping.
