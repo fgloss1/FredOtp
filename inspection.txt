@@ -1,404 +1,438 @@
 PS C:\Users\Sire-F\OneDrive\Desktop\My Projects\nava-otp>
 PS C:\Users\Sire-F\OneDrive\Desktop\My Projects\nava-otp> $Root = "C:\Users\Sire-F\OneDrive\Desktop\My Projects\nava-otp"
-PS C:\Users\Sire-F\OneDrive\Desktop\My Projects\nava-otp> $BackupRoot = Join-Path $Root "_SAFE_BACKUPS\ESIM_SUPABASE_AUTH_20261010_180206"
-PS C:\Users\Sire-F\OneDrive\Desktop\My Projects\nava-otp> $ErrorActionPreference = "Stop"
-PS C:\Users\Sire-F\OneDrive\Desktop\My Projects\nava-otp>
 PS C:\Users\Sire-F\OneDrive\Desktop\My Projects\nava-otp> Set-Location $Root
 PS C:\Users\Sire-F\OneDrive\Desktop\My Projects\nava-otp>
-PS C:\Users\Sire-F\OneDrive\Desktop\My Projects\nava-otp> # 1. Verify branch and backup.
-PS C:\Users\Sire-F\OneDrive\Desktop\My Projects\nava-otp> $Branch = (git branch --show-current).Trim()
-PS C:\Users\Sire-F\OneDrive\Desktop\My Projects\nava-otp> if ($LASTEXITCODE -ne 0 -or $Branch -ne "NAVA-TELNYX-PHONE-WORK") {
->>     throw "STOP: Expected NAVA-TELNYX-PHONE-WORK; found '$Branch'. No files changed."
->> }
-PS C:\Users\Sire-F\OneDrive\Desktop\My Projects\nava-otp> if (!(Test-Path -LiteralPath $BackupRoot -PathType Container)) {
->>     throw "STOP: Original backup folder not found. No files changed."
->> }
-PS C:\Users\Sire-F\OneDrive\Desktop\My Projects\nava-otp>
-PS C:\Users\Sire-F\OneDrive\Desktop\My Projects\nava-otp> $RelPaths = @(
->>     "src\app\api\esim\admin\orders\route.ts",
->>     "src\app\api\esim\admin\orders\[id]\fulfill\route.ts",
->>     "src\app\dashboard\admin\esim\orders\page.tsx"
->> )
-PS C:\Users\Sire-F\OneDrive\Desktop\My Projects\nava-otp>
-PS C:\Users\Sire-F\OneDrive\Desktop\My Projects\nava-otp> # Find and verify the previously confirmed backup copies.
-PS C:\Users\Sire-F\OneDrive\Desktop\My Projects\nava-otp> $BackupFiles = @(Get-ChildItem -LiteralPath $BackupRoot -File -Recurse)
-PS C:\Users\Sire-F\OneDrive\Desktop\My Projects\nava-otp> foreach ($Rel in $RelPaths) {
->>     $Suffix = $Rel.Replace("/", "\")
->>     $Candidates = @($BackupFiles | Where-Object {
->>         $_.FullName.Replace($BackupRoot + "\", "").EndsWith(
->>             $Suffix, [StringComparison]::OrdinalIgnoreCase
->>         )
->>     })
->>     if ($Candidates.Count -ne 1) {
->>         throw "STOP: Expected exactly one backup for '$Rel'; found $($Candidates.Count). No files changed."
->>     }
->>     $Current = Join-Path $Root $Rel
->>     if (!(Test-Path -LiteralPath $Current -PathType Leaf)) {
->>         throw "STOP: Current file missing: $Rel"
->>     }
->>     $CurrentHash = (Get-FileHash -LiteralPath $Current -Algorithm SHA256).Hash
->>     $BackupHash = (Get-FileHash -LiteralPath $Candidates[0].FullName -Algorithm SHA256).Hash
->>     if ($CurrentHash -ne $BackupHash) {
->>         throw "STOP: '$Rel' differs from its backup. No files changed."
->>     }
->> }
-PS C:\Users\Sire-F\OneDrive\Desktop\My Projects\nava-otp> Write-Host "Branch and all three backup hashes verified." -ForegroundColor Green
-Branch and all three backup hashes verified.
-PS C:\Users\Sire-F\OneDrive\Desktop\My Projects\nava-otp>
-PS C:\Users\Sire-F\OneDrive\Desktop\My Projects\nava-otp> # Helpers: preserve the existing line-ending style and require exact matches.
-PS C:\Users\Sire-F\OneDrive\Desktop\My Projects\nava-otp> function Read-Source([string]$RelativePath) {
->>     $Path = Join-Path $Root $RelativePath
->>     $Text = [IO.File]::ReadAllText($Path)
->>     $Newline = if ($Text.Contains("`r`n")) { "`r`n" } else { "`n" }
->>     return @{
->>         Path = $Path
->>         Text = $Text.Replace("`r`n", "`n")
->>         Newline = $Newline
->>     }
->> }
-PS C:\Users\Sire-F\OneDrive\Desktop\My Projects\nava-otp>
-PS C:\Users\Sire-F\OneDrive\Desktop\My Projects\nava-otp> function Replace-Exactly([string]$Text, [string]$Old, [string]$New, [string]$Label) {
->>     $First = $Text.IndexOf($Old, [StringComparison]::Ordinal)
->>     if ($First -lt 0) { throw "STOP: Expected source block missing: $Label" }
->>     $Second = $Text.IndexOf($Old, $First + $Old.Length, [StringComparison]::Ordinal)
->>     if ($Second -ge 0) { throw "STOP: Source block occurs more than once: $Label" }
->>     return $Text.Substring(0, $First) + $New + $Text.Substring($First + $Old.Length)
->> }
-PS C:\Users\Sire-F\OneDrive\Desktop\My Projects\nava-otp>
-PS C:\Users\Sire-F\OneDrive\Desktop\My Projects\nava-otp> # 2. Read all files and prepare every replacement in memory.
-PS C:\Users\Sire-F\OneDrive\Desktop\My Projects\nava-otp> $Sources = @{}
-PS C:\Users\Sire-F\OneDrive\Desktop\My Projects\nava-otp> foreach ($Rel in $RelPaths) { $Sources[$Rel] = Read-Source $Rel }
-PS C:\Users\Sire-F\OneDrive\Desktop\My Projects\nava-otp>
-PS C:\Users\Sire-F\OneDrive\Desktop\My Projects\nava-otp> $Orders = $Sources[$RelPaths[0]].Text
-PS C:\Users\Sire-F\OneDrive\Desktop\My Projects\nava-otp> $Orders = Replace-Exactly $Orders `
->> 'import { requireAdmin } from "@/lib/auth";' `
->> 'import { getAuthenticatedSupabaseUser } from "@/lib/supabase-request-auth";' `
->> "orders route auth import"
-PS C:\Users\Sire-F\OneDrive\Desktop\My Projects\nava-otp>
-PS C:\Users\Sire-F\OneDrive\Desktop\My Projects\nava-otp> $Orders = Replace-Exactly $Orders `
->> 'export async function GET() {' `
->> 'export async function GET(req: Request) {' `
->> "orders route GET signature"
-PS C:\Users\Sire-F\OneDrive\Desktop\My Projects\nava-otp>
-PS C:\Users\Sire-F\OneDrive\Desktop\My Projects\nava-otp> $Orders = Replace-Exactly $Orders `
->> '    await requireAdmin();' `
->> @'
->>     const authUser = await getAuthenticatedSupabaseUser(req);
->>     if (!authUser) {
->>       return NextResponse.json({ error: "Unauthorized" }, { status: 401 });
->>     }
->>
->>     const { data: profile, error: profileError } = await supabaseAdmin
->>       .from("profiles")
->>       .select("role")
->>       .eq("id", authUser.id)
->>       .maybeSingle();
->>
->>     if (profileError) {
->>       console.error("eSIM admin profile lookup failed:", profileError);
->>       return NextResponse.json(
->>         { error: "Unable to verify admin access" },
->>         { status: 500 }
->>       );
->>     }
->>
->>     if (profile?.role !== "admin") {
->>       return NextResponse.json({ error: "Forbidden" }, { status: 403 });
->>     }
->> '@ `
->> "orders route Supabase admin check"
-PS C:\Users\Sire-F\OneDrive\Desktop\My Projects\nava-otp>
-PS C:\Users\Sire-F\OneDrive\Desktop\My Projects\nava-otp> $Fulfill = $Sources[$RelPaths[1]].Text
-PS C:\Users\Sire-F\OneDrive\Desktop\My Projects\nava-otp> $Fulfill = Replace-Exactly $Fulfill `
->> 'import { requireAdmin } from "@/lib/auth";' `
->> 'import { getAuthenticatedSupabaseUser } from "@/lib/supabase-request-auth";' `
->> "fulfillment route auth import"
-PS C:\Users\Sire-F\OneDrive\Desktop\My Projects\nava-otp>
-PS C:\Users\Sire-F\OneDrive\Desktop\My Projects\nava-otp> $Fulfill = Replace-Exactly $Fulfill `
->> '  let claimedOrderId: string | null = null;' `
->> '  let claimedOrderId: string | null = null;' + "`n" + '  let adminUserId = "";' `
->> "fulfillment authenticated user variable"
-PS C:\Users\Sire-F\OneDrive\Desktop\My Projects\nava-otp>
-PS C:\Users\Sire-F\OneDrive\Desktop\My Projects\nava-otp> $OldAuth = @'
->>     try {
->>       await requireAdmin();
->>     } catch (error) {
->>       const message =
->>         error instanceof Error ? error.message : "Unauthorized";
->>
->>       if (message === "Forbidden") {
->>         return NextResponse.json({ error: "Forbidden" }, { status: 403 });
->>       }
->>
->>       if (message === "Unauthorized") {
->>         return NextResponse.json({ error: "Unauthorized" }, { status: 401 });
->>       }
->>
->>       throw error;
->>     }
->> '@
-PS C:\Users\Sire-F\OneDrive\Desktop\My Projects\nava-otp>
-PS C:\Users\Sire-F\OneDrive\Desktop\My Projects\nava-otp> $NewAuth = @'
->>     const authUser = await getAuthenticatedSupabaseUser(req);
->>     if (!authUser) {
->>       return NextResponse.json({ error: "Unauthorized" }, { status: 401 });
->>     }
->>
->>     const { data: profile, error: profileError } = await supabaseAdmin
->>       .from("profiles")
->>       .select("role")
->>       .eq("id", authUser.id)
->>       .maybeSingle();
->>
->>     if (profileError) {
->>       console.error("eSIM admin profile lookup failed:", profileError);
->>       return NextResponse.json(
->>         { error: "Unable to verify admin access" },
->>         { status: 500 }
->>       );
->>     }
->>
->>     if (profile?.role !== "admin") {
->>       return NextResponse.json({ error: "Forbidden" }, { status: 403 });
->>     }
->>
->>     adminUserId = authUser.id;
->> '@
-PS C:\Users\Sire-F\OneDrive\Desktop\My Projects\nava-otp>
-PS C:\Users\Sire-F\OneDrive\Desktop\My Projects\nava-otp> $Fulfill = Replace-Exactly $Fulfill $OldAuth $NewAuth "fulfillment Supabase admin check"
-PS C:\Users\Sire-F\OneDrive\Desktop\My Projects\nava-otp> $Fulfill = Replace-Exactly $Fulfill `
->> '        fulfilled_by: (await requireAdmin()).user.id,' `
->> '        fulfilled_by: adminUserId,' `
->> "fulfillment actor ID"
-PS C:\Users\Sire-F\OneDrive\Desktop\My Projects\nava-otp>
-PS C:\Users\Sire-F\OneDrive\Desktop\My Projects\nava-otp> $Page = $Sources[$RelPaths[2]].Text
-PS C:\Users\Sire-F\OneDrive\Desktop\My Projects\nava-otp> $Page = Replace-Exactly $Page `
->> 'import { useEffect, useState } from "react";' `
->> 'import { useEffect, useState } from "react";' + "`n" + 'import { createClient } from "@supabase/supabase-js";' + "`n" + '' + 'const supabase = createClient(' + "`n" + '  process.env.NEXT_PUBLIC_SUPABASE_URL!,' + "`n" + '  process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY!,' + "`n" + '  { auth: { persistSession: true, autoRefreshToken: true } }' + "`n" + ');' `
->> "admin page Supabase browser client"
-PS C:\Users\Sire-F\OneDrive\Desktop\My Projects\nava-otp>
-PS C:\Users\Sire-F\OneDrive\Desktop\My Projects\nava-otp> $Page = Replace-Exactly $Page `
->> '  const [loading, setLoading] = useState(true);' `
->> '  const [loading, setLoading] = useState(true);' + "`n" + '  const [loadError, setLoadError] = useState("");' `
->> "admin page load error state"
-PS C:\Users\Sire-F\OneDrive\Desktop\My Projects\nava-otp>
-PS C:\Users\Sire-F\OneDrive\Desktop\My Projects\nava-otp> $OldEffect = @'
->>   useEffect(() => {
->>     fetch("/api/esim/admin/orders")
->>       .then((res) => res.json())
->>       .then((data) => {
->>         if (data.orders) setOrders(data.orders);
->>       })
->>       .finally(() => setLoading(false));
->>   }, []);
->> '@
-PS C:\Users\Sire-F\OneDrive\Desktop\My Projects\nava-otp>
-PS C:\Users\Sire-F\OneDrive\Desktop\My Projects\nava-otp> $NewEffect = @'
->>   useEffect(() => {
->>     let cancelled = false;
->>
->>     async function loadOrders() {
->>       try {
->>         const {
->>           data: { session },
->>           error: sessionError,
->>         } = await supabase.auth.getSession();
->>
->>         if (sessionError || !session) {
->>           throw new Error("Please sign in before accessing admin eSIM orders.");
->>         }
->>
->>         const res = await fetch("/api/esim/admin/orders", {
->>           headers: {
->>             Authorization: `Bearer ${session.access_token}`,
->>           },
->>         });
->>         const data = await res.json();
->>
->>         if (!res.ok) {
->>           throw new Error(data.error || "Failed to load eSIM orders");
->>         }
->>
->>         if (!cancelled) setOrders(data.orders ?? []);
->>       } catch (error) {
->>         if (!cancelled) {
->>           setLoadError(
->>             error instanceof Error ? error.message : "Failed to load eSIM orders"
->>           );
->>         }
->>       } finally {
->>         if (!cancelled) setLoading(false);
->>       }
->>     }
->>
->>     void loadOrders();
->>     return () => {
->>       cancelled = true;
->>     };
->>   }, []);
->> '@
-PS C:\Users\Sire-F\OneDrive\Desktop\My Projects\nava-otp>
-PS C:\Users\Sire-F\OneDrive\Desktop\My Projects\nava-otp> $Page = Replace-Exactly $Page $OldEffect $NewEffect "admin page authenticated order loading"
-PS C:\Users\Sire-F\OneDrive\Desktop\My Projects\nava-otp>
-PS C:\Users\Sire-F\OneDrive\Desktop\My Projects\nava-otp> $OldFetch = @'
->>       const res = await fetch(`/api/esim/admin/orders/${selectedOrder.id}/fulfill`, {
->>         method: "POST",
->>         headers: { "Content-Type": "application/json" },
->>         body: JSON.stringify({
->>           assigned_phone_number: phoneNumber,
->>           activation_code: activationCode,
->>         }),
->>       });
->>
->>       if (res.ok) {
->>         alert("Order activated successfully");
->>         setSelectedOrder(null);
->>         window.location.reload();
->>       }
->> '@
-PS C:\Users\Sire-F\OneDrive\Desktop\My Projects\nava-otp>
-PS C:\Users\Sire-F\OneDrive\Desktop\My Projects\nava-otp> $NewFetch = @'
->>       const {
->>         data: { session },
->>         error: sessionError,
->>       } = await supabase.auth.getSession();
->>
->>       if (sessionError || !session) {
->>         throw new Error("Your session has expired. Please sign in again.");
->>       }
->>
->>       const res = await fetch(`/api/esim/admin/orders/${selectedOrder.id}/fulfill`, {
->>         method: "POST",
->>         headers: {
->>           "Content-Type": "application/json",
->>           Authorization: `Bearer ${session.access_token}`,
->>         },
->>         body: JSON.stringify({
->>           assigned_phone_number: phoneNumber,
->>           activation_code: activationCode,
->>         }),
->>       });
->>
->>       const data = await res.json();
->>       if (!res.ok) {
->>         throw new Error(data.error || "Unable to fulfill order");
->>       }
->>
->>       alert("Order activated successfully");
->>       setSelectedOrder(null);
->>       window.location.reload();
->> '@
-PS C:\Users\Sire-F\OneDrive\Desktop\My Projects\nava-otp>
-PS C:\Users\Sire-F\OneDrive\Desktop\My Projects\nava-otp> $Page = Replace-Exactly $Page $OldFetch $NewFetch "admin page authenticated fulfillment request"
-PS C:\Users\Sire-F\OneDrive\Desktop\My Projects\nava-otp>
-PS C:\Users\Sire-F\OneDrive\Desktop\My Projects\nava-otp> $Page = Replace-Exactly $Page `
->> '    } catch (err: any) {' + "`n" + '      alert(err.message);' `
->> '    } catch (err: any) {' + "`n" + '      alert(err.message || "Unable to fulfill order");' `
->> "admin page fulfillment error handling"
-PS C:\Users\Sire-F\OneDrive\Desktop\My Projects\nava-otp>
-PS C:\Users\Sire-F\OneDrive\Desktop\My Projects\nava-otp> $Page = Replace-Exactly $Page `
->> '      <h1 className="text-2xl font-bold">Admin eSIM Fulfillment Desk</h1>' `
->> '      <h1 className="text-2xl font-bold">Admin eSIM Fulfillment Desk</h1>' + "`n" + '' + "`n" + '      {loadError && (' + "`n" + '        <p className="text-red-400" role="alert">{loadError}</p>' + "`n" + '      )}' `
->> "admin page visible load error"
-PS C:\Users\Sire-F\OneDrive\Desktop\My Projects\nava-otp>
-PS C:\Users\Sire-F\OneDrive\Desktop\My Projects\nava-otp> # 3. Create a fresh safety backup, then stage all modified contents in temp files.
-PS C:\Users\Sire-F\OneDrive\Desktop\My Projects\nava-otp> $Stamp = Get-Date -Format "yyyyMMdd_HHmmss"
-PS C:\Users\Sire-F\OneDrive\Desktop\My Projects\nava-otp> $FreshBackup = Join-Path $Root "_SAFE_BACKUPS\ESIM_SUPABASE_AUTH_PATCH_$Stamp"
-PS C:\Users\Sire-F\OneDrive\Desktop\My Projects\nava-otp> New-Item -ItemType Directory -Path $FreshBackup -Force | Out-Null
-PS C:\Users\Sire-F\OneDrive\Desktop\My Projects\nava-otp>
-PS C:\Users\Sire-F\OneDrive\Desktop\My Projects\nava-otp> $Prepared = @()
-PS C:\Users\Sire-F\OneDrive\Desktop\My Projects\nava-otp> $Utf8NoBom = New-Object System.Text.UTF8Encoding($false)
-PS C:\Users\Sire-F\OneDrive\Desktop\My Projects\nava-otp>
-PS C:\Users\Sire-F\OneDrive\Desktop\My Projects\nava-otp> for ($i = 0; $i -lt $RelPaths.Count; $i++) {
->>     $Rel = $RelPaths[$i]
->>     $Source = $Sources[$Rel]
->>     $OriginalBytes = [IO.File]::ReadAllBytes($Source.Path)
->>     [IO.File]::WriteAllBytes(
->>         (Join-Path $FreshBackup ($i.ToString() + "_" + [IO.Path]::GetFileName($Rel))),
->>         $OriginalBytes
->>     )
->>
->>     if ($Rel -eq $RelPaths[0]) { $NewText = $Orders }
->>     elseif ($Rel -eq $RelPaths[1]) { $NewText = $Fulfill }
->>     else { $NewText = $Page }
->>
->>     if ($Source.Newline -eq "`r`n") { $NewText = $NewText.Replace("`n", "`r`n") }
->>
->>     $TempPath = $Source.Path + ".esim-auth-patch.tmp"
->>     [IO.File]::WriteAllText($TempPath, $NewText, $Utf8NoBom)
->>     $Prepared += [PSCustomObject]@{
->>         Relative = $Rel
->>         Path = $Source.Path
->>         Temp = $TempPath
->>     }
->> }
-PS C:\Users\Sire-F\OneDrive\Desktop\My Projects\nava-otp>
-PS C:\Users\Sire-F\OneDrive\Desktop\My Projects\nava-otp> # Confirm staged files exist before replacing any originals.
-PS C:\Users\Sire-F\OneDrive\Desktop\My Projects\nava-otp> foreach ($Item in $Prepared) {
->>     if (!(Test-Path -LiteralPath $Item.Temp -PathType Leaf)) {
->>         throw "STOP: A staged temporary file is missing. Originals not replaced."
->>     }
->> }
-PS C:\Users\Sire-F\OneDrive\Desktop\My Projects\nava-otp>
-PS C:\Users\Sire-F\OneDrive\Desktop\My Projects\nava-otp> # 4. Replace only the three target files.
-PS C:\Users\Sire-F\OneDrive\Desktop\My Projects\nava-otp> $Written = @()
-PS C:\Users\Sire-F\OneDrive\Desktop\My Projects\nava-otp> try {
->>     foreach ($Item in $Prepared) {
->>         Move-Item -LiteralPath $Item.Temp -Destination $Item.Path -Force
->>         $Written += $Item.Relative
->>         Write-Host "Updated: $($Item.Relative)" -ForegroundColor Green
->>     }
->> } catch {
->>     Write-Host "WRITE ERROR. Files already replaced in this run:" -ForegroundColor Red
->>     $Written | ForEach-Object { Write-Host "  $_" }
->>     Write-Host "Safety backup: $FreshBackup" -ForegroundColor Yellow
->>     throw
->> }
-Updated: src\app\api\esim\admin\orders\route.ts
-Updated: src\app\api\esim\admin\orders\[id]\fulfill\route.ts
-Updated: src\app\dashboard\admin\esim\orders\page.tsx
-PS C:\Users\Sire-F\OneDrive\Desktop\My Projects\nava-otp>
-PS C:\Users\Sire-F\OneDrive\Desktop\My Projects\nava-otp> Write-Host "`nPATCH APPLIED. No commit, push, or deployment performed." -ForegroundColor Green
+PS C:\Users\Sire-F\OneDrive\Desktop\My Projects\nava-otp> Write-Host "`n=== ESIM CHECKOUT PAYMENT HANDLER ===" -ForegroundColor Cyan
 
-PATCH APPLIED. No commit, push, or deployment performed.
-PS C:\Users\Sire-F\OneDrive\Desktop\My Projects\nava-otp> Write-Host "Safety backup: $FreshBackup"
-Safety backup: C:\Users\Sire-F\OneDrive\Desktop\My Projects\nava-otp\_SAFE_BACKUPS\ESIM_SUPABASE_AUTH_PATCH_20261010_180816
-PS C:\Users\Sire-F\OneDrive\Desktop\My Projects\nava-otp> Write-Host "`n--- DIFF CHECK ---" -ForegroundColor Cyan
+=== ESIM CHECKOUT PAYMENT HANDLER ===
+PS C:\Users\Sire-F\OneDrive\Desktop\My Projects\nava-otp> Get-Content -LiteralPath ".\src\app\dashboard\rentals\esim\[planId]\page.tsx"
+'use client';
 
---- DIFF CHECK ---
-PS C:\Users\Sire-F\OneDrive\Desktop\My Projects\nava-otp> git diff --check
-warning: in the working copy of 'package-lock.json', LF will be replaced by CRLF the next time Git touches it
-warning: in the working copy of 'package.json', LF will be replaced by CRLF the next time Git touches it
-warning: in the working copy of 'src/app/admin/rentals/page.tsx', LF will be replaced by CRLF the next time Git touches it
-warning: in the working copy of 'src/app/dashboard/rentals/page.tsx', LF will be replaced by CRLF the next time Git touches it
-warning: in the working copy of 'src/app/dashboard/sms/calling/page.tsx', LF will be replaced by CRLF the next time Git touches it
-src/app/admin/rentals/page.tsx:297: trailing whitespace.
-+  const paidEsimOrders = pendingEsims.filter(o =>
-src/app/admin/rentals/page.tsx:298: trailing whitespace.
-+    o.status === 'paid_awaiting_fulfillment' ||
-src/app/admin/rentals/page.tsx:299: trailing whitespace.
-+    o.status === 'processing' ||
-src/app/admin/rentals/page.tsx:300: trailing whitespace.
-+    o.status === 'active' ||
-src/app/admin/rentals/page.tsx:301: trailing whitespace.
-+    o.status === 'renewal_processing' ||
-src/app/admin/rentals/page.tsx:377: trailing whitespace.
-+                      Plan: <span className="text-slate-200 font-semibold uppercase">{esim.plan_id?.replace('_', ' ')} ({priceDisplay})</span> •
-src/app/admin/rentals/page.tsx:378: trailing whitespace.
-+                      ZIP: <span className="text-pink-400 font-mono font-bold">{esim.preferred_zip || esim.zip_code || "33917"}</span> •
-src/app/dashboard/layout.tsx:142: trailing whitespace.
-+
-src/app/dashboard/layout.tsx:160: trailing whitespace.
-+
-src/app/dashboard/layout.tsx:506: trailing whitespace.
-+
-PS C:\Users\Sire-F\OneDrive\Desktop\My Projects\nava-otp> if ($LASTEXITCODE -ne 0) { throw "git diff --check failed; inspect the diff before testing." }
-git diff --check failed; inspect the diff before testing.
-At line:1 char:28
-+ ... DE -ne 0) { throw "git diff --check failed; inspect the diff before t ...
-+                 ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
-    + CategoryInfo          : OperationStopped: (git diff --chec...before testing.:String) [], RuntimeException
-    + FullyQualifiedErrorId : git diff --check failed; inspect the diff before testing.
+import React, { useEffect, useState } from 'react';
+import { useParams, useRouter } from 'next/navigation';
+import Link from 'next/link';
+import { createClient } from '@supabase/supabase-js';
+
+const supabase = createClient(
+  process.env.NEXT_PUBLIC_SUPABASE_URL || '',
+  process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY || ''
+);
+
+const CATALOG_FALLBACKS: Record<string, { id: string; name: string; network: string; base: number; fee: number; tax: number }> = {
+  purple_text: {
+    id: 'purple_text',
+    name: 'PurpleText (300 Mins + Unlimited Text)',
+    network: 'T-Mobile 5G / 4G LTE',
+    base: 27.00,
+    fee: 2.00,
+    tax: 1.00
+  },
+  purple_max: {
+    id: 'purple_max',
+    name: 'PurpleMax (Unlimited Calling + Text)',
+    network: 'T-Mobile 5G / 4G LTE',
+    base: 36.00,
+    fee: 3.00,
+    tax: 1.00
+  },
+  blue_att_max: {
+    id: 'blue_att_max',
+    name: 'Nexitel Blue (AT&T 5G / LTE)',
+    network: 'AT&T 5G / 4G LTE',
+    base: 40.00,
+    fee: 3.00,
+    tax: 2.00
+  }
+};
+
+export default function EsimCheckoutPage() {
+  const params = useParams();
+  const router = useRouter();
+
+  const planId = (params?.planId as string) || 'purple_text';
+  const fallback = CATALOG_FALLBACKS[planId] || CATALOG_FALLBACKS['purple_text'];
+
+  const [plan, setPlan] = useState<any>({
+    id: fallback.id,
+    name: fallback.name,
+    network: fallback.network,
+  });
+
+  const [zipCode, setZipCode] = useState('33917');
+  const [processing, setProcessing] = useState(false);
+  const [authError, setAuthError] = useState(false);
+  const [errorMessage, setErrorMessage] = useState('');
+
+  const [quote, setQuote] = useState({
+    base: fallback.base.toFixed(2),
+    fees: fallback.fee.toFixed(2),
+    tax: fallback.tax.toFixed(2),
+    total: (fallback.base + fallback.fee + fallback.tax).toFixed(2)
+  });
+
+  useEffect(() => {
+    async function syncPlanFromApi() {
+      try {
+        const { data: { session } } = await supabase.auth.getSession();
+        if (!session) {
+          setAuthError(true);
+          return;
+        }
+
+        const res = await fetch(`/api/esim/plans/${planId}`);
+        if (res.ok) {
+          const resData = await res.json();
+          const p = resData?.plan || resData;
+          if (p && (p.activation_plan_cents || p.base_price_cents)) {
+            setPlan(p);
+            const baseVal = (p.activation_plan_cents || p.base_price_cents) / 100;
+            const feeVal = (p.activation_regulatory_fee_cents ?? (baseVal <= 30 ? 200 : 300)) / 100;
+            const taxVal = (p.activation_tax_cents ?? 100) / 100;
+            setQuote({
+              base: baseVal.toFixed(2),
+              fees: feeVal.toFixed(2),
+              tax: taxVal.toFixed(2),
+              total: (baseVal + feeVal + taxVal).toFixed(2)
+            });
+          }
+        }
+      } catch {
+        console.warn('Using static pricing fallback');
+      }
+    }
+    syncPlanFromApi();
+  }, [planId]);
+
+  const handlePayment = async () => {
+    if (!zipCode || zipCode.length < 5) {
+      alert('Please enter a valid 5-digit US ZIP code.');
+      return;
+    }
+
+    setProcessing(true);
+    setErrorMessage('');
+
+    try {
+      const { data: { session } } = await supabase.auth.getSession();
+      if (!session) {
+        setAuthError(true);
+        throw new Error('Your login session has expired. Please refresh or log in again.');
+      }
+
+      const headers: Record<string, string> = {
+        'Content-Type': 'application/json',
+        'Authorization': `Bearer ${session.access_token}`
+      };
+
+      const idempotencyKey = `chk_${session.user.id}_${plan.id}_${zipCode}_${Math.floor(Date.now() / 300000)}`;
+
+      // 1. Create order
+      const orderRes = await fetch('/api/esim/orders', {
+        method: 'POST',
+        headers,
+        body: JSON.stringify({ planId: plan.id, zipCode, idempotencyKey })
+      });
+
+      const orderData = await orderRes.json();
+      if (!orderRes.ok) throw new Error(orderData.error || 'Failed to create order');
+
+      // 2. Pay order
+      const payRes = await fetch(`/api/esim/orders/${orderData.orderId}/pay`, {
+        method: 'POST',
+        headers
+      });
+
+      const payData = await payRes.json();
+      if (!payRes.ok) throw new Error(payData.error || 'Payment failed');
+
+      alert('Payment successful! Your order has been placed into the fulfillment queue.');
+      router.push('/dashboard/rentals/esim/mine');
+    } catch (err: any) {
+      setErrorMessage(err.message || 'Payment processing failed');
+    } finally {
+      setProcessing(false);
+    }
+  };
+
+  if (authError) {
+    return (
+      <div className="p-16 text-center max-w-md mx-auto">
+        <div className="w-14 h-14 bg-red-500/10 rounded-full flex items-center justify-center mx-auto mb-4 text-red-500">
+          <svg className="w-7 h-7" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M12 15v2m-6 4h12a2 2 0 002-2v-6a2 2 0 00-2-2H6a2 2 0 00-2 2v6a2 2 0 002 2zm10-10V7a4 4 0 00-8 0v4h8z"></path></svg>
+        </div>
+        <h2 className="text-xl font-bold text-white mb-2">Authentication Required</h2>
+        <p className="text-slate-400 text-sm mb-6">Please log in to your NAVA account to purchase an eSIM line.</p>
+        <Link href="/login" className="bg-emerald-600 hover:bg-emerald-500 text-white px-6 py-2.5 rounded-xl font-bold text-sm transition-all inline-block">
+          Go to Login
+        </Link>
+      </div>
+    );
+  }
+
+  return (
+    <div className="p-6 max-w-7xl mx-auto space-y-6">
+      <div className="flex items-center gap-2 text-xs font-semibold text-slate-400 uppercase tracking-wider">
+        <Link href="/dashboard" className="hover:text-white transition-colors">Dashboard</Link>
+        <span>/</span>
+        <Link href="/dashboard/rentals/esim" className="hover:text-white transition-colors">eSIM Plans</Link>
+        <span>/</span>
+        <span className="text-emerald-400">Checkout</span>
+      </div>
+
+      <div className="grid grid-cols-1 lg:grid-cols-3 gap-8">
+        <div className="lg:col-span-2 space-y-6">
+          <div className="relative overflow-hidden rounded-2xl bg-[#0f172a] border border-slate-800 shadow-2xl">
+            <div className="relative bg-gradient-to-r from-[#E20074] via-[#D4006E] to-[#910048] p-8">
+              <div className="flex items-center gap-6">
+                <div className="w-16 h-16 bg-white rounded-2xl flex items-center justify-center shadow-2xl shrink-0">
+                  <span className="text-[#E20074] font-black text-4xl tracking-tighter" style={{ fontFamily: 'Arial, sans-serif' }}>T</span>
+                </div>
+                <div>
+                  <h1 className="text-2xl md:text-3xl font-black text-white tracking-tight italic uppercase">
+                    T-MOBILE 5G / 4G LTE
+                  </h1>
+                  <div className="flex items-center gap-3 mt-2">
+                    <span className="px-3 py-0.5 bg-white/20 backdrop-blur-md text-white text-[10px] font-bold uppercase tracking-widest rounded-full border border-white/20">
+                      {plan.name}
+                    </span>
+                    <span className="px-3 py-0.5 bg-emerald-500/20 backdrop-blur-md text-emerald-300 text-[10px] font-bold uppercase tracking-widest rounded-full border border-emerald-500/30">
+                      30-Day Dedicated Line
+                    </span>
+                  </div>
+                </div>
+              </div>
+            </div>
+
+            <div className="p-8 space-y-8">
+              <div className="flex flex-wrap gap-3">
+                <div className="flex items-center gap-2 bg-slate-900 border border-slate-700 px-4 py-2 rounded-xl">
+                  <img src="https://flagcdn.com/w40/us.png" className="w-5 h-auto rounded-sm shadow-sm" alt="US Flag" />
+                  <span className="text-sm font-bold text-white">United States (+1)</span>
+                </div>
+                <div className="flex items-center gap-2 bg-blue-950/40 border border-blue-800/50 px-4 py-2 rounded-xl text-blue-400 font-bold text-sm">
+                  <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M8.111 16.404a5.5 5.5 0 017.778 0M12 20h.01m-7.08-7.071c3.904-3.905 10.236-3.905 14.141 0M1.394 9.393c5.857-5.857 15.355-5.857 21.213 0"></path></svg>
+                  eSIM Delivery
+                </div>
+              </div>
+
+              <p className="text-base text-slate-300 leading-relaxed">
+                Unlimited talk and text on T-Mobile 5G/LTE network (Nexitel Purple 30-day eSIM line). Custom US ZIP code selection supported for local area preference.
+              </p>
+
+              <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
+                <div className="bg-slate-950/80 border border-slate-800 p-4 rounded-xl">
+                  <span className="text-[10px] font-bold text-slate-500 uppercase tracking-widest block mb-1">TALK</span>
+                  <span className="text-white font-bold text-base">Unlimited Talk</span>
+                  <span className="text-[10px] text-slate-500 block mt-0.5">Nationwide US coverage</span>
+                </div>
+                <div className="bg-slate-950/80 border border-slate-800 p-4 rounded-xl">
+                  <span className="text-[10px] font-bold text-slate-500 uppercase tracking-widest block mb-1">TEXT</span>
+                  <span className="text-white font-bold text-base">Unlimited Text</span>
+                  <span className="text-[10px] text-slate-500 block mt-0.5">SMS & MMS included</span>
+                </div>
+                <div className="bg-slate-950/80 border border-slate-800 p-4 rounded-xl">
+                  <span className="text-[10px] font-bold text-slate-500 uppercase tracking-widest block mb-1">COVERAGE</span>
+                  <span className="text-white font-bold text-base">T-Mobile USA</span>
+                  <span className="text-[10px] text-slate-500 block mt-0.5">5G / LTE High Speed</span>
+                </div>
+              </div>
+
+              <div className="bg-[#E20074]/5 border border-[#E20074]/20 rounded-2xl p-6 space-y-4">
+                <h4 className="text-[#E20074] font-bold text-xs uppercase tracking-widest">WHAT YOU GET</h4>
+                <ul className="space-y-3">
+                  {[
+                    'Real US (+1) number assigned after fulfillment',
+                    'ZIP-based area preference when supported',
+                    'eSIM QR / activation details delivered in My eSIM Lines',
+                    'Manual NAVA fulfillment â€” paid orders stay secure until activated',
+                    '30-day dedicated line with renewal option available'
+                  ].map((item, i) => (
+                    <li key={i} className="flex items-start gap-3 text-slate-300 text-sm">
+                      <svg className="w-4 h-4 text-emerald-500 mt-0.5 shrink-0" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M5 13l4 4L19 7"></path></svg>
+                      <span>{item}</span>
+                    </li>
+                  ))}
+                </ul>
+              </div>
+            </div>
+          </div>
+        </div>
+
+        <div className="space-y-6">
+          <div className="bg-[#0f172a] border border-slate-800 rounded-2xl p-6 shadow-2xl sticky top-6 space-y-6">
+            <div className="flex justify-between items-start pb-4 border-b border-slate-800">
+              <div>
+                <h3 className="text-lg font-bold text-white">Activate line</h3>
+                <p className="text-xs text-slate-500">30-day dedicated line</p>
+              </div>
+              <div className="text-right">
+                <div className="text-2xl font-black text-emerald-400">${quote.total}</div>
+                <div className="text-[10px] text-slate-500 font-bold uppercase">total for 30 days</div>
+              </div>
+            </div>
+
+            {errorMessage && (
+              <div className="p-3 bg-red-950/50 border border-red-800/50 rounded-xl text-xs text-red-400 font-medium">
+                {errorMessage}
+              </div>
+            )}
+
+            <div>
+              <label className="text-[10px] font-bold text-slate-400 uppercase tracking-widest mb-2 block">
+                SELECT PREFERRED ZIP CODE
+              </label>
+              <div className="relative">
+                <span className="absolute left-3.5 top-1/2 -translate-y-1/2 text-pink-500">
+                  <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M17.657 16.657L13.414 20.9a1.998 1.998 0 01-2.827 0l-4.244-4.243a8 8 0 1111.314 0z"></path></svg>
+                </span>
+                <input
+                  type="text"
+                  maxLength={5}
+                  value={zipCode}
+                  onChange={(e) => setZipCode(e.target.value.replace(/\D/g, ''))}
+                  className="w-full bg-slate-950 border border-slate-800 focus:border-pink-500/50 rounded-xl py-3 pl-10 pr-4 text-white font-mono text-base outline-none transition-all"
+                  placeholder="33917"
+                />
+              </div>
+              <p className="text-[10px] text-slate-500 mt-2">
+                Your US number area code is preferred from this ZIP when the supplier supports it.
+              </p>
+            </div>
+
+            <div className="bg-slate-950/80 border border-slate-800 rounded-xl p-4 space-y-2.5">
+              <span className="text-[10px] font-bold text-slate-400 uppercase tracking-widest block border-b border-slate-800 pb-2">
+                ITEMIZED ORDER TOTAL
+              </span>
+              <div className="flex justify-between text-sm">
+                <span className="text-slate-400">Base plan (30 days)</span>
+                <span className="text-white font-mono">${quote.base}</span>
+              </div>
+              <div className="flex justify-between text-sm">
+                <span className="text-slate-400">Regulatory & telecom fees</span>
+                <span className="text-white font-mono">${quote.fees}</span>
+              </div>
+              <div className="flex justify-between text-sm">
+                <span className="text-slate-400">Estimated taxes</span>
+                <span className="text-white font-mono">${quote.tax}</span>
+              </div>
+              <div className="pt-2 border-t border-slate-800 flex justify-between items-center">
+                <span className="text-white font-bold text-sm">Total charge</span>
+                <span className="text-emerald-400 font-black text-lg font-mono">${quote.total}</span>
+              </div>
+            </div>
+
+            <div className="p-2.5 bg-[#E20074]/10 border border-[#E20074]/20 rounded-lg text-center">
+              <span className="text-[10px] text-pink-400 font-bold uppercase tracking-wider">
+                T-Mobile network â€¢ Manual activation after payment
+              </span>
+            </div>
+
+            <button
+              onClick={handlePayment}
+              disabled={processing || zipCode.length < 5}
+              className="w-full bg-emerald-600 hover:bg-emerald-500 disabled:bg-slate-800 disabled:text-slate-500 text-white font-bold py-3.5 rounded-xl transition-all flex items-center justify-center gap-2 text-sm shadow-lg shadow-emerald-950/50"
+            >
+              {processing ? (
+                <span>Processing Payment...</span>
+              ) : (
+                <>
+                  <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M3 10h18M7 15h1m4 0h1m-7 4h12a3 3 0 003-3V8a3 3 0 00-3-3H6a3 3 0 00-3 3v8a3 3 0 003 3z"></path></svg>
+                  Pay ${quote.total} with Balance
+                </>
+              )}
+            </button>
+
+            <div className="text-[10px] text-slate-500 text-center flex items-center justify-center gap-1.5">
+              <svg className="w-3 h-3 text-slate-600" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M12 15v2m-6 4h12a2 2 0 002-2v-6a2 2 0 00-2-2H6a2 2 0 00-2 2v6a2 2 0 002 2zm10-10V7a4 4 0 00-8 0v4h8z"></path></svg>
+              Secure wallet payment â€¢ Deducted from NAVA balance
+            </div>
+          </div>
+        </div>
+      </div>
+    </div>
+  );
+}
+PS C:\Users\Sire-F\OneDrive\Desktop\My Projects\nava-otp>
+PS C:\Users\Sire-F\OneDrive\Desktop\My Projects\nava-otp> Write-Host "`n=== WALLET RPC DEFINITIONS IN MIGRATIONS ===" -ForegroundColor Cyan
+
+=== WALLET RPC DEFINITIONS IN MIGRATIONS ===
+PS C:\Users\Sire-F\OneDrive\Desktop\My Projects\nava-otp> Get-ChildItem ".\supabase\migrations" -File -ErrorAction SilentlyContinue |
+>>     Select-String -Pattern "otp_balance_adjust_atomic" -CaseSensitive:$false -Context 8,20
+
+  supabase\migrations\20261006_otp_wallet_security.sql:1:-- Secure OTP
+wallet debit/refund primitives for the Supabase profiles wallet.
+  supabase\migrations\20261006_otp_wallet_security.sql:2:-- Server-only:
+executable by service_role only.
+  supabase\migrations\20261006_otp_wallet_security.sql:3:BEGIN;
+  supabase\migrations\20261006_otp_wallet_security.sql:4:
+> supabase\migrations\20261006_otp_wallet_security.sql:5:CREATE OR
+REPLACE FUNCTION public.otp_balance_adjust_atomic(
+  supabase\migrations\20261006_otp_wallet_security.sql:6:  p_user_id
+UUID,
+  supabase\migrations\20261006_otp_wallet_security.sql:7:  p_delta
+NUMERIC
+  supabase\migrations\20261006_otp_wallet_security.sql:8:)
+  supabase\migrations\20261006_otp_wallet_security.sql:9:RETURNS NUMERIC
+  supabase\migrations\20261006_otp_wallet_security.sql:10:LANGUAGE
+plpgsql
+  supabase\migrations\20261006_otp_wallet_security.sql:11:SECURITY
+DEFINER
+  supabase\migrations\20261006_otp_wallet_security.sql:12:SET
+search_path = public, pg_temp
+  supabase\migrations\20261006_otp_wallet_security.sql:13:AS $nava$
+  supabase\migrations\20261006_otp_wallet_security.sql:14:DECLARE
+  supabase\migrations\20261006_otp_wallet_security.sql:15:
+v_new_balance NUMERIC;
+  supabase\migrations\20261006_otp_wallet_security.sql:16:BEGIN
+  supabase\migrations\20261006_otp_wallet_security.sql:17:  IF
+COALESCE(auth.role(), '') <> 'service_role' THEN
+  supabase\migrations\20261006_otp_wallet_security.sql:18:    RAISE
+EXCEPTION 'Server-side wallet operation required';
+  supabase\migrations\20261006_otp_wallet_security.sql:19:  END IF;
+  supabase\migrations\20261006_otp_wallet_security.sql:20:
+  supabase\migrations\20261006_otp_wallet_security.sql:21:  IF p_user_id
+IS NULL THEN
+  supabase\migrations\20261006_otp_wallet_security.sql:22:    RAISE
+EXCEPTION 'User ID is required';
+  supabase\migrations\20261006_otp_wallet_security.sql:23:  END IF;
+  supabase\migrations\20261006_otp_wallet_security.sql:24:
+  supabase\migrations\20261006_otp_wallet_security.sql:25:  IF p_delta =
+0 OR ABS(p_delta) > 1000000 THEN
+  supabase\migrations\20261006_otp_wallet_security.sql:50:      RAISE
+EXCEPTION 'User profile not found';
+  supabase\migrations\20261006_otp_wallet_security.sql:51:    END IF;
+  supabase\migrations\20261006_otp_wallet_security.sql:52:  END IF;
+  supabase\migrations\20261006_otp_wallet_security.sql:53:
+  supabase\migrations\20261006_otp_wallet_security.sql:54:  RETURN
+v_new_balance;
+  supabase\migrations\20261006_otp_wallet_security.sql:55:END;
+  supabase\migrations\20261006_otp_wallet_security.sql:56:$nava$;
+  supabase\migrations\20261006_otp_wallet_security.sql:57:
+> supabase\migrations\20261006_otp_wallet_security.sql:58:REVOKE ALL ON
+FUNCTION public.otp_balance_adjust_atomic(UUID, NUMERIC) FROM PUBLIC;
+> supabase\migrations\20261006_otp_wallet_security.sql:59:REVOKE ALL ON
+FUNCTION public.otp_balance_adjust_atomic(UUID, NUMERIC) FROM anon;
+> supabase\migrations\20261006_otp_wallet_security.sql:60:REVOKE ALL ON
+FUNCTION public.otp_balance_adjust_atomic(UUID, NUMERIC) FROM
+authenticated;
+> supabase\migrations\20261006_otp_wallet_security.sql:61:GRANT EXECUTE
+ON FUNCTION public.otp_balance_adjust_atomic(UUID, NUMERIC) TO
+service_role;
+  supabase\migrations\20261006_otp_wallet_security.sql:62:
+  supabase\migrations\20261006_otp_wallet_security.sql:63:COMMIT;
+
 
 PS C:\Users\Sire-F\OneDrive\Desktop\My Projects\nava-otp>
-PS C:\Users\Sire-F\OneDrive\Desktop\My Projects\nava-otp> git diff -- $RelPaths
+PS C:\Users\Sire-F\OneDrive\Desktop\My Projects\nava-otp> Write-Host "`n=== OTHER RPC REFERENCES IN ACTIVE SOURCE ===" -ForegroundColor Cyan
+
+=== OTHER RPC REFERENCES IN ACTIVE SOURCE ===
+PS C:\Users\Sire-F\OneDrive\Desktop\My Projects\nava-otp> Get-ChildItem ".\src" -Recurse -File |
+>>     Where-Object { $_.Extension -in ".ts", ".tsx", ".sql" } |
+>>     Select-String -Pattern "otp_balance_adjust_atomic" -CaseSensitive:$false |
+>>     ForEach-Object {
+>>         "{0}:{1}: {2}" -f $_.Path.Replace("$Root\", ""), $_.LineNumber, $_.Line.Trim()
+>>     }
+src\app\api\esim\orders\[id]\pay\route.ts:77: // 5. Deduct balance atomically using public.otp_balance_adjust_atomic(p_user_id, p_delta)
+src\app\api\esim\orders\[id]\pay\route.ts:79: 'otp_balance_adjust_atomic',
+src\app\api\esim\orders\[id]\renew\route.ts:67: 'otp_balance_adjust_atomic',
+src\app\api\otp\route.ts:45: "otp_balance_adjust_atomic"
