@@ -11,277 +11,415 @@ PS C:\Users\Sire-F\OneDrive\Desktop\My Projects\nava-otp> $Root = "C:\Users\Sire
 PS C:\Users\Sire-F\OneDrive\Desktop\My Projects\nava-otp> Set-Location $Root
 PS C:\Users\Sire-F\OneDrive\Desktop\My Projects\nava-otp> $ErrorActionPreference = "Stop"
 PS C:\Users\Sire-F\OneDrive\Desktop\My Projects\nava-otp>
-PS C:\Users\Sire-F\OneDrive\Desktop\My Projects\nava-otp> function Replace-Exact {
->>     param(
->>         [string]$Path,
->>         [string]$Old,
->>         [string]$New
->>     )
+PS C:\Users\Sire-F\OneDrive\Desktop\My Projects\nava-otp> $Files = @(
+>>     "src\app\api\esim\admin\orders\route.ts",
+>>     "src\app\api\esim\admin\orders\[id]\fulfill\route.ts",
+>>     "src\app\dashboard\admin\esim\orders\page.tsx"
+>> )
+PS C:\Users\Sire-F\OneDrive\Desktop\My Projects\nava-otp>
+PS C:\Users\Sire-F\OneDrive\Desktop\My Projects\nava-otp> foreach ($File in $Files) {
+>>     $Path = Join-Path $Root $File
 >>
->>     $Content = [System.IO.File]::ReadAllText($Path)
->>     $NormalizedOld = $Old -replace "`n", "`r`n"
->>     $NormalizedNew = $New -replace "`n", "`r`n"
->>
->>     if (-not $Content.Contains($NormalizedOld)) {
->>         throw "STOP: Expected code not found in $Path. No replacement made to this file."
+>>     if (-not (Test-Path -LiteralPath $Path -PathType Leaf)) {
+>>         throw "STOP: File not found: $Path"
 >>     }
 >>
->>     $Updated = $Content.Replace($NormalizedOld, $NormalizedNew)
->>     [System.IO.File]::WriteAllText(
->>         $Path,
->>         $Updated,
->>         [System.Text.UTF8Encoding]::new($false)
->>     )
->>     Write-Host "Updated: $Path" -ForegroundColor Green
+>>     Write-Host "`n========== $File ==========" -ForegroundColor Cyan
+>>     $Line = 0
+>>
+>>     Get-Content -LiteralPath $Path | ForEach-Object {
+>>         $Line++
+>>         "{0,4}: {1}" -f $Line, $_
+>>     }
 >> }
-PS C:\Users\Sire-F\OneDrive\Desktop\My Projects\nava-otp>
-PS C:\Users\Sire-F\OneDrive\Desktop\My Projects\nava-otp> # 1. Admin order-list API: verify Supabase user and profile role.
-PS C:\Users\Sire-F\OneDrive\Desktop\My Projects\nava-otp> $List = "src\app\api\esim\admin\orders\route.ts"
-PS C:\Users\Sire-F\OneDrive\Desktop\My Projects\nava-otp>
-PS C:\Users\Sire-F\OneDrive\Desktop\My Projects\nava-otp> Replace-Exact $List `
->> 'import { requireAdmin } from "@/lib/auth";' `
->> 'import { getAuthenticatedSupabaseUser } from "@/lib/supabase-request-auth";'
-Exception calling "ReadAllText" with "1" argument(s): "Could not find a part of the path
-'C:\Users\Sire-F\src\app\api\esim\admin\orders\route.ts'."
-At line:8 char:5
-+     $Content = [System.IO.File]::ReadAllText($Path)
-+     ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
-    + CategoryInfo          : NotSpecified: (:) [], ParentContainsErrorRecordException
-    + FullyQualifiedErrorId : DirectoryNotFoundException
 
-PS C:\Users\Sire-F\OneDrive\Desktop\My Projects\nava-otp>
-PS C:\Users\Sire-F\OneDrive\Desktop\My Projects\nava-otp> Replace-Exact $List `
->> 'export async function GET() {' `
->> 'export async function GET(req: Request) {'
-Exception calling "ReadAllText" with "1" argument(s): "Could not find a part of the path
-'C:\Users\Sire-F\src\app\api\esim\admin\orders\route.ts'."
-At line:8 char:5
-+     $Content = [System.IO.File]::ReadAllText($Path)
-+     ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
-    + CategoryInfo          : NotSpecified: (:) [], ParentContainsErrorRecordException
-    + FullyQualifiedErrorId : DirectoryNotFoundException
+========== src\app\api\esim\admin\orders\route.ts ==========
+   1: import { NextResponse } from "next/server";
+   2: import { requireAdmin } from "@/lib/auth";
+   3: import { supabaseAdmin } from "@/lib/supabase-admin";
+   4:
+   5: export async function GET() {
+   6:   try {
+   7:     await requireAdmin();
+   8:
+   9:     const { data, error } = await supabaseAdmin
+  10:       .from("nava_esim_orders")
+  11:       .select("*")
+  12:       .order("created_at", { ascending: false });
+  13:
+  14:     if (error) {
+  15:       console.error("Failed to load eSIM orders:", error.message);
+  16:       return NextResponse.json(
+  17:         { error: "Failed to load eSIM orders" },
+  18:         { status: 500 }
+  19:       );
+  20:     }
+  21:
+  22:     return NextResponse.json({ orders: data ?? [] });
+  23:   } catch (error) {
+  24:     const message = error instanceof Error ? error.message : "";
+  25:
+  26:     if (message === "Unauthorized") {
+  27:       return NextResponse.json({ error: message }, { status: 401 });
+  28:     }
+  29:
+  30:     if (message === "Forbidden") {
+  31:       return NextResponse.json({ error: message }, { status: 403 });
+  32:     }
+  33:
+  34:     console.error("Admin eSIM orders error:", error);
+  35:
+  36:     return NextResponse.json(
+  37:       { error: "Internal server error" },
+  38:       { status: 500 }
+  39:     );
+  40:   }
+  41: }
 
-PS C:\Users\Sire-F\OneDrive\Desktop\My Projects\nava-otp>
-PS C:\Users\Sire-F\OneDrive\Desktop\My Projects\nava-otp> Replace-Exact $List `
->> '    await requireAdmin();' `
->> @'
->>     const authUser = await getAuthenticatedSupabaseUser(req);
->>
->>     if (!authUser) {
->>       return NextResponse.json({ error: "Unauthorized" }, { status: 401 });
->>     }
->>
->>     const { data: profile, error: profileError } = await supabaseAdmin
->>       .from("profiles")
->>       .select("role")
->>       .eq("id", authUser.id)
->>       .maybeSingle();
->>
->>     if (profileError) {
->>       console.error("Admin profile lookup failed:", profileError.message);
->>       return NextResponse.json({ error: "Unable to verify admin access" }, { status: 500 });
->>     }
->>
->>     if (profile?.role !== "admin") {
->>       return NextResponse.json({ error: "Forbidden" }, { status: 403 });
->>     }
->> '@
-Exception calling "ReadAllText" with "1" argument(s): "Could not find a part of the path
-'C:\Users\Sire-F\src\app\api\esim\admin\orders\route.ts'."
-At line:8 char:5
-+     $Content = [System.IO.File]::ReadAllText($Path)
-+     ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
-    + CategoryInfo          : NotSpecified: (:) [], ParentContainsErrorRecordException
-    + FullyQualifiedErrorId : DirectoryNotFoundException
+========== src\app\api\esim\admin\orders\[id]\fulfill\route.ts ==========
+   1: import { NextResponse } from "next/server";
+   2: import { requireAdmin } from "@/lib/auth";
+   3: import { supabaseAdmin } from "@/lib/supabase-admin";
+   4:
+   5: type RouteContext = {
+   6:   params: Promise<{ id: string }>;
+   7: };
+   8:
+   9: export async function POST(req: Request, { params }: RouteContext) {
+  10:   let claimedOrderId: string | null = null;
+  11:
+  12:   try {
+  13:     try {
+  14:       await requireAdmin();
+  15:     } catch (error) {
+  16:       const message =
+  17:         error instanceof Error ? error.message : "Unauthorized";
+  18:
+  19:       if (message === "Forbidden") {
+  20:         return NextResponse.json({ error: "Forbidden" }, { status: 403 });
+  21:       }
+  22:
+  23:       if (message === "Unauthorized") {
+  24:         return NextResponse.json({ error: "Unauthorized" }, { status: 401 });
+  25:       }
+  26:
+  27:       throw error;
+  28:     }
+  29:
+  30:     const { id } = await params;
+  31:
+  32:     if (
+  33:       !/^[0-9a-f]{8}-[0-9a-f]{4}-[1-8][0-9a-f]{3}-[89ab][0-9a-f]{3}-[0-9a-f]{12}$/i.test(id)
+  34:     ) {
+  35:       return NextResponse.json({ error: "Invalid order ID" }, { status: 400 });
+  36:     }
+  37:
+  38:     let body: Record<string, unknown>;
+  39:     try {
+  40:       body = await req.json();
+  41:     } catch {
+  42:       return NextResponse.json({ error: "Invalid JSON body" }, { status: 400 });
+  43:     }
+  44:
+  45:     const assignedPhoneNumber =
+  46:       typeof body.assigned_phone_number === "string"
+  47:         ? body.assigned_phone_number.trim()
+  48:         : "";
+  49:
+  50:     const activationCode =
+  51:       typeof body.activation_code === "string"
+  52:         ? body.activation_code.trim()
+  53:         : "";
+  54:
+  55:     const customerInstructions =
+  56:       typeof body.customer_instructions === "string"
+  57:         ? body.customer_instructions.trim()
+  58:         : "";
+  59:
+  60:     const supplierConfirmation =
+  61:       typeof body.supplier_confirmation === "string"
+  62:         ? body.supplier_confirmation.trim()
+  63:         : "";
+  64:
+  65:     if (!assignedPhoneNumber || assignedPhoneNumber.length > 100) {
+  66:       return NextResponse.json(
+  67:         { error: "A valid assigned phone number is required" },
+  68:         { status: 400 },
+  69:       );
+  70:     }
+  71:
+  72:     if (
+  73:       activationCode.length > 10000 ||
+  74:       customerInstructions.length > 5000 ||
+  75:       supplierConfirmation.length > 1000
+  76:     ) {
+  77:       return NextResponse.json(
+  78:         { error: "One or more fulfillment fields are too long" },
+  79:         { status: 400 },
+  80:       );
+  81:     }
+  82:
+  83:     const { data: existingOrder, error: lookupError } = await supabaseAdmin
+  84:       .from("nava_esim_orders")
+  85:       .select("id, status")
+  86:       .eq("id", id)
+  87:       .maybeSingle();
+  88:
+  89:     if (lookupError) {
+  90:       console.error("eSIM order lookup failed:", lookupError);
+  91:       return NextResponse.json(
+  92:         { error: "Unable to verify order" },
+  93:         { status: 500 },
+  94:       );
+  95:     }
+  96:
+  97:     if (!existingOrder) {
+  98:       return NextResponse.json({ error: "Order not found" }, { status: 404 });
+  99:     }
+ 100:
+ 101:     if (existingOrder.status !== "paid_awaiting_fulfillment") {
+ 102:       return NextResponse.json(
+ 103:         {
+ 104:           error: "Only paid orders awaiting fulfillment can be fulfilled",
+ 105:           status: existingOrder.status,
+ 106:         },
+ 107:         { status: 409 },
+ 108:       );
+ 109:     }
+ 110:
+ 111:     // Claim the order atomically so concurrent requests cannot both fulfill it.
+ 112:     const { data: claimedOrder, error: claimError } = await supabaseAdmin
+ 113:       .from("nava_esim_orders")
+ 114:       .update({ status: "processing" })
+ 115:       .eq("id", id)
+ 116:       .eq("status", "paid_awaiting_fulfillment")
+ 117:       .select("id")
+ 118:       .maybeSingle();
+ 119:
+ 120:     if (claimError) {
+ 121:       console.error("eSIM order claim failed:", claimError);
+ 122:       return NextResponse.json(
+ 123:         { error: "Unable to claim order for fulfillment" },
+ 124:         { status: 500 },
+ 125:       );
+ 126:     }
+ 127:
+ 128:     if (!claimedOrder) {
+ 129:       return NextResponse.json(
+ 130:         { error: "Order is already being processed or is no longer eligible" },
+ 131:         { status: 409 },
+ 132:       );
+ 133:     }
+ 134:
+ 135:     claimedOrderId = id;
+ 136:
+ 137:     const now = new Date();
+ 138:     const expiresAt = new Date(now);
+ 139:     expiresAt.setDate(expiresAt.getDate() + 30);
+ 140:
+ 141:     const { error: secretError } = await supabaseAdmin
+ 142:       .from("nava_esim_order_secrets")
+ 143:       .upsert(
+ 144:         {
+ 145:           order_id: id,
+ 146:           activation_code_encrypted: activationCode || null,
+ 147:           customer_instructions:
+ 148:             customerInstructions ||
+ 149:             "Scan your eSIM QR code or enter the activation details in your phone settings.",
+ 150:         },
+ 151:         { onConflict: "order_id" },
+ 152:       );
+ 153:
+ 154:     if (secretError) {
+ 155:       console.error("eSIM activation details could not be saved:", secretError);
+ 156:
+ 157:       const { error: rollbackError } = await supabaseAdmin
+ 158:         .from("nava_esim_orders")
+ 159:         .update({ status: "paid_awaiting_fulfillment" })
+ 160:         .eq("id", id)
+ 161:         .eq("status", "processing");
+ 162:
+ 163:       if (rollbackError) {
+ 164:         console.error("eSIM order rollback failed:", rollbackError);
+ 165:       } else {
+ 166:         claimedOrderId = null;
+ 167:       }
+ 168:
+ 169:       return NextResponse.json(
+ 170:         { error: "Activation details could not be saved; order was not activated" },
+ 171:         { status: 500 },
+ 172:       );
+ 173:     }
+ 174:
+ 175:     const { data: order, error: activationError } = await supabaseAdmin
+ 176:       .from("nava_esim_orders")
+ 177:       .update({
+ 178:         assigned_phone_number: assignedPhoneNumber,
+ 179:         status: "active",
+ 180:         activation_starts_at: now.toISOString(),
+ 181:         activation_expires_at: expiresAt.toISOString(),
+ 182:         fulfilled_by: (await requireAdmin()).user.id,
+ 183:         fulfilled_at: now.toISOString(),
+ 184:         supplier_confirmation:
+ 185:           supplierConfirmation || "Manual admin fulfillment confirmed",
+ 186:       })
+ 187:       .eq("id", id)
+ 188:       .eq("status", "processing")
+ 189:       .select("*")
+ 190:       .maybeSingle();
+ 191:
+ 192:     if (activationError || !order) {
+ 193:       console.error("eSIM order activation failed:", activationError);
+ 194:
+ 195:       const { error: rollbackError } = await supabaseAdmin
+ 196:         .from("nava_esim_orders")
+ 197:         .update({ status: "paid_awaiting_fulfillment" })
+ 198:         .eq("id", id)
+ 199:         .eq("status", "processing");
+ 200:
+ 201:       if (rollbackError) {
+ 202:         console.error("eSIM order rollback failed:", rollbackError);
+ 203:       } else {
+ 204:         claimedOrderId = null;
+ 205:       }
+ 206:
+ 207:       return NextResponse.json(
+ 208:         { error: "Could not activate order; it has not been confirmed active" },
+ 209:         { status: 500 },
+ 210:       );
+ 211:     }
+ 212:
+ 213:     claimedOrderId = null;
+ 214:
+ 215:     return NextResponse.json({
+ 216:       message: "Order fulfilled and line activated",
+ 217:       order,
+ 218:     });
+ 219:   } catch (error) {
+ 220:     console.error("eSIM fulfillment failed:", error);
+ 221:
+ 222:     if (claimedOrderId) {
+ 223:       const { error: rollbackError } = await supabaseAdmin
+ 224:         .from("nava_esim_orders")
+ 225:         .update({ status: "paid_awaiting_fulfillment" })
+ 226:         .eq("id", claimedOrderId)
+ 227:         .eq("status", "processing");
+ 228:
+ 229:       if (rollbackError) {
+ 230:         console.error("eSIM order rollback failed:", rollbackError);
+ 231:       }
+ 232:     }
+ 233:
+ 234:     return NextResponse.json(
+ 235:       { error: "Fulfillment failed" },
+ 236:       { status: 500 },
+ 237:     );
+ 238:   }
+ 239: }
 
-PS C:\Users\Sire-F\OneDrive\Desktop\My Projects\nava-otp>
-PS C:\Users\Sire-F\OneDrive\Desktop\My Projects\nava-otp> # 2. Fulfillment API: authenticate once and reuse the verified user ID.
-PS C:\Users\Sire-F\OneDrive\Desktop\My Projects\nava-otp> $Fulfill = "src\app\api\esim\admin\orders\[id]\fulfill\route.ts"
-PS C:\Users\Sire-F\OneDrive\Desktop\My Projects\nava-otp>
-PS C:\Users\Sire-F\OneDrive\Desktop\My Projects\nava-otp> Replace-Exact $Fulfill `
->> 'import { requireAdmin } from "@/lib/auth";' `
->> 'import { getAuthenticatedSupabaseUser } from "@/lib/supabase-request-auth";'
-Exception calling "ReadAllText" with "1" argument(s): "Could not find a part of the path
-'C:\Users\Sire-F\src\app\api\esim\admin\orders\[id]\fulfill\route.ts'."
-At line:8 char:5
-+     $Content = [System.IO.File]::ReadAllText($Path)
-+     ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
-    + CategoryInfo          : NotSpecified: (:) [], ParentContainsErrorRecordException
-    + FullyQualifiedErrorId : DirectoryNotFoundException
-
-PS C:\Users\Sire-F\OneDrive\Desktop\My Projects\nava-otp>
-PS C:\Users\Sire-F\OneDrive\Desktop\My Projects\nava-otp> Replace-Exact $Fulfill `
->> '  let claimedOrderId: string | null = null;' `
->> '  let claimedOrderId: string | null = null;`r`n  let adminUserId: string | null = null;'
-Exception calling "ReadAllText" with "1" argument(s): "Could not find a part of the path
-'C:\Users\Sire-F\src\app\api\esim\admin\orders\[id]\fulfill\route.ts'."
-At line:8 char:5
-+     $Content = [System.IO.File]::ReadAllText($Path)
-+     ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
-    + CategoryInfo          : NotSpecified: (:) [], ParentContainsErrorRecordException
-    + FullyQualifiedErrorId : DirectoryNotFoundException
-
-PS C:\Users\Sire-F\OneDrive\Desktop\My Projects\nava-otp>
-PS C:\Users\Sire-F\OneDrive\Desktop\My Projects\nava-otp> Replace-Exact $Fulfill `
->> @'
->>     try {
->>       await requireAdmin();
->>     } catch (error) {
->>       const message =
->>         error instanceof Error ? error.message : "Unauthorized";
->>
->>       if (message === "Forbidden") {
->>         return NextResponse.json({ error: "Forbidden" }, { status: 403 });
->>       }
->>
->>       if (message === "Unauthorized") {
->>         return NextResponse.json({ error: "Unauthorized" }, { status: 401 });
->>       }
->>
->>       throw error;
->>     }
->> '@ `
->> @'
->>     const authUser = await getAuthenticatedSupabaseUser(req);
->>
->>     if (!authUser) {
->>       return NextResponse.json({ error: "Unauthorized" }, { status: 401 });
->>     }
->>
->>     const { data: profile, error: profileError } = await supabaseAdmin
->>       .from("profiles")
->>       .select("role")
->>       .eq("id", authUser.id)
->>       .maybeSingle();
->>
->>     if (profileError) {
->>       console.error("Admin profile lookup failed:", profileError.message);
->>       return NextResponse.json({ error: "Unable to verify admin access" }, { status: 500 });
->>     }
->>
->>     if (profile?.role !== "admin") {
->>       return NextResponse.json({ error: "Forbidden" }, { status: 403 });
->>     }
->>
->>     adminUserId = authUser.id;
->> '@
-Exception calling "ReadAllText" with "1" argument(s): "Could not find a part of the path
-'C:\Users\Sire-F\src\app\api\esim\admin\orders\[id]\fulfill\route.ts'."
-At line:8 char:5
-+     $Content = [System.IO.File]::ReadAllText($Path)
-+     ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
-    + CategoryInfo          : NotSpecified: (:) [], ParentContainsErrorRecordException
-    + FullyQualifiedErrorId : DirectoryNotFoundException
-
-PS C:\Users\Sire-F\OneDrive\Desktop\My Projects\nava-otp>
-PS C:\Users\Sire-F\OneDrive\Desktop\My Projects\nava-otp> Replace-Exact $Fulfill `
->> '        fulfilled_by: (await requireAdmin()).user.id,' `
->> '        fulfilled_by: adminUserId,'
-Exception calling "ReadAllText" with "1" argument(s): "Could not find a part of the path
-'C:\Users\Sire-F\src\app\api\esim\admin\orders\[id]\fulfill\route.ts'."
-At line:8 char:5
-+     $Content = [System.IO.File]::ReadAllText($Path)
-+     ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
-    + CategoryInfo          : NotSpecified: (:) [], ParentContainsErrorRecordException
-    + FullyQualifiedErrorId : DirectoryNotFoundException
-
-PS C:\Users\Sire-F\OneDrive\Desktop\My Projects\nava-otp>
-PS C:\Users\Sire-F\OneDrive\Desktop\My Projects\nava-otp> # 3. Admin page: obtain the Supabase session and send its access token.
-PS C:\Users\Sire-F\OneDrive\Desktop\My Projects\nava-otp> $Page = "src\app\dashboard\admin\esim\orders\page.tsx"
-PS C:\Users\Sire-F\OneDrive\Desktop\My Projects\nava-otp>
-PS C:\Users\Sire-F\OneDrive\Desktop\My Projects\nava-otp> Replace-Exact $Page `
->> 'import { useEffect, useState } from "react";' `
->> 'import { useEffect, useState } from "react";`r`nimport { supabase } from "@/lib/supabase";'
-Exception calling "ReadAllText" with "1" argument(s): "Could not find a part of the path
-'C:\Users\Sire-F\src\app\dashboard\admin\esim\orders\page.tsx'."
-At line:8 char:5
-+     $Content = [System.IO.File]::ReadAllText($Path)
-+     ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
-    + CategoryInfo          : NotSpecified: (:) [], ParentContainsErrorRecordException
-    + FullyQualifiedErrorId : DirectoryNotFoundException
-
-PS C:\Users\Sire-F\OneDrive\Desktop\My Projects\nava-otp>
-PS C:\Users\Sire-F\OneDrive\Desktop\My Projects\nava-otp> Replace-Exact $Page `
->> @'
->>   useEffect(() => {
->>     fetch("/api/esim/admin/orders")
->>       .then((res) => res.json())
->>       .then((data) => {
->>         if (data.orders) setOrders(data.orders);
->>       })
->>       .finally(() => setLoading(false));
->>   }, []);
->> '@ `
->> @'
->>   useEffect(() => {
->>     let cancelled = false;
->>
->>     async function loadOrders() {
->>       try {
->>         const { data: { session }, error: sessionError } =
->>           await supabase.auth.getSession();
->>
->>         if (sessionError) throw sessionError;
->>         if (!session) throw new Error("Please sign in again.");
->>
->>         const res = await fetch("/api/esim/admin/orders", {
->>           headers: { Authorization: `Bearer ${session.access_token}` },
->>         });
->>         const data = await res.json();
->>
->>         if (!res.ok) {
->>           throw new Error(data.error || "Unable to load eSIM orders");
->>         }
->>
->>         if (!cancelled && data.orders) setOrders(data.orders);
->>       } catch (error) {
->>         console.error("Loading admin eSIM orders failed:", error);
->>         if (!cancelled) {
->>           alert(error instanceof Error ? error.message : "Unable to load eSIM orders");
->>         }
->>       } finally {
->>         if (!cancelled) setLoading(false);
->>       }
->>     }
->>
->>     void loadOrders();
->>     return () => { cancelled = true; };
->>   }, []);
->> '@
-Exception calling "ReadAllText" with "1" argument(s): "Could not find a part of the path
-'C:\Users\Sire-F\src\app\dashboard\admin\esim\orders\page.tsx'."
-At line:8 char:5
-+     $Content = [System.IO.File]::ReadAllText($Path)
-+     ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
-    + CategoryInfo          : NotSpecified: (:) [], ParentContainsErrorRecordException
-    + FullyQualifiedErrorId : DirectoryNotFoundException
-
-PS C:\Users\Sire-F\OneDrive\Desktop\My Projects\nava-otp>
-PS C:\Users\Sire-F\OneDrive\Desktop\My Projects\nava-otp> Replace-Exact $Page `
->> '    try {`r`n      setFulfilling(true);' `
->> '    try {`r`n      setFulfilling(true);`r`n      const { data: { session }, error: sessionError } = await supabase.auth.getSession();`r`n      if (sessionError) throw sessionError;`r`n      if (!session) throw new Error("Please sign in again.");'
-Exception calling "ReadAllText" with "1" argument(s): "Could not find a part of the path
-'C:\Users\Sire-F\src\app\dashboard\admin\esim\orders\page.tsx'."
-At line:8 char:5
-+     $Content = [System.IO.File]::ReadAllText($Path)
-+     ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
-    + CategoryInfo          : NotSpecified: (:) [], ParentContainsErrorRecordException
-    + FullyQualifiedErrorId : DirectoryNotFoundException
-
-PS C:\Users\Sire-F\OneDrive\Desktop\My Projects\nava-otp>
-PS C:\Users\Sire-F\OneDrive\Desktop\My Projects\nava-otp> Replace-Exact $Page `
->> '          headers: { "Content-Type": "application/json" },' `
->> '          headers: {`r`n            "Content-Type": "application/json",`r`n            Authorization: `Bearer ${session.access_token}`,`r`n          },'
-Exception calling "ReadAllText" with "1" argument(s): "Could not find a part of the path
-'C:\Users\Sire-F\src\app\dashboard\admin\esim\orders\page.tsx'."
-At line:8 char:5
-+     $Content = [System.IO.File]::ReadAllText($Path)
-+     ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
-    + CategoryInfo          : NotSpecified: (:) [], ParentContainsErrorRecordException
-    + FullyQualifiedErrorId : DirectoryNotFoundException
-
-PS C:\Users\Sire-F\OneDrive\Desktop\My Projects\nava-otp>
-PS C:\Users\Sire-F\OneDrive\Desktop\My Projects\nava-otp> Write-Host "`nPatch script completed. No commit or deployment performed." -ForegroundColor Cyan
-
-Patch script completed. No commit or deployment performed.
-PS C:\Users\Sire-F\OneDrive\Desktop\My Projects\nava-otp> 
+========== src\app\dashboard\admin\esim\orders\page.tsx ==========
+   1: "use client";
+   2:
+   3: import { useEffect, useState } from "react";
+   4:
+   5: export default function AdminEsimOrdersPage() {
+   6:   const [orders, setOrders] = useState<any[]>([]);
+   7:   const [loading, setLoading] = useState(true);
+   8:   const [selectedOrder, setSelectedOrder] = useState<any>(null);
+   9:   const [phoneNumber, setPhoneNumber] = useState("");
+  10:   const [activationCode, setActivationCode] = useState("");
+  11:   const [fulfilling, setFulfilling] = useState(false);
+  12:
+  13:   useEffect(() => {
+  14:     fetch("/api/esim/admin/orders")
+  15:       .then((res) => res.json())
+  16:       .then((data) => {
+  17:         if (data.orders) setOrders(data.orders);
+  18:       })
+  19:       .finally(() => setLoading(false));
+  20:   }, []);
+  21:
+  22:   async function handleFulfill() {
+  23:     if (!selectedOrder || !phoneNumber) return;
+  24:     try {
+  25:       setFulfilling(true);
+  26:       const res = await fetch(`/api/esim/admin/orders/${selectedOrder.id}/fulfill`, {
+  27:         method: "POST",
+  28:         headers: { "Content-Type": "application/json" },
+  29:         body: JSON.stringify({
+  30:           assigned_phone_number: phoneNumber,
+  31:           activation_code: activationCode,
+  32:         }),
+  33:       });
+  34:
+  35:       if (res.ok) {
+  36:         alert("Order activated successfully");
+  37:         setSelectedOrder(null);
+  38:         window.location.reload();
+  39:       }
+  40:     } catch (err: any) {
+  41:       alert(err.message);
+  42:     } finally {
+  43:       setFulfilling(false);
+  44:     }
+  45:   }
+  46:
+  47:   return (
+  48:     <div className="max-w-6xl mx-auto p-6 space-y-6 font-sans text-white">
+  49:       <h1 className="text-2xl font-bold">Admin eSIM Fulfillment Desk</h1>
+  50:
+  51:       {loading ? (
+  52:         <div className="text-center py-20 text-slate-500">Loading orders...</div>
+  53:       ) : (
+  54:         <div className="space-y-4">
+  55:           {orders.map((o) => (
+  56:             <div key={o.id} className="bg-[#0b1120] border border-slate-800 p-4 rounded-2xl flex justify-between items-center">
+  57:               <div>
+  58:                 <p className="font-bold text-sm">{o.plan?.name} • User: {o.user_id.slice(0, 8)}...</p>
+  59:                 <p className="text-xs text-slate-400">Status: {o.status} • ZIP: {o.zip_code || "N/A"}</p>
+  60:               </div>
+  61:               <button
+  62:                 onClick={() => {
+  63:                   setSelectedOrder(o);
+  64:                   setPhoneNumber(o.assigned_phone_number || "");
+  65:                 }}
+  66:                 className="px-4 py-2 bg-emerald-500 text-slate-950 font-bold text-xs rounded-xl"
+  67:               >
+  68:                 Fulfill Order
+  69:               </button>
+  70:             </div>
+  71:           ))}
+  72:         </div>
+  73:       )}
+  74:
+  75:       {selectedOrder && (
+  76:         <div className="fixed inset-0 bg-black/80 flex items-center justify-center p-4">
+  77:           <div className="bg-[#0b1120] border border-slate-800 p-6 rounded-3xl max-w-md w-full space-y-4">
+  78:             <h3 className="font-bold text-lg">Fulfill Order: {selectedOrder.plan?.name}</h3>
+  79:             <input
+  80:               type="text"
+  81:               placeholder="Assigned Phone Number (+1...)"
+  82:               value={phoneNumber}
+  83:               onChange={(e) => setPhoneNumber(e.target.value)}
+  84:               className="w-full p-3 bg-[#070d19] border border-slate-800 rounded-xl text-white text-sm"
+  85:             />
+  86:             <textarea
+  87:               placeholder="Activation Code / Setup Instructions"
+  88:               value={activationCode}
+  89:               onChange={(e) => setActivationCode(e.target.value)}
+  90:               className="w-full p-3 bg-[#070d19] border border-slate-800 rounded-xl text-white text-sm h-24"
+  91:             />
+  92:             <div className="flex gap-2">
+  93:               <button onClick={() => setSelectedOrder(null)} className="flex-1 py-3 bg-slate-800 text-xs font-bold rounded-xl">
+  94:                 Cancel
+  95:               </button>
+  96:               <button onClick={handleFulfill} disabled={fulfilling} className="flex-1 py-3 bg-emerald-500 text-slate-950 text-xs font-black rounded-xl">
+  97:                 {fulfilling ? "Activating..." : "Mark Active"}
+  98:               </button>
+  99:             </div>
+ 100:           </div>
+ 101:         </div>
+ 102:       )}
+ 103:     </div>
+ 104:   );
+ 105: }
