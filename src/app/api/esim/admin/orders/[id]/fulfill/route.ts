@@ -33,7 +33,7 @@ export async function POST(req: Request, { params }: RouteContext) {
       return NextResponse.json({ error: "Forbidden" }, { status: 403 });
     }
 
-    adminUserId = authUser.id;
+    const adminUserId = authUser.id;
 
     const { id } = await params;
 
